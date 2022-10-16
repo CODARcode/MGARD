@@ -146,6 +146,30 @@ public:
     }
   }
 
+  std::vector<SIZE> subdomain_ids_for_device(int dev_id) {
+    std::vector<SIZE> subdomain_ids;
+    for (SIZE subdomain_id = dev_id;
+         subdomain_id < num_subdomains();
+         subdomain_id += num_devices()) {
+      subdomain_ids.push_back(subdomain_id);
+    }
+    return subdomain_ids;
+  }
+
+  SIZE total_subdomain_size_for_device(int dev_id) {
+    SIZE total_size = 0;
+    std::vector<SIZE> subdomain_ids = subdomain_ids_for_device(dev_id);
+    for (int i = 0; i < subdomain_ids.size(); i++) {
+      std::vector<SIZE> shape = subdomain_shape(subdomain_ids[i]);
+      int num_elems = 1;
+      for (DIM d = 0; d < D; d++) {
+        num_elems *= shape[d];
+      }
+      total_size += num_elems*sizeof(T);
+    }
+    return total_size;
+  }
+
   DomainDecomposer() : _domain_decomposed(false) {}
 
   // Find domain decomposion method

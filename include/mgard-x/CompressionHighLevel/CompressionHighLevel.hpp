@@ -497,8 +497,6 @@ void decompress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
   MemoryManager<DeviceType>::Copy1D(device_compressed_buffer.data(),
                                     compressed_subdomain_data[subdomain_id],
                                     compressed_subdomain_size[subdomain_id]);
-  MemoryManager<DeviceType>::FreeHost(compressed_subdomain_data[subdomain_id]);
-
   // Trigger the copy constructor to copy hierarchy to the current device
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
@@ -546,9 +544,6 @@ void decompress_subdomain_series(
     MemoryManager<DeviceType>::Copy1D(device_compressed_buffer.data(),
                                       compressed_subdomain_data[subdomain_id],
                                       compressed_subdomain_size[subdomain_id]);
-    MemoryManager<DeviceType>::FreeHost(
-        compressed_subdomain_data[subdomain_id]);
-
     // Trigger the copy constructor to copy hierarchy to the current device
     Hierarchy<D, T, DeviceType> hierarchy =
         domain_decomposer.subdomain_hierarchy(subdomain_id);
@@ -676,18 +671,12 @@ void decompress_subdomain_series_w_prefetch(
   domain_decomposer.copy_subdomain(device_subdomain_buffer[previous_buffer],
                                    prev_subdomain_id, SUBDOMAIN_TO_ORIGINAL, 2);
 
-  for (SIZE i = 0; i < subdomain_ids.size(); i++) {
-    MemoryManager<DeviceType>::FreeHost(
-        compressed_subdomain_data[subdomain_ids[i]]);
-  }
-
   DeviceRuntime<DeviceType>::SyncDevice();
   if (log::level & log::TIME) {
     timer_series.end();
     timer_series.print("Decompress subdomains series with prefetch");
     timer_series.clear();
   }
-  DeviceRuntime<DeviceType>::SyncDevice();
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -837,12 +826,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
 #endif
     DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
     // Create a series of subdomain ids that are assigned to the current device
-    std::vector<SIZE> subdomain_ids;
-    for (SIZE subdomain_id = dev_id;
-         subdomain_id < domain_decomposer.num_subdomains();
-         subdomain_id += adjusted_num_dev) {
-      subdomain_ids.push_back(subdomain_id);
-    }
+    std::vector<SIZE> subdomain_ids = domain_decomposer.subdomain_ids_for_device(dev_id);
     if (subdomain_ids.size() == 1) {
       compress_subdomain(domain_decomposer, subdomain_ids[0], local_tol, s,
                          norm, local_ebtype, config, compressed_subdomain_data,
@@ -993,6 +977,42 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   config.apply();
 
   Timer timer_total, timer_each;
+
+  if (log::level & log::TIME)
+      timer_each.start();
+  // Use consistance memory space between input and output data
+  if (!output_pre_allocated) {
+    if (MemoryManager<DeviceType>::IsDevicePointer(compressed_data)) {
+      DeviceRuntime<DeviceType>::SelectDevice(
+          MemoryManager<DeviceType>::GetPointerDevice(compressed_data));
+      MemoryManager<DeviceType>::Malloc1D(decompressed_data,
+                                          total_num_elem * sizeof(T));
+    } else {
+      decompressed_data = (void *)malloc(total_num_elem * sizeof(T));
+    }
+  }
+  bool input_previously_pinned =
+      !MemoryManager<DeviceType>::IsDevicePointer((void *)compressed_data) &&
+      MemoryManager<DeviceType>::CheckHostRegister((void *)compressed_data);
+  if (!input_previously_pinned) {
+    MemoryManager<DeviceType>::HostRegister((void *)compressed_data,
+                                            compressed_size);
+  }
+  bool output_previously_pinned =
+      !MemoryManager<DeviceType>::IsDevicePointer((void *)decompressed_data) &&
+      MemoryManager<DeviceType>::CheckHostRegister((void *)decompressed_data);
+  if (!output_previously_pinned) {
+    MemoryManager<DeviceType>::HostRegister((void *)decompressed_data,
+                                            total_num_elem * sizeof(T));
+  }
+
+  if (log::level & log::TIME) {
+      timer_each.end();
+      timer_each.print("Prepare input and output buffer");
+      timer_each.clear();
+  }
+
+
   if (log::level & log::TIME)
     timer_total.start();
   if (log::level & log::TIME)
@@ -1056,13 +1076,14 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   for (uint32_t i = 0; i < num_subdomains; i++) {
     DeviceRuntime<DeviceType>::SelectDevice(i % adjusted_num_dev);
     SIZE temp_size;
+    SIZE *temp_size_ptr = &temp_size;
     Byte *temp_data;
-    Deserialize<SIZE, DeviceType>((Byte *)compressed_data, &temp_size, 1,
-                                  byte_offset);
-    MemoryManager<DeviceType>::MallocHost(temp_data, temp_size);
+    Deserialize<SIZE, DeviceType>((Byte *)compressed_data, temp_size_ptr, 1,
+                                  byte_offset, false);
+    // MemoryManager<DeviceType>::MallocHost(temp_data, temp_size);
     align_byte_offset<uint64_t>(byte_offset);
     Deserialize<Byte, DeviceType>((Byte *)compressed_data, temp_data, temp_size,
-                                  byte_offset);
+                                  byte_offset, true);
     compressed_subdomain_data[i] = temp_data;
     compressed_subdomain_size[i] = temp_size;
   }
@@ -1071,40 +1092,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     timer_each.end();
     timer_each.print("Deserialize data");
     timer_each.clear();
-  }
-
-  if (log::level & log::TIME)
-      timer_each.start();
-  // Use consistance memory space between input and output data
-  if (!output_pre_allocated) {
-    if (MemoryManager<DeviceType>::IsDevicePointer(compressed_data)) {
-      DeviceRuntime<DeviceType>::SelectDevice(
-          MemoryManager<DeviceType>::GetPointerDevice(compressed_data));
-      MemoryManager<DeviceType>::Malloc1D(decompressed_data,
-                                          total_num_elem * sizeof(T));
-    } else {
-      decompressed_data = (void *)malloc(total_num_elem * sizeof(T));
-    }
-  }
-  bool input_previously_pinned =
-      !MemoryManager<DeviceType>::IsDevicePointer((void *)compressed_data) &&
-      MemoryManager<DeviceType>::CheckHostRegister((void *)compressed_data);
-  if (!input_previously_pinned) {
-    MemoryManager<DeviceType>::HostRegister((void *)compressed_data,
-                                            compressed_size);
-  }
-  bool output_previously_pinned =
-      !MemoryManager<DeviceType>::IsDevicePointer((void *)decompressed_data) &&
-      MemoryManager<DeviceType>::CheckHostRegister((void *)decompressed_data);
-  if (!output_previously_pinned) {
-    MemoryManager<DeviceType>::HostRegister((void *)decompressed_data,
-                                            total_num_elem * sizeof(T));
-  }
-
-  if (log::level & log::TIME) {
-      timer_each.end();
-      timer_each.print("Prepare input and output buffer");
-      timer_each.clear();
   }
 
   // Initialize DomainDecomposer
@@ -1135,11 +1122,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
 #endif
     DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
     // Create a series of subdomain ids that are assigned to the current device
-    std::vector<SIZE> subdomain_ids;
-    for (SIZE subdomain_id = dev_id; subdomain_id < num_subdomains;
-         subdomain_id += adjusted_num_dev) {
-      subdomain_ids.push_back(subdomain_id);
-    }
+    std::vector<SIZE> subdomain_ids = domain_decomposer.subdomain_ids_for_device(dev_id);
     if (subdomain_ids.size() == 1) {
       decompress_subdomain(domain_decomposer, subdomain_ids[0], local_tol,
                            (T)m.s, (T)m.norm, local_ebtype, config,
@@ -1161,7 +1144,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   if (log::level & log::TIME) {
     timer_each.end();
     timer_each.print("Aggregated low-level decompression");
-    log::time("Aggregated high-level decompression throughput: " +
+    log::time("Aggregated low-level decompression throughput: " +
               std::to_string((double)(total_num_elem * sizeof(T)) /
                              timer_each.get() / 1e9) +
               " GB/s");
@@ -1173,6 +1156,11 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   }
   if (!output_previously_pinned) {
     MemoryManager<DeviceType>::HostUnregister((void *)decompressed_data);
+  }
+
+  for (SIZE i = 0; i < num_subdomains; i++) {
+    // MemoryManager<DeviceType>::FreeHost(
+    //     compressed_subdomain_data[i]);
   }
 
   if (m.dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
