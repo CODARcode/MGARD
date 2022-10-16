@@ -26,6 +26,9 @@ public:
     decodebook_subarray = SubArray(decodebook_array);
     huff_subarray = SubArray(huff_array);
     huff_bitwidths_subarray = SubArray(huff_bitwidths_array);
+    condense_write_offsets_subarray = SubArray(condense_write_offsets_array);
+    condense_actual_lengths_subarray = SubArray(condense_actual_lengths_array);
+
     // Codebook
     first_nonzero_index_subarray = SubArray(first_nonzero_index_array);
     sort_by_key_workspace_subarray = SubArray(sort_by_key_workspace);
@@ -57,6 +60,8 @@ public:
     size += primary_count * sizeof(H);
     size_t nchunk = (primary_count - 1) / chunk_size + 1;
     size += nchunk * sizeof(size_t);
+    size += nchunk * sizeof(size_t);
+    size += nchunk * sizeof(size_t);
 
     size += sizeof(unsigned int);
     Array<1, Byte, DeviceType> tmp;
@@ -87,6 +92,9 @@ public:
     huff_array = Array<1, H, DeviceType>({primary_count});
     size_t nchunk = (primary_count - 1) / chunk_size + 1;
     huff_bitwidths_array = Array<1, size_t, DeviceType>({(SIZE)nchunk});
+    condense_write_offsets_array = Array<1, size_t, DeviceType>({(SIZE)nchunk});
+    condense_actual_lengths_array =
+        Array<1, size_t, DeviceType>({(SIZE)nchunk});
     // Codebook
     first_nonzero_index_array = Array<1, unsigned int, DeviceType>({1});
     first_nonzero_index_array.hostCopy(); // Create host allocation
@@ -136,6 +144,10 @@ public:
     decodebook_array = std::move(workspace.decodebook_array);
     huff_array = std::move(workspace.huff_array);
     huff_bitwidths_array = std::move(workspace.huff_bitwidths_array);
+    condense_write_offsets_array =
+        std::move(workspace.condense_write_offsets_array);
+    condense_actual_lengths_array =
+        std::move(workspace.condense_actual_lengths_array);
 
     first_nonzero_index_array = std::move(workspace.first_nonzero_index_array);
     sort_by_key_workspace = std::move(workspace.sort_by_key_workspace);
@@ -165,6 +177,10 @@ public:
     decodebook_array = std::move(workspace.decodebook_array);
     huff_array = std::move(workspace.huff_array);
     huff_bitwidths_array = std::move(workspace.huff_bitwidths_array);
+    condense_write_offsets_array =
+        std::move(workspace.condense_write_offsets_array);
+    condense_actual_lengths_array =
+        std::move(workspace.condense_actual_lengths_array);
 
     first_nonzero_index_array = std::move(workspace.first_nonzero_index_array);
     sort_by_key_workspace = std::move(workspace.sort_by_key_workspace);
@@ -215,6 +231,8 @@ public:
   Array<1, uint8_t, DeviceType> decodebook_array;
   Array<1, H, DeviceType> huff_array;
   Array<1, size_t, DeviceType> huff_bitwidths_array;
+  Array<1, size_t, DeviceType> condense_write_offsets_array;
+  Array<1, size_t, DeviceType> condense_actual_lengths_array;
 
   // Codebook
   Array<1, unsigned int, DeviceType> first_nonzero_index_array;
@@ -240,6 +258,8 @@ public:
   SubArray<1, uint8_t, DeviceType> decodebook_subarray;
   SubArray<1, H, DeviceType> huff_subarray;
   SubArray<1, size_t, DeviceType> huff_bitwidths_subarray;
+  SubArray<1, size_t, DeviceType> condense_write_offsets_subarray;
+  SubArray<1, size_t, DeviceType> condense_actual_lengths_subarray;
 
   // Codebook
   SubArray<1, unsigned int, DeviceType> first_nonzero_index_subarray;

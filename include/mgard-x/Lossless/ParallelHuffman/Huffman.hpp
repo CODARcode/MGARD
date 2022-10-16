@@ -10,6 +10,7 @@
 
 static bool debug_print_huffman = false;
 
+#include "Condense.hpp"
 #include "Decode.hpp"
 #include "Deflate.hpp"
 #include "EncodeFixedLen.hpp"
@@ -153,13 +154,22 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
   SerializeArray<size_t>(compressed_data_subarray, &ddata_size, 1, byte_offset);
 
   align_byte_offset<H>(byte_offset);
-  for (auto i = 0; i < nchunk; i++) {
-    MemoryManager<DeviceType>::Copy1D(
-        (H *)compressed_data_subarray(byte_offset +
-                                      dH_uInt_entry[i] * sizeof(H)),
-        workspace.huff_subarray(i * chunk_size), dH_uInt_meta[i],
-        i % MGARDX_NUM_ASYNC_QUEUES);
-  }
+
+  MemoryManager<DeviceType>::Copy1D(
+      workspace.condense_write_offsets_subarray.data(), dH_uInt_entry, nchunk,
+      0);
+  MemoryManager<DeviceType>::Copy1D(
+      workspace.condense_actual_lengths_subarray.data(), dH_uInt_meta, nchunk,
+      0);
+  SubArray<1, H, DeviceType> compressed_data_cast_subarray(
+      {(SIZE)ddata_size}, (H *)compressed_data_subarray(byte_offset));
+  DeviceLauncher<DeviceType>::Execute(
+      CondenseKernel<H, DeviceType>(workspace.huff_subarray,
+                                    workspace.condense_write_offsets_subarray,
+                                    workspace.condense_actual_lengths_subarray,
+                                    compressed_data_cast_subarray, chunk_size),
+      0);
+
   advance_with_align<H>(byte_offset, ddata_size);
 
   // outlier
@@ -171,7 +181,7 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
                                 outlier_subarray.data(), outlier_count,
                                 byte_offset);
 
-  DeviceRuntime<DeviceType>::SyncAllQueues();
+  DeviceRuntime<DeviceType>::SyncQueue(0);
 
   delete[] h_meta;
 
