@@ -299,8 +299,6 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   config.decomposition = mgard_x::decomposition_type::MultiDim;
   config.dev_type = dev_type;
   config.num_dev = num_dev;
-  config.zstd_compress_level = 1;
-  config.huff_dict_size = 8192;
   config.reorder = reorder;
 
   if (lossless == 0) {
