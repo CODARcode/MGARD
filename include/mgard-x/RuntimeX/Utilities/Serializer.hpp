@@ -58,12 +58,16 @@ void Serialize(Byte *serialize_ptr, T *data_ptr, SIZE count,
 }
 
 template <typename T, typename DeviceType>
-void Deserialize(Byte *serialize_ptr, T *data_ptr, SIZE count,
-                 SIZE &byte_offset) {
+void Deserialize(Byte *serialize_ptr, T *&data_ptr, SIZE count,
+                 SIZE &byte_offset, bool zero_copy) {
   using Mem = MemoryManager<DeviceType>;
   align_byte_offset<T>(byte_offset);
-  Mem::Copy1D((Byte *)data_ptr, serialize_ptr + byte_offset, count * sizeof(T),
-              0);
+  if (zero_copy) {
+    data_ptr = (T*)(serialize_ptr + byte_offset);
+  } else {
+    Mem::Copy1D((Byte *)data_ptr, serialize_ptr + byte_offset, count * sizeof(T),
+                0);
+  }
   byte_offset += count * sizeof(T);
   DeviceRuntime<DeviceType>::SyncQueue(0);
 }
