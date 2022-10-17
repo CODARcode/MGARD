@@ -297,7 +297,7 @@ void compress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
                              local_tol, s, norm, config, workspace,
                              device_compressed_buffer);
   if (device_compressed_buffer.shape(0) >
-      hierarchy.total_num_elems() * sizeof(T) + 1e6) {
+      hierarchy.total_num_elems() * sizeof(T)) {
     log::err("Compression failed. Output larger than input.");
     exit(-1);
   }
@@ -406,7 +406,7 @@ void compress_subdomain_series_w_prefetch(
       domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
   // The workspace can be resued since all subdomains should be equal/smaller
   // than the first one
-  CompressionLowLevelWorkspace workspace(hierarchy, config, 0.1);
+  CompressionLowLevelWorkspace workspace(hierarchy, config, 0.5);
   // Two buffers one for current and one for next
   Array<D, T, DeviceType> device_subdomain_buffer[2];
   Array<1, Byte, DeviceType> device_compressed_buffer;
