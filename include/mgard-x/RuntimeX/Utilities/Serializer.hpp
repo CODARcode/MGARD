@@ -47,8 +47,8 @@ void DeserializeArray(SubArray<1, Byte, DeviceType> &array, T *&data_ptr,
 }
 
 template <typename T, typename DeviceType>
-void Serialize(Byte *serialize_ptr, T *data_ptr, SIZE count,
-               SIZE &byte_offset, int queue_idx) {
+void Serialize(Byte *serialize_ptr, T *data_ptr, SIZE count, SIZE &byte_offset,
+               int queue_idx) {
   using Mem = MemoryManager<DeviceType>;
   // align_byte_offset<T>(byte_offset);
   Mem::Copy1D(serialize_ptr + byte_offset, (Byte *)data_ptr, count * sizeof(T),
@@ -62,10 +62,10 @@ void Deserialize(Byte *serialize_ptr, T *&data_ptr, SIZE count,
   using Mem = MemoryManager<DeviceType>;
   // align_byte_offset<T>(byte_offset);
   if (zero_copy) {
-    data_ptr = (T*)(serialize_ptr + byte_offset);
+    data_ptr = (T *)(serialize_ptr + byte_offset);
   } else {
-    Mem::Copy1D((Byte *)data_ptr, serialize_ptr + byte_offset, count * sizeof(T),
-                queue_idx);
+    Mem::Copy1D((Byte *)data_ptr, serialize_ptr + byte_offset,
+                count * sizeof(T), queue_idx);
   }
   byte_offset += count * sizeof(T);
 }
