@@ -147,8 +147,8 @@ public:
   }
 
   std::vector<SIZE> subdomain_ids_for_device(int dev_id) {
+    // Must assign consecutive subdomains to a device
     std::vector<SIZE> subdomain_ids;
-
     SIZE start = (dev_id * num_subdomains())/num_devices();
     SIZE end = ((dev_id+1) * num_subdomains())/num_devices()-1;
     for (SIZE subdomain_id = start; subdomain_id <= end; subdomain_id ++) {
