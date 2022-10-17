@@ -833,7 +833,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
     for (DIM d = 0; d < D; d++)
       num_elems *= shape[d];
     MemoryManager<DeviceType>::MallocHost(
-        compressed_subdomain_data[subdomain_id], num_elems * sizeof(T)+sizeof(SIZE)*2);
+        compressed_subdomain_data[subdomain_id], num_elems * sizeof(T)+sizeof(SIZE));
     // offset += num_elems * sizeof(T);
   }
   if (log::level & log::TIME) {
@@ -963,8 +963,6 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
       (Byte *)compressed_data, serizalied_meta, metadata_size, byte_offset, 0);
   for (uint32_t i = 0; i < domain_decomposer.num_subdomains(); i++) {
     SIZE subdomain_compressed_size = compressed_subdomain_size[i];
-    // Serialize<SIZE, DeviceType>((Byte *)compressed_data,
-    //                             &subdomain_compressed_size, 1, byte_offset, 0);
     Serialize<Byte, DeviceType>((Byte *)compressed_data,
                                 compressed_subdomain_data[i],
                                 subdomain_compressed_size, byte_offset, 0);
