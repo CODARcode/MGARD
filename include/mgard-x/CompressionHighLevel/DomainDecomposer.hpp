@@ -148,9 +148,10 @@ public:
 
   std::vector<SIZE> subdomain_ids_for_device(int dev_id) {
     std::vector<SIZE> subdomain_ids;
-    for (SIZE subdomain_id = dev_id;
-         subdomain_id < num_subdomains();
-         subdomain_id += num_devices()) {
+
+    SIZE start = (dev_id * num_subdomains())/num_devices();
+    SIZE end = ((dev_id+1) * num_subdomains())/num_devices()-1;
+    for (SIZE subdomain_id = start; subdomain_id <= end; subdomain_id ++) {
       subdomain_ids.push_back(subdomain_id);
     }
     return subdomain_ids;
