@@ -271,7 +271,8 @@ void compress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
                         SIZE subdomain_id, T local_tol, T s, T &norm,
                         enum error_bound_type local_ebtype, Config &config,
                         std::vector<Byte *> &compressed_subdomain_data,
-                        std::vector<SIZE> &compressed_subdomain_size) {
+                        std::vector<SIZE> &compressed_subdomain_size,
+                        int dev_id) {
 
   Timer timer_series;
   if (log::level & log::TIME)
@@ -296,21 +297,18 @@ void compress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
                              local_tol, s, norm, config, workspace,
                              device_compressed_buffer);
   if (device_compressed_buffer.shape(0) >
-      hierarchy.total_num_elems() * sizeof(T)) {
-    MemoryManager<DeviceType>::FreeHost(
-        compressed_subdomain_data[subdomain_id]);
-    MemoryManager<DeviceType>::MallocHost(
-        compressed_subdomain_data[subdomain_id],
-        device_compressed_buffer.shape(0) + sizeof(SIZE));
+      hierarchy.total_num_elems() * sizeof(T) + 1e6) {
+    log::err("Compression failed. Output larger than input.");
+    exit(-1);
   }
   SIZE byte_offset = 0;
-  Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id],
+  Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
                               &device_compressed_buffer.shape(0), 1, byte_offset, 0);
-  Serialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id],
+  Serialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
                               device_compressed_buffer.data(),
                                device_compressed_buffer.shape(0), byte_offset, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
-  compressed_subdomain_size[subdomain_id] =
+  compressed_subdomain_size[dev_id] =
        device_compressed_buffer.shape(0) + sizeof(SIZE);
   if (log::level & log::TIME) {
     timer_series.end();
@@ -326,13 +324,16 @@ void compress_subdomain_series(
     std::vector<SIZE> &subdomain_ids, T local_tol, T s, T &norm,
     enum error_bound_type local_ebtype, Config &config,
     std::vector<Byte *> &compressed_subdomain_data,
-    std::vector<SIZE> &compressed_subdomain_size) {
+    std::vector<SIZE> &compressed_subdomain_size, int dev_id) {
   assert(subdomain_ids.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
   Array<D, T, DeviceType> device_subdomain_buffer;
   Array<1, Byte, DeviceType> device_compressed_buffer;
+  // For serialization
+  SIZE byte_offset = 0;
+
   for (SIZE i = 0; i < subdomain_ids.size(); i++) {
     SIZE subdomain_id = subdomain_ids[i];
     // Copy data
@@ -365,20 +366,16 @@ void compress_subdomain_series(
 
     if (device_compressed_buffer.shape(0) >
         hierarchy.total_num_elems() * sizeof(T)) {
-      MemoryManager<DeviceType>::FreeHost(
-          compressed_subdomain_data[subdomain_id]);
-      MemoryManager<DeviceType>::MallocHost(
-          compressed_subdomain_data[subdomain_id],
-          device_compressed_buffer.shape(0) + sizeof(SIZE));
+      log::err("Compression failed. Output larger than input.");
+      exit(-1);
     }
-    SIZE byte_offset = 0;
-    Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id],
+    Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
                                 &device_compressed_buffer.shape(0), 1, byte_offset, 0);
-    Serialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id],
+    Serialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
                                 device_compressed_buffer.data(),
                                 device_compressed_buffer.shape(0), byte_offset, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
-    compressed_subdomain_size[subdomain_id] =
+    compressed_subdomain_size[dev_id] +=
         device_compressed_buffer.shape(0) + sizeof(SIZE);
   }
   if (log::level & log::TIME) {
@@ -396,7 +393,8 @@ void compress_subdomain_series_w_prefetch(
     std::vector<SIZE> &subdomain_ids, T local_tol, T s, T &norm,
     enum error_bound_type local_ebtype, Config &config,
     std::vector<Byte *> &compressed_subdomain_data,
-    std::vector<SIZE> &compressed_subdomain_size) {
+    std::vector<SIZE> &compressed_subdomain_size,
+    int dev_id) {
   assert(subdomain_ids.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME)
@@ -418,6 +416,9 @@ void compress_subdomain_series_w_prefetch(
       domain_decomposer.subdomain_shape(subdomain_ids[0]));
   device_compressed_buffer.resize(
       {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
+
+  // For serilization
+  SIZE byte_offset = 0;
 
   // Pre-fetch the first subdomain to one buffer
   int current_buffer = 0;
@@ -465,19 +466,16 @@ void compress_subdomain_series_w_prefetch(
 
     if (device_compressed_buffer.shape(0) >
         hierarchy.total_num_elems() * sizeof(T)) {
-      MemoryManager<DeviceType>::FreeHost(
-          compressed_subdomain_data[curr_subdomain_id]);
-      MemoryManager<DeviceType>::MallocHost(
-          compressed_subdomain_data[curr_subdomain_id],
-          device_compressed_buffer.shape(0)+sizeof(SIZE));
+      log::err("Compression failed. Output larger than input.");
+      exit(-1);
     }
-    SIZE byte_offset = 0;
-    Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[curr_subdomain_id],
+    
+    Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
                                 &device_compressed_buffer.shape(0), 1, byte_offset, 2);
-    Serialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[curr_subdomain_id],
+    Serialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
                                 device_compressed_buffer.data(),
                                 device_compressed_buffer.shape(0), byte_offset, 2);
-    compressed_subdomain_size[curr_subdomain_id] =
+    compressed_subdomain_size[dev_id] +=
         device_compressed_buffer.shape(0) + sizeof(SIZE);
 
     current_buffer = next_buffer;
@@ -498,7 +496,8 @@ void decompress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
                           SIZE subdomain_id, T local_tol, T s, T norm,
                           enum error_bound_type local_ebtype, Config &config,
                           std::vector<Byte *> &compressed_subdomain_data,
-                          std::vector<SIZE> &compressed_subdomain_size) {
+                          std::vector<SIZE> &compressed_subdomain_size,
+                          int dev_id) {
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
@@ -510,10 +509,10 @@ void decompress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
   SIZE *compressed_size_ptr = &compressed_size;
   Byte * compressed_data;
   SIZE byte_offset = 0;
-  Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id], compressed_size_ptr, 1,
+  Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id], compressed_size_ptr, 1,
                                 byte_offset, false, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
-  Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id], compressed_data, compressed_size,
+  Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id], compressed_data, compressed_size,
                                 byte_offset, true, 0);
 
   device_compressed_buffer.resize({compressed_size});
@@ -555,13 +554,16 @@ void decompress_subdomain_series(
     std::vector<SIZE> &subdomain_ids, T local_tol, T s, T norm,
     enum error_bound_type local_ebtype, Config &config,
     std::vector<Byte *> &compressed_subdomain_data,
-    std::vector<SIZE> &compressed_subdomain_size) {
+    std::vector<SIZE> &compressed_subdomain_size, int dev_id) {
   assert(subdomain_ids.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
   Array<D, T, DeviceType> device_subdomain_buffer;
   Array<1, Byte, DeviceType> device_compressed_buffer;
+  // For deserialization
+  SIZE byte_offset = 0;
+
   for (SIZE i = 0; i < subdomain_ids.size(); i++) {
     SIZE subdomain_id = subdomain_ids[i];
 
@@ -569,11 +571,11 @@ void decompress_subdomain_series(
     SIZE compressed_size;
     SIZE *compressed_size_ptr = &compressed_size;
     Byte * compressed_data;
-    SIZE byte_offset = 0;
-    Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id], compressed_size_ptr, 1,
+    
+    Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id], compressed_size_ptr, 1,
                                   byte_offset, false, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
-    Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id], compressed_data, compressed_size,
+    Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id], compressed_data, compressed_size,
                                   byte_offset, true, 0);
 
     device_compressed_buffer.resize({compressed_size});
@@ -619,7 +621,7 @@ void decompress_subdomain_series_w_prefetch(
     std::vector<SIZE> &subdomain_ids, T local_tol, T s, T norm,
     enum error_bound_type local_ebtype, Config &config,
     std::vector<Byte *> &compressed_subdomain_data,
-    std::vector<SIZE> &compressed_subdomain_size) {
+    std::vector<SIZE> &compressed_subdomain_size, int dev_id) {
   assert(subdomain_ids.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME)
@@ -632,6 +634,8 @@ void decompress_subdomain_series_w_prefetch(
   // Two buffers one for current and one for next
   Array<D, T, DeviceType> device_subdomain_buffer[2];
   Array<1, Byte, DeviceType> device_compressed_buffer[2];
+  // For deserialization
+  SIZE byte_offset = 0;
 
   device_subdomain_buffer[0].resize(
       domain_decomposer.subdomain_shape(subdomain_ids[0]));
@@ -649,12 +653,10 @@ void decompress_subdomain_series_w_prefetch(
   SIZE *compressed_size_ptr = &compressed_size;
   Byte * compressed_data;
 
-  SIZE byte_offset = 0;
-  
-  Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[subdomain_ids[0]], compressed_size_ptr, 1,
+  Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id], compressed_size_ptr, 1,
                                 byte_offset, false, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
-  Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[subdomain_ids[0]], compressed_data, compressed_size,
+  Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id], compressed_data, compressed_size,
                                 byte_offset, true, 0);
 
   device_compressed_buffer[current_buffer].resize({compressed_size});
@@ -677,12 +679,10 @@ void decompress_subdomain_series_w_prefetch(
       SIZE *compressed_size_ptr = &compressed_size;
       Byte * compressed_data;
       
-      SIZE byte_offset = 0;
-
-      Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[next_subdomain_id], compressed_size_ptr, 1,
+      Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id], compressed_size_ptr, 1,
                                     byte_offset, false, 1);
       DeviceRuntime<DeviceType>::SyncQueue(1);
-      Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[next_subdomain_id], compressed_data, compressed_size,
+      Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id], compressed_data, compressed_size,
                                     byte_offset, true, 1);
 
       device_compressed_buffer[next_buffer].resize({compressed_size});
@@ -790,57 +790,6 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   }
 #endif
 
-  if (log::level & log::TIME)
-    timer_each.start();
-  // Use consistance memory space between input and output data
-  size_t safty_overhead = 1e6;
-  if (!output_pre_allocated) {
-    if (MemoryManager<DeviceType>::IsDevicePointer(original_data)) {
-      DeviceRuntime<DeviceType>::SelectDevice(
-          MemoryManager<DeviceType>::GetPointerDevice(original_data));
-      MemoryManager<DeviceType>::Malloc1D(compressed_data, total_num_elem * sizeof(T));
-    } else {
-      compressed_data = (unsigned char *)malloc(total_num_elem * sizeof(T) + safty_overhead);
-    }
-  }
-
-  bool input_previously_pinned =
-      !MemoryManager<DeviceType>::IsDevicePointer((void *)original_data) &&
-      MemoryManager<DeviceType>::CheckHostRegister((void *)original_data);
-  if (!input_previously_pinned) {
-    MemoryManager<DeviceType>::HostRegister((void *)original_data,
-                                            total_num_elem * sizeof(T));
-  }
-  bool output_previously_pinned =
-      !MemoryManager<DeviceType>::IsDevicePointer((void *)compressed_data) &&
-      MemoryManager<DeviceType>::CheckHostRegister((void *)compressed_data);
-  if (!output_previously_pinned) {
-    MemoryManager<DeviceType>::HostRegister((void *)compressed_data,
-                                            total_num_elem * sizeof(T) + safty_overhead);
-  }
-  // We store compressed data on host in case they are too large for devices
-  std::vector<Byte *> compressed_subdomain_data(
-      domain_decomposer.num_subdomains());
-  std::vector<SIZE> compressed_subdomain_size(
-      domain_decomposer.num_subdomains());
-  SIZE offset = 0;
-  for (int subdomain_id = 0; subdomain_id < domain_decomposer.num_subdomains();
-       subdomain_id++) {
-    // compressed_subdomain_data[subdomain_id] = (Byte*)compressed_data + offset;
-
-    std::vector<SIZE> shape = domain_decomposer.subdomain_shape(subdomain_id);
-    SIZE num_elems = 1;
-    for (DIM d = 0; d < D; d++)
-      num_elems *= shape[d];
-    MemoryManager<DeviceType>::MallocHost(
-        compressed_subdomain_data[subdomain_id], num_elems * sizeof(T)+sizeof(SIZE));
-    // offset += num_elems * sizeof(T);
-  }
-  if (log::level & log::TIME) {
-    timer_each.end();
-    timer_each.print("Prepare input and output buffer");
-    timer_each.clear();
-  }
   T norm = 1;
   T local_tol = tol;
   enum error_bound_type local_ebtype;
@@ -879,48 +828,33 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
 
   if (log::level & log::TIME)
     timer_each.start();
-    // Set the number of threads equal to the number of devices
-    // So that each thread is responsible for one device
-#if MGARD_ENABLE_MULTI_DEVICE
-  omp_set_num_threads(adjusted_num_dev);
-#pragma omp parallel for firstprivate(config)
-#endif
-  for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
-#if MGARD_ENABLE_MULTI_DEVICE
-    config.dev_id = dev_id;
-#endif
-    DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
-    // Create a series of subdomain ids that are assigned to the current device
-    std::vector<SIZE> subdomain_ids = domain_decomposer.subdomain_ids_for_device(dev_id);
-    if (subdomain_ids.size() == 1) {
-      compress_subdomain(domain_decomposer, subdomain_ids[0], local_tol, s,
-                         norm, local_ebtype, config, compressed_subdomain_data,
-                         compressed_subdomain_size);
+  // Use consistance memory space between input and output data
+  size_t safty_overhead = 1e6;
+  if (!output_pre_allocated) {
+    if (MemoryManager<DeviceType>::IsDevicePointer(original_data)) {
+      DeviceRuntime<DeviceType>::SelectDevice(
+          MemoryManager<DeviceType>::GetPointerDevice(original_data));
+      MemoryManager<DeviceType>::Malloc1D(compressed_data, total_num_elem * sizeof(T));
     } else {
-      // Compress a series of subdomains according to the subdomain id list
-      // compress_subdomain_series(domain_decomposer, subdomain_ids,
-      //                           local_tol, s, norm, local_ebtype, config,
-      //                           compressed_subdomain_data,
-      //                           compressed_subdomain_size);
-      compress_subdomain_series_w_prefetch(
-          domain_decomposer, subdomain_ids, local_tol, s, norm, local_ebtype,
-          config, compressed_subdomain_data, compressed_subdomain_size);
+      compressed_data = (unsigned char *)malloc(total_num_elem * sizeof(T) + safty_overhead);
     }
   }
 
-  if (log::level & log::TIME) {
-    timer_each.end();
-    timer_each.print("Aggregated low-level compression");
-    log::time("Aggregated low-level compression throughput: " +
-              std::to_string((double)(total_num_elem * sizeof(T)) /
-                             timer_each.get() / 1e9) +
-              " GB/s");
-    timer_each.clear();
+  bool input_previously_pinned =
+      !MemoryManager<DeviceType>::IsDevicePointer((void *)original_data) &&
+      MemoryManager<DeviceType>::CheckHostRegister((void *)original_data);
+  if (!input_previously_pinned) {
+    MemoryManager<DeviceType>::HostRegister((void *)original_data,
+                                            total_num_elem * sizeof(T));
   }
-
-  if (log::level & log::TIME)
-    timer_each.start();
-  // Initialize metadata
+  bool output_previously_pinned =
+      !MemoryManager<DeviceType>::IsDevicePointer((void *)compressed_data) &&
+      MemoryManager<DeviceType>::CheckHostRegister((void *)compressed_data);
+  if (!output_previously_pinned) {
+    MemoryManager<DeviceType>::HostRegister((void *)compressed_data,
+                                            total_num_elem * sizeof(T) + safty_overhead);
+  }
+  // Estimate metadata size
   Metadata<DeviceType> m;
   if (uniform) {
     m.Fill(ebtype, tol, s, norm, config.decomposition, config.reorder,
@@ -938,38 +872,110 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
 
   uint32_t metadata_size;
   SERIALIZED_TYPE *serizalied_meta = m.Serialize(metadata_size);
+  MemoryManager<DeviceType>::Free(serizalied_meta);
 
-  // Estimate final output size
-  SIZE byte_offset = 0;
-  advance_with_align<SERIALIZED_TYPE>(byte_offset, metadata_size);
-  for (uint32_t i = 0; i < domain_decomposer.num_subdomains(); i++) {
-    advance_with_align<SIZE>(byte_offset, 1);
-    advance_with_align<Byte>(byte_offset, compressed_subdomain_size[i]);
+  SIZE byte_offset = metadata_size;
+  std::vector<Byte *> compressed_subdomain_data(
+      domain_decomposer.num_devices());
+  std::vector<SIZE> compressed_subdomain_size(
+      domain_decomposer.num_devices());
+  // First buffer is on the final output buffer
+  compressed_subdomain_data[0] = (Byte*)compressed_data + byte_offset;
+  // Other buffer is on separated allocation
+  for (int dev_id = 1; dev_id < domain_decomposer.num_devices(); dev_id++) {
+    SIZE buffer_size = domain_decomposer.total_subdomain_size_for_device(dev_id);
+    buffer_size += sizeof(SIZE) * domain_decomposer.subdomain_ids_for_device(dev_id).size();    
+    MemoryManager<DeviceType>::MallocHost(compressed_subdomain_data[dev_id], buffer_size);
   }
 
-  compressed_size = byte_offset;
-
-  if (compressed_size > total_num_elem * sizeof(T) + safty_overhead) {
-    MemoryManager<DeviceType>::HostUnregister((void *)compressed_data);
-    free(compressed_data);
-    compressed_data = (unsigned char *)malloc(compressed_size);
-    MemoryManager<DeviceType>::HostRegister((void *)compressed_data,
-                                          compressed_size);
+  if (log::level & log::TIME) {
+    timer_each.end();
+    timer_each.print("Prepare input and output buffer");
+    timer_each.clear();
   }
+
+  if (log::level & log::TIME)
+    timer_each.start();
+    // Set the number of threads equal to the number of devices
+    // So that each thread is responsible for one device
+#if MGARD_ENABLE_MULTI_DEVICE
+  omp_set_num_threads(adjusted_num_dev);
+#pragma omp parallel for firstprivate(config)
+#endif
+  for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
+#if MGARD_ENABLE_MULTI_DEVICE
+    config.dev_id = dev_id;
+#endif
+    DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
+    // Create a series of subdomain ids that are assigned to the current device
+    std::vector<SIZE> subdomain_ids = domain_decomposer.subdomain_ids_for_device(dev_id);
+    if (subdomain_ids.size() == 1) {
+      compress_subdomain(domain_decomposer, subdomain_ids[0], local_tol, s,
+                         norm, local_ebtype, config, compressed_subdomain_data,
+                         compressed_subdomain_size, dev_id);
+    } else {
+      // Compress a series of subdomains according to the subdomain id list
+      // compress_subdomain_series(domain_decomposer, subdomain_ids,
+      //                           local_tol, s, norm, local_ebtype, config,
+      //                           compressed_subdomain_data,
+      //                           compressed_subdomain_size, dev_id);
+      compress_subdomain_series_w_prefetch(
+          domain_decomposer, subdomain_ids, local_tol, s, norm, local_ebtype,
+          config, compressed_subdomain_data, compressed_subdomain_size, dev_id);
+    }
+  }
+
+  if (log::level & log::TIME) {
+    timer_each.end();
+    timer_each.print("Aggregated low-level compression");
+    log::time("Aggregated low-level compression throughput: " +
+              std::to_string((double)(total_num_elem * sizeof(T)) /
+                             timer_each.get() / 1e9) +
+              " GB/s");
+    timer_each.clear();
+  }
+
+  if (log::level & log::TIME)
+    timer_each.start();
+  if (uniform) {
+    m.Fill(ebtype, tol, s, norm, config.decomposition, config.reorder,
+           config.lossless, config.huff_dict_size, config.huff_block_size,
+           shape, domain_decomposer.domain_decomposed(),
+           domain_decomposer.domain_decomposed_dim(),
+           domain_decomposer.domain_decomposed_size());
+  } else {
+    m.Fill(ebtype, tol, s, norm, config.decomposition, config.reorder,
+           config.lossless, config.huff_dict_size, config.huff_block_size,
+           shape, domain_decomposer.domain_decomposed(),
+           domain_decomposer.domain_decomposed_dim(),
+           domain_decomposer.domain_decomposed_size(), coords);
+  }
+
+  serizalied_meta = m.Serialize(metadata_size);
 
   // Serialize
   byte_offset = 0;
   Serialize<SERIALIZED_TYPE, DeviceType>(
       (Byte *)compressed_data, serizalied_meta, metadata_size, byte_offset, 0);
-  for (uint32_t i = 0; i < domain_decomposer.num_subdomains(); i++) {
+  DeviceRuntime<DeviceType>::SyncQueue(0);
+  MemoryManager<DeviceType>::Free(serizalied_meta);
+  // The first device output is already inplace so start from the second one
+  byte_offset += compressed_subdomain_size[0];
+  for (uint32_t i = 1; i < domain_decomposer.num_devices(); i++) {
     SIZE subdomain_compressed_size = compressed_subdomain_size[i];
     Serialize<Byte, DeviceType>((Byte *)compressed_data,
                                 compressed_subdomain_data[i],
                                 subdomain_compressed_size, byte_offset, 0);
-    DeviceRuntime<DeviceType>::SyncQueue(0);
+  }
+
+  DeviceRuntime<DeviceType>::SyncQueue(0);
+
+  for (uint32_t i = 1; i < domain_decomposer.num_devices(); i++) {
     MemoryManager<DeviceType>::FreeHost(compressed_subdomain_data[i]);
   }
-  MemoryManager<DeviceType>::Free(serizalied_meta);
+
+
+  compressed_size = byte_offset;
 
   if (!input_previously_pinned) {
     MemoryManager<DeviceType>::HostUnregister((void *)original_data);
@@ -1092,12 +1098,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     }
   }
 
-  if (log::level & log::TIME) {
-    timer_each.end();
-    timer_each.print("Deserialize metadata");
-    timer_each.clear();
-  }
-
   SIZE num_subdomains;
   if (!m.domain_decomposed) {
     num_subdomains = 1;
@@ -1129,43 +1129,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     MemoryManager<DeviceType>::ReduceMemoryFootprint = true;
   }
 
-  // Deserialize compressed data
-  std::vector<Byte *> compressed_subdomain_data(num_subdomains);
-  std::vector<SIZE> compressed_subdomain_size(num_subdomains);
-  SIZE byte_offset = m.metadata_size;
-  for (uint32_t i = 0; i < num_subdomains; i++) {
-    DeviceRuntime<DeviceType>::SelectDevice(i % adjusted_num_dev);
-    // SIZE compressed_data_saved;
-    // SIZE *compressed_data_saved_ptr = &compressed_data_saved;
-    // SIZE temp_size;
-    // SIZE *temp_size_ptr = &temp_size;
-    // Byte *temp_data;
-    // Deserialize<SIZE, DeviceType>((Byte *)compressed_data, temp_size_ptr, 1,
-    //                               byte_offset, false, 0);
-    // Deserialize<SIZE, DeviceType>((Byte *)compressed_data, compressed_data_saved_ptr, 1,
-    //                               byte_offset, false, 0);
-    // Deserialize<Byte, DeviceType>((Byte *)compressed_data, temp_data, temp_size,
-    //                               byte_offset, true, 0);
-    // DeviceRuntime<DeviceType>::SyncQueue(0);
-    // compressed_subdomain_data[i] = temp_data;
-    // compressed_subdomain_size[i] = temp_size;
-    // compressed_subdomain_saved[i] = compressed_data_saved;
-
-    SIZE compressed_size;
-    SIZE * compressed_size_ptr = &compressed_size;
-    compressed_subdomain_data[i] = (Byte *)compressed_data+byte_offset;
-    Deserialize<SIZE, DeviceType>((Byte *)compressed_data, compressed_size_ptr, 1,
-                                  byte_offset, false, 0);
-    DeviceRuntime<DeviceType>::SyncQueue(0);
-    byte_offset += compressed_size; // Skip compressed data
-  }
-
-  if (log::level & log::TIME) {
-    timer_each.end();
-    timer_each.print("Deserialize data");
-    timer_each.clear();
-  }
-
   // Initialize DomainDecomposer
   DomainDecomposer<D, T, DeviceType> domain_decomposer;
 
@@ -1177,6 +1140,28 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     domain_decomposer = domain_decomposer = DomainDecomposer<D, T, DeviceType>(
         (T *)decompressed_data, shape, adjusted_num_dev, m.domain_decomposed,
         m.domain_decomposed_dim, m.domain_decomposed_size, config, coords);
+  }
+
+  // Deserialize compressed data
+  std::vector<Byte *> compressed_subdomain_data(domain_decomposer.num_devices());
+  std::vector<SIZE> compressed_subdomain_size(domain_decomposer.num_devices());
+  SIZE byte_offset = m.metadata_size;
+  for (SIZE dev_id = 0; dev_id < domain_decomposer.num_devices(); dev_id++) {
+    compressed_subdomain_data[dev_id] = (Byte *)compressed_data+byte_offset;
+    for (SIZE i = 0; i < domain_decomposer.subdomain_ids_for_device(dev_id).size(); i++) { 
+      SIZE compressed_size;
+      SIZE * compressed_size_ptr = &compressed_size;
+      Deserialize<SIZE, DeviceType>((Byte *)compressed_data, compressed_size_ptr, 1,
+                                    byte_offset, false, 0);
+      DeviceRuntime<DeviceType>::SyncQueue(0);
+      byte_offset += compressed_size; // Skip compressed data
+    }
+  }
+
+  if (log::level & log::TIME) {
+    timer_each.end();
+    timer_each.print("Deserialization");
+    timer_each.clear();
   }
 
   if (log::level & log::TIME)
@@ -1199,17 +1184,17 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       decompress_subdomain(domain_decomposer, subdomain_ids[0], local_tol,
                            (T)m.s, (T)m.norm, local_ebtype, config,
                            compressed_subdomain_data,
-                           compressed_subdomain_size);
+                           compressed_subdomain_size, dev_id);
     } else {
       // Decompress a series of subdomains according to the subdomain id list
       // decompress_subdomain_series(domain_decomposer, subdomain_ids,
       //                           local_tol, (T)m.s, (T)m.norm, local_ebtype,
       //                           config, compressed_subdomain_data,
-      //                           compressed_subdomain_size);
+      //                           compressed_subdomain_size, dev_id);
       decompress_subdomain_series_w_prefetch(
           domain_decomposer, subdomain_ids, local_tol, (T)m.s, (T)m.norm,
           local_ebtype, config, compressed_subdomain_data,
-          compressed_subdomain_size);
+          compressed_subdomain_size, dev_id);
     }
   }
 
