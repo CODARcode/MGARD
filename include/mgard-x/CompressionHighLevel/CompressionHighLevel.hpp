@@ -879,7 +879,6 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   advance_with_align<SERIALIZED_TYPE>(byte_offset, metadata_size);
   for (uint32_t i = 0; i < domain_decomposer.num_subdomains(); i++) {
     advance_with_align<SIZE>(byte_offset, 1);
-    align_byte_offset<uint64_t>(byte_offset); // for zero copy when deserialize
     advance_with_align<Byte>(byte_offset, compressed_subdomain_size[i]);
   }
 
@@ -901,7 +900,6 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
     SIZE subdomain_compressed_size = compressed_subdomain_size[i];
     Serialize<SIZE, DeviceType>((Byte *)compressed_data,
                                 &subdomain_compressed_size, 1, byte_offset);
-    align_byte_offset<uint64_t>(byte_offset);
     Serialize<Byte, DeviceType>((Byte *)compressed_data,
                                 compressed_subdomain_data[i],
                                 subdomain_compressed_size, byte_offset);
@@ -977,9 +975,10 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   config.apply();
 
   Timer timer_total, timer_each;
-
   if (log::level & log::TIME)
-      timer_each.start();
+    timer_total.start();
+  if (log::level & log::TIME)
+    timer_each.start();
   // Use consistance memory space between input and output data
   if (!output_pre_allocated) {
     if (MemoryManager<DeviceType>::IsDevicePointer(compressed_data)) {
@@ -1012,9 +1011,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       timer_each.clear();
   }
 
-
-  if (log::level & log::TIME)
-    timer_total.start();
   if (log::level & log::TIME)
     timer_each.start();
 
@@ -1080,8 +1076,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     Byte *temp_data;
     Deserialize<SIZE, DeviceType>((Byte *)compressed_data, temp_size_ptr, 1,
                                   byte_offset, false);
-    // MemoryManager<DeviceType>::MallocHost(temp_data, temp_size);
-    align_byte_offset<uint64_t>(byte_offset);
     Deserialize<Byte, DeviceType>((Byte *)compressed_data, temp_data, temp_size,
                                   byte_offset, true);
     compressed_subdomain_data[i] = temp_data;
