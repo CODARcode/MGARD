@@ -579,4 +579,145 @@ void EndAutoTuning(enum device_type dev_type) {
   }
 }
 
+void pin_memory(void *ptr, SIZE num_bytes, Config config) {
+
+  enum device_type dev_type = config.dev_type;
+  if (dev_type == device_type::AUTO) {
+    dev_type = auto_detect_device();
+  }
+
+  if (dev_type == device_type::SERIAL) {
+#if MGARD_ENABLE_SERIAL
+    pin_memory<SERIAL>(ptr, num_bytes);
+#else
+    log::err("MGARD-X was not built with SERIAL backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    pin_memory<OPENMP>(ptr, num_bytes);
+#else
+    log::err("MGARD-X was not built with OPENMP backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::CUDA) {
+#if MGARD_ENABLE_CUDA
+    pin_memory<CUDA>(ptr, num_bytes);
+#else
+    log::err("MGARD-X was not built with CUDA backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::HIP) {
+#if MGARD_ENABLE_HIP
+    pin_memory<HIP>(ptr, num_bytes);
+#else
+    log::err("MGARD-X was not built with HIP backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::SYCL) {
+#if MGARD_ENABLE_SYCL
+    pin_memory<SYCL>(ptr, num_bytes);
+#else
+    log::err("MGARD-X was not built with SYCL backend.");
+    exit(-1);
+#endif
+  } else {
+    log::err("Unsupported backend.");
+  }
+}
+
+bool check_memory_pinned(void *ptr, Config config) {
+
+  enum device_type dev_type = config.dev_type;
+  if (dev_type == device_type::AUTO) {
+    dev_type = auto_detect_device();
+  }
+
+  if (dev_type == device_type::SERIAL) {
+#if MGARD_ENABLE_SERIAL
+    return check_memory_pinned<SERIAL>(ptr);
+#else
+    log::err("MGARD-X was not built with SERIAL backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    return check_memory_pinned<OPENMP>(ptr);
+#else
+    log::err("MGARD-X was not built with OPENMP backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::CUDA) {
+#if MGARD_ENABLE_CUDA
+    return check_memory_pinned<CUDA>(ptr);
+#else
+    log::err("MGARD-X was not built with CUDA backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::HIP) {
+#if MGARD_ENABLE_HIP
+    return check_memory_pinned<HIP>(ptr);
+#else
+    log::err("MGARD-X was not built with HIP backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::SYCL) {
+#if MGARD_ENABLE_SYCL
+    return check_memory_pinned<SYCL>(ptr);
+#else
+    log::err("MGARD-X was not built with SYCL backend.");
+    exit(-1);
+#endif
+  } else {
+    log::err("Unsupported backend.");
+  }
+}
+
+void unpin_memory(void *ptr, Config config) {
+
+  enum device_type dev_type = config.dev_type;
+  if (dev_type == device_type::AUTO) {
+    dev_type = auto_detect_device();
+  }
+
+  if (dev_type == device_type::SERIAL) {
+#if MGARD_ENABLE_SERIAL
+    unpin_memory<SERIAL>(ptr);
+#else
+    log::err("MGARD-X was not built with SERIAL backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    unpin_memory<OPENMP>(ptr);
+#else
+    log::err("MGARD-X was not built with OPENMP backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::CUDA) {
+#if MGARD_ENABLE_CUDA
+    unpin_memory<CUDA>(ptr);
+#else
+    log::err("MGARD-X was not built with CUDA backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::HIP) {
+#if MGARD_ENABLE_HIP
+    unpin_memory<HIP>(ptr);
+#else
+    log::err("MGARD-X was not built with HIP backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::SYCL) {
+#if MGARD_ENABLE_SYCL
+    unpin_memory<SYCL>(ptr);
+#else
+    log::err("MGARD-X was not built with SYCL backend.");
+    exit(-1);
+#endif
+  } else {
+    log::err("Unsupported backend.");
+  }
+}
+
 } // namespace mgard_x

@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "compress_x.hpp"
 #include "mgard-x/Utilities/ErrorCalculator.h"
@@ -332,13 +333,14 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
               << in_size << " vs. " << original_size * sizeof(T) << "!\n";
   }
 
-  void *compressed_data = NULL;
+  void *compressed_data = (void *)new T[original_size];
   size_t compressed_size = 0;
-  void *decompressed_data = NULL;
+  mgard_x::pin_memory(original_data, original_size * sizeof(T), config);
+  mgard_x::pin_memory(compressed_data, original_size * sizeof(T), config);
   std::vector<const mgard_x::Byte *> coords_byte;
   if (!non_uniform) {
     mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
-                      compressed_data, compressed_size, config, false);
+                      compressed_data, compressed_size, config, true);
   } else {
     std::vector<T *> coords;
     if (non_uniform) {
@@ -349,7 +351,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     }
     mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
                       compressed_data, compressed_size, coords_byte, config,
-                      false);
+                      true);
   }
 
   writefile(output_file, compressed_size, compressed_data);
@@ -362,15 +364,23 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   if (verbose) {
     config.log_level = verbose_to_log_level(verbose);
-
+    void *decompressed_data = malloc(original_size * sizeof(T));
+    mgard_x::pin_memory(decompressed_data, original_size * sizeof(T), config);
     mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
-                        config, false);
+                        config, true);
 
     print_statistics<T>(s, mode, shape, original_data, (T *)decompressed_data,
                         tol, config.normalize_coordinates);
+
+    mgard_x::unpin_memory(decompressed_data, config);
+    delete[](T *) decompressed_data;
   }
 
+  mgard_x::unpin_memory(original_data, config);
+  mgard_x::unpin_memory(compressed_data, config);
   delete[](T *) original_data;
+  delete[](unsigned char *) compressed_data;
+
   return 0;
 }
 

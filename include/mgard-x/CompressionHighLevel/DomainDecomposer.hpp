@@ -149,9 +149,9 @@ public:
   std::vector<SIZE> subdomain_ids_for_device(int dev_id) {
     // Must assign consecutive subdomains to a device
     std::vector<SIZE> subdomain_ids;
-    SIZE start = (dev_id * num_subdomains())/num_devices();
-    SIZE end = ((dev_id+1) * num_subdomains())/num_devices()-1;
-    for (SIZE subdomain_id = start; subdomain_id <= end; subdomain_id ++) {
+    SIZE start = (dev_id * num_subdomains()) / num_devices();
+    SIZE end = ((dev_id + 1) * num_subdomains()) / num_devices() - 1;
+    for (SIZE subdomain_id = start; subdomain_id <= end; subdomain_id++) {
       subdomain_ids.push_back(subdomain_id);
     }
     return subdomain_ids;
@@ -166,7 +166,7 @@ public:
       for (DIM d = 0; d < D; d++) {
         num_elems *= shape[d];
       }
-      total_size += num_elems*sizeof(T);
+      total_size += num_elems * sizeof(T);
     }
     return total_size;
   }
