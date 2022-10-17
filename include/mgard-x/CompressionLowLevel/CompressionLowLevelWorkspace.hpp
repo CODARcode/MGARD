@@ -39,9 +39,8 @@ public:
     outliers_subarray = SubArray(outliers_array);
   }
 
-  size_t estimate_size(std::vector<SIZE> shape, SIZE l_target,
-                       double estimated_outlier_ratio, SIZE dict_size,
-                       SIZE chunk_size) {
+  size_t estimate_size(std::vector<SIZE> shape, SIZE l_target, SIZE dict_size,
+                       SIZE chunk_size, double estimated_outlier_ratio = 0.5) {
     SIZE total_num_elems = 1;
     for (DIM d = 0; d < D; d++)
       total_num_elems *= shape[d];

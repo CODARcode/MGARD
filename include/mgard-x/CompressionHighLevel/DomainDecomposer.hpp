@@ -38,10 +38,11 @@ public:
 
     CompressionLowLevelWorkspace<D, T, DeviceType> compression_workspace;
 
-    estimate_memory_usgae = hierarchy_space + input_space + output_space +
-                            compression_workspace.estimate_size(
-                                shape, hierarchy.l_target(), outlier_ratio,
-                                config.huff_dict_size, config.huff_block_size);
+    estimate_memory_usgae =
+        hierarchy_space + input_space + output_space +
+        compression_workspace.estimate_size(
+            shape, hierarchy.l_target(), config.huff_dict_size,
+            config.huff_block_size, outlier_ratio);
 
     // For prefetching
     if (enable_prefetch) {
@@ -53,7 +54,7 @@ public:
 
   bool need_domain_decomposition(std::vector<SIZE> shape,
                                  bool enable_prefetch) {
-    size_t estm = estimate_memory_usgae(shape, 0.1, 1, enable_prefetch);
+    size_t estm = estimate_memory_usgae(shape, 0.5, 1, enable_prefetch);
     size_t aval = DeviceRuntime<DeviceType>::GetAvailableMemory();
     log::info("Estimated memory usage: " + std::to_string((double)estm / 1e9) +
               "GB, Available: " + std::to_string((double)aval / 1e9) + "GB");
