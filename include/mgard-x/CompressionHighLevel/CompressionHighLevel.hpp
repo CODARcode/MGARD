@@ -301,12 +301,17 @@ void compress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
         compressed_subdomain_data[subdomain_id]);
     MemoryManager<DeviceType>::MallocHost(
         compressed_subdomain_data[subdomain_id],
-        device_compressed_buffer.shape(0));
+        device_compressed_buffer.shape(0) + sizeof(SIZE));
   }
-  MemoryManager<DeviceType>::Copy1D(compressed_subdomain_data[subdomain_id],
-                                    device_compressed_buffer.data(),
-                                    device_compressed_buffer.shape(0));
-  compressed_subdomain_size[subdomain_id] = device_compressed_buffer.shape(0);
+  SIZE byte_offset = 0;
+  Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id],
+                              &device_compressed_buffer.shape(0), 1, byte_offset, 0);
+  Serialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id],
+                              device_compressed_buffer.data(),
+                               device_compressed_buffer.shape(0), byte_offset, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
+  compressed_subdomain_size[subdomain_id] =
+       device_compressed_buffer.shape(0) + sizeof(SIZE);
   if (log::level & log::TIME) {
     timer_series.end();
     timer_series.print("Compress single subdomain");
@@ -364,12 +369,17 @@ void compress_subdomain_series(
           compressed_subdomain_data[subdomain_id]);
       MemoryManager<DeviceType>::MallocHost(
           compressed_subdomain_data[subdomain_id],
-          device_compressed_buffer.shape(0));
+          device_compressed_buffer.shape(0) + sizeof(SIZE));
     }
-    MemoryManager<DeviceType>::Copy1D(compressed_subdomain_data[subdomain_id],
-                                      device_compressed_buffer.data(),
-                                      device_compressed_buffer.shape(0));
-    compressed_subdomain_size[subdomain_id] = device_compressed_buffer.shape(0);
+    SIZE byte_offset = 0;
+    Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id],
+                                &device_compressed_buffer.shape(0), 1, byte_offset, 0);
+    Serialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id],
+                                device_compressed_buffer.data(),
+                                device_compressed_buffer.shape(0), byte_offset, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+    compressed_subdomain_size[subdomain_id] =
+        device_compressed_buffer.shape(0) + sizeof(SIZE);
   }
   if (log::level & log::TIME) {
     timer_series.end();
@@ -459,13 +469,16 @@ void compress_subdomain_series_w_prefetch(
           compressed_subdomain_data[curr_subdomain_id]);
       MemoryManager<DeviceType>::MallocHost(
           compressed_subdomain_data[curr_subdomain_id],
-          device_compressed_buffer.shape(0));
+          device_compressed_buffer.shape(0)+sizeof(SIZE));
     }
-    MemoryManager<DeviceType>::Copy1D(
-        compressed_subdomain_data[curr_subdomain_id],
-        device_compressed_buffer.data(), device_compressed_buffer.shape(0), 2);
+    SIZE byte_offset = 0;
+    Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[curr_subdomain_id],
+                                &device_compressed_buffer.shape(0), 1, byte_offset, 2);
+    Serialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[curr_subdomain_id],
+                                device_compressed_buffer.data(),
+                                device_compressed_buffer.shape(0), byte_offset, 2);
     compressed_subdomain_size[curr_subdomain_id] =
-        device_compressed_buffer.shape(0);
+        device_compressed_buffer.shape(0) + sizeof(SIZE);
 
     current_buffer = next_buffer;
     // Make sure prefetch is done
@@ -491,12 +504,25 @@ void decompress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
     timer_series.start();
   Array<D, T, DeviceType> device_subdomain_buffer;
   Array<1, Byte, DeviceType> device_compressed_buffer;
-  // Copy data
-  device_compressed_buffer =
-      Array<1, Byte, DeviceType>({compressed_subdomain_size[subdomain_id]});
-  MemoryManager<DeviceType>::Copy1D(device_compressed_buffer.data(),
-                                    compressed_subdomain_data[subdomain_id],
-                                    compressed_subdomain_size[subdomain_id]);
+
+  // Deserialize and copy data
+  SIZE compressed_size;
+  SIZE *compressed_size_ptr = &compressed_size;
+  Byte * compressed_data;
+  SIZE byte_offset = 0;
+  Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id], compressed_size_ptr, 1,
+                                byte_offset, false, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
+  Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id], compressed_data, compressed_size,
+                                byte_offset, true, 0);
+
+  device_compressed_buffer.resize({compressed_size});
+
+  MemoryManager<DeviceType>::Copy1D(
+      device_compressed_buffer.data(),
+      compressed_data, compressed_size, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
+
   // Trigger the copy constructor to copy hierarchy to the current device
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
@@ -538,12 +564,25 @@ void decompress_subdomain_series(
   Array<1, Byte, DeviceType> device_compressed_buffer;
   for (SIZE i = 0; i < subdomain_ids.size(); i++) {
     SIZE subdomain_id = subdomain_ids[i];
-    // Copy data
-    device_compressed_buffer =
-        Array<1, Byte, DeviceType>({compressed_subdomain_size[subdomain_id]});
-    MemoryManager<DeviceType>::Copy1D(device_compressed_buffer.data(),
-                                      compressed_subdomain_data[subdomain_id],
-                                      compressed_subdomain_size[subdomain_id]);
+
+    // Deserialize and copy data
+    SIZE compressed_size;
+    SIZE *compressed_size_ptr = &compressed_size;
+    Byte * compressed_data;
+    SIZE byte_offset = 0;
+    Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id], compressed_size_ptr, 1,
+                                  byte_offset, false, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+    Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[subdomain_id], compressed_data, compressed_size,
+                                  byte_offset, true, 0);
+
+    device_compressed_buffer.resize({compressed_size});
+
+    MemoryManager<DeviceType>::Copy1D(
+        device_compressed_buffer.data(),
+        compressed_data, compressed_size, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+
     // Trigger the copy constructor to copy hierarchy to the current device
     Hierarchy<D, T, DeviceType> hierarchy =
         domain_decomposer.subdomain_hierarchy(subdomain_id);
@@ -593,6 +632,7 @@ void decompress_subdomain_series_w_prefetch(
   // Two buffers one for current and one for next
   Array<D, T, DeviceType> device_subdomain_buffer[2];
   Array<1, Byte, DeviceType> device_compressed_buffer[2];
+
   device_subdomain_buffer[0].resize(
       domain_decomposer.subdomain_shape(subdomain_ids[0]));
   device_subdomain_buffer[1].resize(
@@ -604,12 +644,24 @@ void decompress_subdomain_series_w_prefetch(
 
   // Pre-fetch the first subdomain on queue 0
   int current_buffer = 0;
-  device_compressed_buffer[current_buffer].resize(
-      {compressed_subdomain_size[subdomain_ids[0]]});
+
+  SIZE compressed_size;
+  SIZE *compressed_size_ptr = &compressed_size;
+  Byte * compressed_data;
+
+  SIZE byte_offset = 0;
+  
+  Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[subdomain_ids[0]], compressed_size_ptr, 1,
+                                byte_offset, false, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
+  Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[subdomain_ids[0]], compressed_data, compressed_size,
+                                byte_offset, true, 0);
+
+  device_compressed_buffer[current_buffer].resize({compressed_size});
+
   MemoryManager<DeviceType>::Copy1D(
       device_compressed_buffer[current_buffer].data(),
-      compressed_subdomain_data[subdomain_ids[0]],
-      compressed_subdomain_size[subdomain_ids[0]], 0);
+      compressed_data, compressed_size, 0);
 
   for (SIZE i = 0; i < subdomain_ids.size(); i++) {
     SIZE curr_subdomain_id = subdomain_ids[i];
@@ -618,13 +670,26 @@ void decompress_subdomain_series_w_prefetch(
     if (i + 1 < subdomain_ids.size()) {
       // Prefetch the next subdomain
       next_subdomain_id = subdomain_ids[i + 1];
-      // Copy next compressed data on queue 1
-      device_compressed_buffer[next_buffer].resize(
-          {compressed_subdomain_size[next_subdomain_id]});
+
+
+      // Deserialize and copy next compressed data on queue 1
+      SIZE compressed_size;
+      SIZE *compressed_size_ptr = &compressed_size;
+      Byte * compressed_data;
+      
+      SIZE byte_offset = 0;
+
+      Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[next_subdomain_id], compressed_size_ptr, 1,
+                                    byte_offset, false, 1);
+      DeviceRuntime<DeviceType>::SyncQueue(1);
+      Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[next_subdomain_id], compressed_data, compressed_size,
+                                    byte_offset, true, 1);
+
+      device_compressed_buffer[next_buffer].resize({compressed_size});
+
       MemoryManager<DeviceType>::Copy1D(
           device_compressed_buffer[next_buffer].data(),
-          compressed_subdomain_data[next_subdomain_id],
-          compressed_subdomain_size[next_subdomain_id], 1);
+          compressed_data, compressed_size, 1);
     }
 
     if (!can_reuse(hierarchy,
@@ -768,7 +833,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
     for (DIM d = 0; d < D; d++)
       num_elems *= shape[d];
     MemoryManager<DeviceType>::MallocHost(
-        compressed_subdomain_data[subdomain_id], num_elems * sizeof(T));
+        compressed_subdomain_data[subdomain_id], num_elems * sizeof(T)+sizeof(SIZE)*2);
     // offset += num_elems * sizeof(T);
   }
   if (log::level & log::TIME) {
@@ -895,14 +960,15 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   // Serialize
   byte_offset = 0;
   Serialize<SERIALIZED_TYPE, DeviceType>(
-      (Byte *)compressed_data, serizalied_meta, metadata_size, byte_offset);
+      (Byte *)compressed_data, serizalied_meta, metadata_size, byte_offset, 0);
   for (uint32_t i = 0; i < domain_decomposer.num_subdomains(); i++) {
     SIZE subdomain_compressed_size = compressed_subdomain_size[i];
-    Serialize<SIZE, DeviceType>((Byte *)compressed_data,
-                                &subdomain_compressed_size, 1, byte_offset);
+    // Serialize<SIZE, DeviceType>((Byte *)compressed_data,
+    //                             &subdomain_compressed_size, 1, byte_offset, 0);
     Serialize<Byte, DeviceType>((Byte *)compressed_data,
                                 compressed_subdomain_data[i],
-                                subdomain_compressed_size, byte_offset);
+                                subdomain_compressed_size, byte_offset, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
     MemoryManager<DeviceType>::FreeHost(compressed_subdomain_data[i]);
   }
   MemoryManager<DeviceType>::Free(serizalied_meta);
@@ -1071,15 +1137,29 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   SIZE byte_offset = m.metadata_size;
   for (uint32_t i = 0; i < num_subdomains; i++) {
     DeviceRuntime<DeviceType>::SelectDevice(i % adjusted_num_dev);
-    SIZE temp_size;
-    SIZE *temp_size_ptr = &temp_size;
-    Byte *temp_data;
-    Deserialize<SIZE, DeviceType>((Byte *)compressed_data, temp_size_ptr, 1,
-                                  byte_offset, false);
-    Deserialize<Byte, DeviceType>((Byte *)compressed_data, temp_data, temp_size,
-                                  byte_offset, true);
-    compressed_subdomain_data[i] = temp_data;
-    compressed_subdomain_size[i] = temp_size;
+    // SIZE compressed_data_saved;
+    // SIZE *compressed_data_saved_ptr = &compressed_data_saved;
+    // SIZE temp_size;
+    // SIZE *temp_size_ptr = &temp_size;
+    // Byte *temp_data;
+    // Deserialize<SIZE, DeviceType>((Byte *)compressed_data, temp_size_ptr, 1,
+    //                               byte_offset, false, 0);
+    // Deserialize<SIZE, DeviceType>((Byte *)compressed_data, compressed_data_saved_ptr, 1,
+    //                               byte_offset, false, 0);
+    // Deserialize<Byte, DeviceType>((Byte *)compressed_data, temp_data, temp_size,
+    //                               byte_offset, true, 0);
+    // DeviceRuntime<DeviceType>::SyncQueue(0);
+    // compressed_subdomain_data[i] = temp_data;
+    // compressed_subdomain_size[i] = temp_size;
+    // compressed_subdomain_saved[i] = compressed_data_saved;
+
+    SIZE compressed_size;
+    SIZE * compressed_size_ptr = &compressed_size;
+    compressed_subdomain_data[i] = (Byte *)compressed_data+byte_offset;
+    Deserialize<SIZE, DeviceType>((Byte *)compressed_data, compressed_size_ptr, 1,
+                                  byte_offset, false, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+    byte_offset += compressed_size; // Skip compressed data
   }
 
   if (log::level & log::TIME) {
