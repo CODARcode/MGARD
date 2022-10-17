@@ -34,5 +34,10 @@ template void compress<@DEVICE_TYPE@>(
     enum error_bound_type mode, const void *original_data,
     void *&compressed_data, size_t &compressed_size,
     std::vector<const Byte *> coords, bool output_pre_allocated);
+
+template void pin_memory<@DEVICE_TYPE@>(void * ptr, SIZE num_bytes);
+template bool check_memory_pinned<@DEVICE_TYPE@>(void * ptr);
+template void unpin_memory<@DEVICE_TYPE@>(void * ptr);
+
 } // namespace mgard_x
 // clang-format on

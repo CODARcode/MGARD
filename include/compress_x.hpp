@@ -144,6 +144,25 @@ void decompress(const void *compressed_data, size_t compressed_size,
                 void *&decompressed_data, std::vector<mgard_x::SIZE> &shape,
                 data_type &dtype, bool output_pre_allocated);
 
+//! Pin provided memory
+//!
+//!\param[in] ptr Pointer to the memory to be pinned.
+//!\param[in] num_bytes Size of memory.
+//!\param[in] config For configuring the target device.
+void pin_memory(void *ptr, SIZE num_bytes, Config config);
+
+//! Check if provided memory is pinned
+//!
+//!\param[in] ptr Pointer to the memory to be checked.
+//!\param[in] config For configuring the target device.
+bool check_memory_pinned(void *ptr, Config config);
+
+//! Unpin provided memory
+//!
+//!\param[in] ptr Pointer to the memory to be unpinned.
+//!\param[in] config For configuring the target device.
+void unpin_memory(void *ptr, Config config);
+
 } // namespace mgard_x
 
 #endif
