@@ -48,28 +48,26 @@ void DeserializeArray(SubArray<1, Byte, DeviceType> &array, T *&data_ptr,
 
 template <typename T, typename DeviceType>
 void Serialize(Byte *serialize_ptr, T *data_ptr, SIZE count,
-               SIZE &byte_offset) {
+               SIZE &byte_offset, int queue_idx) {
   using Mem = MemoryManager<DeviceType>;
-  align_byte_offset<T>(byte_offset);
+  // align_byte_offset<T>(byte_offset);
   Mem::Copy1D(serialize_ptr + byte_offset, (Byte *)data_ptr, count * sizeof(T),
-              0);
+              queue_idx);
   byte_offset += count * sizeof(T);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
 }
 
 template <typename T, typename DeviceType>
 void Deserialize(Byte *serialize_ptr, T *&data_ptr, SIZE count,
-                 SIZE &byte_offset, bool zero_copy) {
+                 SIZE &byte_offset, bool zero_copy, int queue_idx) {
   using Mem = MemoryManager<DeviceType>;
-  align_byte_offset<T>(byte_offset);
+  // align_byte_offset<T>(byte_offset);
   if (zero_copy) {
     data_ptr = (T*)(serialize_ptr + byte_offset);
   } else {
     Mem::Copy1D((Byte *)data_ptr, serialize_ptr + byte_offset, count * sizeof(T),
-                0);
+                queue_idx);
   }
   byte_offset += count * sizeof(T);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
 }
 
 } // namespace mgard_x

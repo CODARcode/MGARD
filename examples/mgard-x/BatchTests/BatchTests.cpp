@@ -129,7 +129,7 @@ void compression(std::vector<mgard_x::SIZE> shape, enum device dev, T tol, T s,
 #endif
   } else {
     mgard_x::Config config;
-    config.lossless = mgard_x::lossless_type::Huffman;
+    config.lossless = mgard_x::lossless_type::Huffman_Zstd;
     config.normalize_coordinates = true;
     mgard_x::data_type dtype;
     if (std::is_same<T, double>::value) {
