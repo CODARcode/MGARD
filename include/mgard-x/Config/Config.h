@@ -21,6 +21,7 @@ struct Config {
   int reorder;
   int log_level;
   SIZE max_larget_level;
+  bool prefetch;
 
   Config();
   void apply();
