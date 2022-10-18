@@ -27,7 +27,7 @@ Config::Config() {
   reorder = 0;
   log_level = log::ERR;
   max_larget_level = 0;
-  prefetch = false;
+  prefetch = true;
 }
 
 void Config::apply() { log::level = log_level; }
