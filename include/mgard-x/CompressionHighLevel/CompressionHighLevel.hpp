@@ -935,13 +935,17 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
                          compressed_subdomain_size, dev_id);
     } else {
       // Compress a series of subdomains according to the subdomain id list
-      // compress_subdomain_series(domain_decomposer, subdomain_ids,
-      //                           local_tol, s, norm, local_ebtype, config,
-      //                           compressed_subdomain_data,
-      //                           compressed_subdomain_size, dev_id);
-      compress_subdomain_series_w_prefetch(
-          domain_decomposer, subdomain_ids, local_tol, s, norm, local_ebtype,
-          config, compressed_subdomain_data, compressed_subdomain_size, dev_id);
+      if (!config.prefetch) {
+        compress_subdomain_series(domain_decomposer, subdomain_ids, local_tol,
+                                  s, norm, local_ebtype, config,
+                                  compressed_subdomain_data,
+                                  compressed_subdomain_size, dev_id);
+      } else {
+        compress_subdomain_series_w_prefetch(domain_decomposer, subdomain_ids,
+                                             local_tol, s, norm, local_ebtype,
+                                             config, compressed_subdomain_data,
+                                             compressed_subdomain_size, dev_id);
+      }
     }
   }
 
@@ -1216,14 +1220,17 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
                            dev_id);
     } else {
       // Decompress a series of subdomains according to the subdomain id list
-      // decompress_subdomain_series(domain_decomposer, subdomain_ids,
-      //                           local_tol, (T)m.s, (T)m.norm, local_ebtype,
-      //                           config, compressed_subdomain_data,
-      //                           compressed_subdomain_size, dev_id);
-      decompress_subdomain_series_w_prefetch(
-          domain_decomposer, subdomain_ids, local_tol, (T)m.s, (T)m.norm,
-          local_ebtype, config, compressed_subdomain_data,
-          compressed_subdomain_size, dev_id);
+      if (!config.prefetch) {
+        decompress_subdomain_series(domain_decomposer, subdomain_ids, local_tol,
+                                    (T)m.s, (T)m.norm, local_ebtype, config,
+                                    compressed_subdomain_data,
+                                    compressed_subdomain_size, dev_id);
+      } else {
+        decompress_subdomain_series_w_prefetch(
+            domain_decomposer, subdomain_ids, local_tol, (T)m.s, (T)m.norm,
+            local_ebtype, config, compressed_subdomain_data,
+            compressed_subdomain_size, dev_id);
+      }
     }
   }
 
