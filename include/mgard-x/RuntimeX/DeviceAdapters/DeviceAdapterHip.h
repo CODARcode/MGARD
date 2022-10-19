@@ -2216,7 +2216,7 @@ public:
         workspace.hasDeviceAllocation() ? workspace.data() : NULL;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
-    cudaStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(),
                               result.data(), n, stream, debug);
@@ -2234,7 +2234,7 @@ public:
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     AbsMaxOp absMaxOp;
-    cudaStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(),
                                  result.data(), n, absMaxOp, 0, stream, debug);
@@ -2254,7 +2254,7 @@ public:
         workspace.hasDeviceAllocation() ? workspace.data() : NULL;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
-    cudaStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes,
                               transformed_input_iter, result.data(), n, stream,
@@ -2272,7 +2272,7 @@ public:
         workspace.hasDeviceAllocation() ? workspace.data() : NULL;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
-    cudaStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes,
                                      v.data(), result.data(), n, stream, debug);
@@ -2289,7 +2289,7 @@ public:
         workspace.hasDeviceAllocation() ? workspace.data() : NULL;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
-    cudaStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes,
                                      v.data(), result.data(), n, stream, debug);
@@ -2306,7 +2306,7 @@ public:
         workspace.hasDeviceAllocation() ? workspace.data() : NULL;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
-    cudaStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes,
                                      v.data(), result.data() + 1, n, stream,
@@ -2330,7 +2330,7 @@ public:
         workspace.hasDeviceAllocation() ? workspace.data() : NULL;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
-    cudaStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
                                        in_keys.data(), out_keys.data(),
