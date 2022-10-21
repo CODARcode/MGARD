@@ -865,26 +865,28 @@ public:
 
   template <typename T> MGARDX_CONT static bool CheckHostRegister(T *ptr) {
     log::dbg("Calling MemoryManager<HIP>::CheckHostRegister");
-    unsigned int flags;
-    hipHostGetFlags(&flags, (void *)ptr);
-    return hipGetLastError() == hipSuccess;
+    // Disabled since it is not working correctly
+    //unsigned int flags;
+    //hipHostGetFlags(&flags, (void *)ptr);
+    //return hipGetLastError() == hipSuccess;
+    return true;
   }
 
   template <typename T> MGARDX_CONT static void HostRegister(T *ptr, SIZE n) {
     log::dbg("Calling MemoryManager<HIP>::HostRegister");
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
-    if (!CheckHostRegister(ptr)) {
+    //if (!CheckHostRegister(ptr)) {
       gpuErrchk(hipHostRegister((void *)ptr, n * sizeof(converted_T),
                                 hipHostRegisterPortable));
-    }
+    //}
   }
 
   template <typename T> MGARDX_CONT static void HostUnregister(T *ptr) {
     log::dbg("Calling MemoryManager<HIP>::HostUnregister");
-    if (CheckHostRegister(ptr)) {
+    //if (CheckHostRegister(ptr)) {
       gpuErrchk(hipHostUnregister((void *)ptr));
-    }
+    //}
   }
 
   static bool ReduceMemoryFootprint;
