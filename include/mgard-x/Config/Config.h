@@ -22,6 +22,7 @@ struct Config {
   int log_level;
   SIZE max_larget_level;
   bool prefetch;
+  SIZE max_memory_footprint;
 
   Config();
   void apply();
