@@ -55,7 +55,8 @@ public:
   bool need_domain_decomposition(std::vector<SIZE> shape,
                                  bool enable_prefetch) {
     size_t estm = estimate_memory_usgae(shape, 0.5, 1, enable_prefetch);
-    size_t aval = DeviceRuntime<DeviceType>::GetAvailableMemory();
+    size_t aval = std::min(DeviceRuntime<DeviceType>::GetAvailableMemory(),
+                           config.max_memory_footprint);
     log::info("Estimated memory usage: " + std::to_string((double)estm / 1e9) +
               "GB, Available: " + std::to_string((double)aval / 1e9) + "GB");
     return estm >= aval;
