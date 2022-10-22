@@ -706,7 +706,7 @@ public:
 
     gridz = 1;
     gridy = 1;
-    gridx = mblocks;
+    gridx = (dict_size-1)/tbx+1;
 
     int tthreads = tbx * gridx;
     if (tthreads >= dict_size) {
