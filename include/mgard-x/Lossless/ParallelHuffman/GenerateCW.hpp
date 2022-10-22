@@ -284,10 +284,9 @@ public:
         DeviceRuntime<DeviceType>::GetOccupancyMaxActiveBlocksPerSM(
             Functor, tbx, sm_size);
     int cg_mblocks = cg_blocks_sm * DeviceRuntime<DeviceType>::GetNumSMs();
-    cg_mblocks = cg_mblocks; // std::min(nz_nblocks, cg_mblocks);
     gridz = 1;
     gridy = 1;
-    gridx = (dict_size-1)/tbx+1;
+    gridx = cg_mblocks;
 
     int cw_tthreads = gridx * tbx;
     if (cw_tthreads >= dict_size) {
@@ -301,8 +300,8 @@ public:
                   << "GenerateCW: not using Cooperative Groups\n";
       }
       Functor.use_CG = false;
-      gridx = (dict_size - 1) / tbx + 1;
     }
+    gridx = (dict_size - 1) / tbx + 1;
 
     return Task(Functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
                 std::string(Name));
