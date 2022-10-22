@@ -382,7 +382,7 @@ public:
                             hipDeviceAttributeMaxThreadsPerMultiProcessor, d);
       hipDeviceGetAttribute(&MaxNumThreadsPerTB[d],
                             hipDeviceAttributeMaxThreadsPerBlock, d);
-      SupportCooperativeGroups[d] = false;
+      SupportCooperativeGroups[d] = true;
       hipDeviceProp_t prop;
       hipGetDeviceProperties(&prop, d);
       // Setting WarpSize[d] to true value (64) can trigger a bug
@@ -597,6 +597,8 @@ public:
     } else {
       log::err("GetOccupancyMaxActiveBlocksPerSM Error!");
     }
+    // HIP tends to over estimate this value
+    numBlocks /= 2;
     return numBlocks;
   }
 
