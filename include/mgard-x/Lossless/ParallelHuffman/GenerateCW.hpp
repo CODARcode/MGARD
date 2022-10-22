@@ -287,7 +287,7 @@ public:
     cg_mblocks = cg_mblocks; // std::min(nz_nblocks, cg_mblocks);
     gridz = 1;
     gridy = 1;
-    gridx = cg_mblocks;
+    gridx = (dict_size-1)/tbx+1;
 
     int cw_tthreads = gridx * tbx;
     if (cw_tthreads >= dict_size) {
