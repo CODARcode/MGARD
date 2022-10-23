@@ -150,17 +150,17 @@ int main(int argc, char **argv) {
 
   const mgard_x::DIM D = 3;
   mgard_x::Config config;
-  mgard_x::Hierarchy<D, T_data, DeviceType> hierarchy(dims, config,
-                                                      num_levels - 1);
+  config.max_larget_level = num_levels - 1;
+  mgard_x::Hierarchy<D, T_data, DeviceType> hierarchy(dims, config);
 
   auto decomposer =
       mgard_x::MDR::MGARDOrthoganalDecomposer<D, T_data, DeviceType>(hierarchy);
   auto interleaver =
       mgard_x::MDR::DirectInterleaver<D, T_data, DeviceType>(hierarchy);
-  // auto encoder = mgard_x::MDR::GroupedBPEncoder<T_data, T_stream, T_error,
-  // DeviceType>();
-  auto encoder = mgard_x::MDR::GroupedWarpBPEncoder<T_data, T_stream, T_error,
-                                                    DeviceType>();
+  auto encoder = mgard_x::MDR::GroupedBPEncoder<T_data, T_stream, T_error,
+  DeviceType>();
+  // auto encoder = mgard_x::MDR::GroupedWarpBPEncoder<T_data, T_stream, T_error,
+  //                                                   DeviceType>();
   auto compressor =
       mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>();
   auto retriever = mgard_x::MDR::ConcatLevelFileRetriever(metadata_file, files);
