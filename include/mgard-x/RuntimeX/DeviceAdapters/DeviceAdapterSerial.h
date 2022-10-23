@@ -1259,7 +1259,9 @@ public:
         GetExecutionConfig<KernelType::NumDim>(CONFIG_IDX);                    \
     auto task =                                                                \
         kernel.template GenTask<config.z, config.y, config.x>(queue_idx);      \
-    ConfigTask(task);                                                          \
+    if constexpr (KernelType::EnableConfig()) {                                \
+      ConfigTask(task);                                                        \
+    }                                                                          \
     ret = Execute(task);                                                       \
     if (ret.success && min_time > ret.execution_time) {                        \
       min_time = ret.execution_time;                                           \
@@ -1292,7 +1294,9 @@ public:
                              SERIAL>(KernelType::Name);
       auto task =
           kernel.template GenTask<config.z, config.y, config.x>(queue_idx);
-      ConfigTask(task);
+      if constexpr (KernelType::EnableConfig()) {
+        ConfigTask(task);
+      }
       Execute(task);
 
       if (AutoTuner<SERIAL>::ProfileKernels) {
@@ -1300,7 +1304,9 @@ public:
       }
     } else {
       auto task = kernel.GenTask(queue_idx);
-      ConfigTask(task);
+      if constexpr (KernelType::EnableConfig()) {
+        ConfigTask(task);
+      }
       Execute(task);
     }
   }

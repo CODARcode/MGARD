@@ -1324,7 +1324,9 @@ public:
     auto task =                                                                \
         kernel.template GenTask<config.z, config.y, config.x>(queue_idx);      \
     ret = Execute(task);                                                       \
-    ConfigTask(task);                                                          \
+    if constexpr (KernelType::EnableConfig()) {                                \
+      ConfigTask(task);                                                        \
+    }                                                                          \
     if (ret.success && min_time > ret.execution_time) {                        \
       min_time = ret.execution_time;                                           \
       min_config = CONFIG_IDX;                                                 \
@@ -1356,7 +1358,9 @@ public:
                              OPENMP>(KernelType::Name);
       auto task =
           kernel.template GenTask<config.z, config.y, config.x>(queue_idx);
-      ConfigTask(task);
+      if constexpr (KernelType::EnableConfig()) {
+        ConfigTask(task);
+      }
       Execute(task);
 
       if (AutoTuner<OPENMP>::ProfileKernels) {
@@ -1364,7 +1368,9 @@ public:
       }
     } else {
       auto task = kernel.GenTask(queue_idx);
-      ConfigTask(task);
+      if constexpr (KernelType::EnableConfig()) {
+        ConfigTask(task);
+      }
       Execute(task);
     }
   }

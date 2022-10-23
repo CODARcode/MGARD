@@ -10,6 +10,7 @@
 namespace mgard_x {
 class Kernel {
 public:
+  constexpr static bool EnableConfig() { return true; }
   constexpr static bool EnableAutoTuning() { return true; }
 };
 } // namespace mgard_x
