@@ -76,7 +76,7 @@ public:
 
     DeviceLauncher<DeviceType>::Execute(
         DirectInterleaverKernel<D, T, Interleave, DeviceType>(
-            SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true),
+            SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges()),
             target_level, decomposed_data, levels_decomposed_data_device),
         queue_idx);
 
@@ -102,7 +102,7 @@ public:
 
     DeviceLauncher<DeviceType>::Execute(
         DirectInterleaverKernel<D, T, Reposition, DeviceType>(
-            SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges(), true),
+            SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges()),
             target_level, decomposed_data, levels_decomposed_data_device),
         queue_idx);
 

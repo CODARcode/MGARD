@@ -424,6 +424,8 @@ template <typename T, typename T_bitplane, typename T_error,
 class GroupedWarpEncoderKernel : public Kernel {
 public:
   constexpr static bool EnableAutoTuning() { return false; }
+  // Block reduce conflicts with configuring max shared memory
+  constexpr static bool EnableConfig() { return false; }
   constexpr static std::string_view Name = "grouped warp bp encoder";
   MGARDX_CONT
   GroupedWarpEncoderKernel(
@@ -825,7 +827,7 @@ public:
         {num_bitplanes, buffer_size(n)});
     SubArray<2, T_bitplane, DeviceType> encoded_bitplanes_subarray(
         encoded_bitplanes_array);
-
+printf("start encode\n");
 #define ENCODE(NumEncodingBitplanes)                                           \
   if (num_bitplanes == NumEncodingBitplanes) {                                 \
     DeviceLauncher<DeviceType>::Execute(                                       \
@@ -903,17 +905,18 @@ public:
     ENCODE(64)
 
 #undef ENCODE
-
+    printf("start encode\n");
     DeviceRuntime<DeviceType>().SyncQueue(queue_idx);
     // PrintSubarray("level_errors_work", level_errors_work);
     // get level error
     SIZE reduce_size = MGARDX_NUM_SMs;
-    DeviceCollective<DeviceType> deviceReduce;
     for (int i = 0; i < num_bitplanes + 1; i++) {
       SubArray<1, T_error, DeviceType> curr_errors({reduce_size},
                                                    level_errors_work(i, 0));
       SubArray<1, T_error, DeviceType> sum_error({1}, level_errors(i));
-      deviceReduce.Sum(reduce_size, curr_errors, sum_error, queue_idx);
+      Array<1, Byte, DeviceType> workspace;
+      DeviceCollective<DeviceType>::Sum(reduce_size, curr_errors, sum_error, workspace, queue_idx);
+      DeviceCollective<DeviceType>::Sum(reduce_size, curr_errors, sum_error, workspace, queue_idx);
     }
     DeviceRuntime<DeviceType>().SyncQueue(queue_idx);
 

@@ -727,12 +727,13 @@ public:
         queue_idx);
 
     SIZE reduce_size = (n - 1) / num_elems_per_TB + 1;
-    DeviceCollective<DeviceType> deviceReduce;
     for (int i = 0; i < num_bitplanes + 1; i++) {
       SubArray<1, T_error, DeviceType> curr_errors({reduce_size},
                                                    level_errors_work(i, 0));
       SubArray<1, T_error, DeviceType> sum_error({1}, level_errors(i));
-      deviceReduce.Sum(reduce_size, curr_errors, sum_error, queue_idx);
+      Array<1, Byte, DeviceType> workspace;
+      DeviceCollective<DeviceType>::Sum(reduce_size, curr_errors, sum_error, workspace, queue_idx);
+      DeviceCollective<DeviceType>::Sum(reduce_size, curr_errors, sum_error, workspace, queue_idx);
     }
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
