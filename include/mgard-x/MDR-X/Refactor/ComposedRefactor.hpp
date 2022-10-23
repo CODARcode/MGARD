@@ -147,18 +147,18 @@ private:
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     // timer.print("Interleave");
-
-    DeviceCollective<DeviceType> deviceReduce;
-
     std::vector<std::vector<Array<1, Byte, DeviceType>>> compressed_bitplanes;
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
 
       timer.start();
       Array<1, T_data, DeviceType> result_array({1});
       SubArray<1, T_data, DeviceType> result(result_array);
-
-      deviceReduce.AbsMax(levels_data[level_idx].shape(0),
-                          levels_data[level_idx], result, queue_idx);
+      Array<1, Byte, DeviceType> workspace;
+      DeviceCollective<DeviceType>::AbsMax(levels_data[level_idx].shape(0),
+                          levels_data[level_idx], result, workspace, queue_idx);
+      DeviceCollective<DeviceType>::AbsMax(levels_data[level_idx].shape(0),
+                          levels_data[level_idx], result, workspace, queue_idx);
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       T_data level_max_error = *(result_array.hostCopy());
       int level_exp = 0;
       frexp(level_max_error, &level_exp);
@@ -176,7 +176,6 @@ private:
           level_num_elems[level_idx], num_bitplanes, level_exp,
           levels_data[level_idx], level_errors, bitplane_sizes, queue_idx);
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-
       // PrintSubarray("level_errors", level_errors);
       if (level_idx == 0) {
         // PrintSubarray("levels_data[level_idx]", levels_data[level_idx]);
