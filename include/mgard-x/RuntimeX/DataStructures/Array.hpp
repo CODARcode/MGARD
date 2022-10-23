@@ -105,7 +105,7 @@ void Array<D, T, DeviceType>::copy(const Array<D, T, DeviceType> &array,
                                       array.linearized_width, queue_idx);
   }
   if (array.host_allocated) {
-    hostCopy(array.keepHostCopy);
+    hostCopy(array.keepHostCopy, queue_idx);
   }
 }
 
