@@ -71,10 +71,11 @@ class MGARDOrthoganalDecomposer
     : public concepts::DecomposerInterface<D, T, DeviceType> {
 public:
   MGARDOrthoganalDecomposer(Hierarchy<D, T, DeviceType> &hierarchy)
-      : hierarchy(hierarchy) {}
+      : hierarchy(hierarchy) {
+        workspace = DataRefactoringWorkspace<D, T, DeviceType>(hierarchy);
+      }
   void decompose(SubArray<D, T, DeviceType> v, SIZE target_level,
                  int queue_idx) const {
-    mgard_x::DataRefactoringWorkspace<D, T, DeviceType> workspace(hierarchy);
     mgard_x::decompose<D, T, DeviceType>(
         hierarchy, v, workspace.refactoring_w_subarray,
         workspace.refactoring_b_subarray, 0, queue_idx);
@@ -82,7 +83,6 @@ public:
   }
   void recompose(SubArray<D, T, DeviceType> v, SIZE target_level,
                  int queue_idx) const {
-    mgard_x::DataRefactoringWorkspace<D, T, DeviceType> workspace(hierarchy);
     mgard_x::recompose<D, T, DeviceType>(
         hierarchy, v, workspace.refactoring_w_subarray,
         workspace.refactoring_b_subarray, target_level, queue_idx);
@@ -94,6 +94,7 @@ public:
 
 private:
   Hierarchy<D, T, DeviceType> &hierarchy;
+  DataRefactoringWorkspace<D, T, DeviceType> workspace;
 };
 
 } // namespace MDR
