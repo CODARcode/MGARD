@@ -74,9 +74,9 @@ template <mgard_x::DIM D, class T_data, class T_stream, typename DeviceType,
           class ErrorEstimator, class SizeInterpreter, class Retriever>
 void test(string filename, const vector<double> &tolerance,
           mgard_x::Hierarchy<D, T_data, DeviceType> &hierarchy,
-          Decomposer decomposer, Interleaver interleaver, Encoder encoder,
-          Compressor compressor, ErrorEstimator estimator,
-          SizeInterpreter interpreter, Retriever retriever) {
+          Decomposer &decomposer, Interleaver &interleaver, Encoder &encoder,
+          Compressor &compressor, ErrorEstimator &estimator,
+          SizeInterpreter &interpreter, Retriever &retriever) {
   auto reconstructor = mgard_x::MDR::ComposedReconstructor<
       D, T_data, T_stream, Decomposer, Interleaver, Encoder, Compressor,
       SizeInterpreter, ErrorEstimator, Retriever, DeviceType>(
@@ -157,10 +157,10 @@ int main(int argc, char **argv) {
       mgard_x::MDR::MGARDOrthoganalDecomposer<D, T_data, DeviceType>(hierarchy);
   auto interleaver =
       mgard_x::MDR::DirectInterleaver<D, T_data, DeviceType>(hierarchy);
-  auto encoder = mgard_x::MDR::GroupedBPEncoder<T_data, T_stream, T_error,
-  DeviceType>();
-  // auto encoder = mgard_x::MDR::GroupedWarpBPEncoder<T_data, T_stream, T_error,
-  //                                                   DeviceType>();
+  // auto encoder = mgard_x::MDR::GroupedBPEncoder<D, T_data, T_stream, T_error,
+  // DeviceType>(hierarchy);
+  auto encoder = mgard_x::MDR::GroupedWarpBPEncoder<D, T_data, T_stream, T_error,
+                                                    DeviceType>(hierarchy);
   auto compressor =
       mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>();
   auto retriever = mgard_x::MDR::ConcatLevelFileRetriever(metadata_file, files);

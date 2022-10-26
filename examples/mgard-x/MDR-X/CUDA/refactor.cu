@@ -14,8 +14,8 @@ template <mgard_x::DIM D, class T_data, class T_bitplane, class T_error,
 void test(string filename, const vector<mgard_x::SIZE> &dims, int target_level,
           int num_bitplanes,
           mgard_x::Hierarchy<D, T_data, DeviceType> &hierarchy,
-          Decomposer decomposer, Interleaver interleaver, Encoder encoder,
-          Compressor compressor, ErrorCollector collector, Writer writer) {
+          Decomposer &decomposer, Interleaver &interleaver, Encoder &encoder,
+          Compressor &compressor, ErrorCollector &collector, Writer &writer) {
 
   auto refactor =
       mgard_x::MDR::ComposedRefactor<D, T_data, T_bitplane, T_error, Decomposer,
@@ -94,10 +94,10 @@ int main(int argc, char **argv) {
   // auto interleaver = mgard_x::MDR::SFCInterleaver<T>();
   // auto interleaver = mgard_x::MDR::BlockedInterleaver<T>();
 
-  auto encoder = mgard_x::MDR::GroupedBPEncoder<T, T_stream, T_error,
-  DeviceType>();
-  // auto encoder =
-  //     mgard_x::MDR::GroupedWarpBPEncoder<T, T_stream, T_error, DeviceType>();
+  // auto encoder = mgard_x::MDR::GroupedBPEncoder<D, T, T_stream, T_error,
+  // DeviceType>(hierarchy);
+  auto encoder =
+      mgard_x::MDR::GroupedWarpBPEncoder<D, T, T_stream, T_error, DeviceType>(hierarchy);
 
   auto compressor =
       mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>();
