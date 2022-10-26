@@ -17,12 +17,12 @@
 
 namespace mgard_x {
 // Parallel codebook generation wrapper
-template <typename Q, typename H, typename DeviceType>
+template <typename Q, typename S, typename H, typename DeviceType>
 void GetCodebook(int dict_size,
                  SubArray<1, unsigned int, DeviceType> _d_freq_subarray,
                  SubArray<1, H, DeviceType> _d_codebook_subarray,
                  SubArray<1, uint8_t, DeviceType> _d_decode_meta_subarray,
-                 HuffmanWorkspace<Q, H, DeviceType> &workspace) {
+                 HuffmanWorkspace<Q, S, H, DeviceType> &workspace) {
   // Metadata
   auto type_bw = sizeof(H) * 8;
 

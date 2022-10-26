@@ -700,7 +700,7 @@ void LinearQuanziation(
                                     quantizers, hierarchy.l_target() + 1,
                                     queue_idx);
   LENGTH zero = 0;
-  MemoryManager<DeviceType>::Copy1D(workspace.outlier_count_subarray.data(),
+  MemoryManager<DeviceType>::Copy1D(workspace.huffman_workspace.outlier_count_subarray.data(),
                                     &zero, 1, queue_idx);
 
   SubArray<1, QUANTIZED_INT, DeviceType> *quantized_linearized_v_host = nullptr;
@@ -743,15 +743,15 @@ void LinearQuanziation(
             workspace.quantizers_subarray, level_volumes_subarray, s,
             config.huff_dict_size, in_subarray, workspace.quantized_subarray,
             prep_huffman, config.reorder, quantized_linearized_v,
-            workspace.outlier_count_subarray, workspace.outlier_idx_subarray,
-            workspace.outliers_subarray),
+            workspace.huffman_workspace.outlier_count_subarray, workspace.huffman_workspace.outlier_idx_subarray,
+            workspace.huffman_workspace.outliers_subarray),
         queue_idx);
 
-    MemoryManager<DeviceType>::Copy1D(&workspace.outlier_count,
-                                      workspace.outlier_count_subarray.data(),
+    MemoryManager<DeviceType>::Copy1D(&workspace.huffman_workspace.outlier_count,
+                                      workspace.huffman_workspace.outlier_count_subarray.data(),
                                       1, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    if (workspace.outlier_count <= workspace.outliers_subarray.shape(0)) {
+    if (workspace.huffman_workspace.outlier_count <= workspace.huffman_workspace.outliers_subarray.shape(0)) {
       // outlier buffer has sufficient size
       done_quantization = true;
       if (log::level & log::TIME) {
@@ -760,20 +760,20 @@ void LinearQuanziation(
         timer.clear();
       }
       log::info(
-          "Outlier ratio: " + std::to_string(workspace.outlier_count) + "/" +
+          "Outlier ratio: " + std::to_string(workspace.huffman_workspace.outlier_count) + "/" +
           std::to_string(total_elems) + " (" +
-          std::to_string((double)100 * workspace.outlier_count / total_elems) +
+          std::to_string((double)100 * workspace.huffman_workspace.outlier_count / total_elems) +
           "%)");
     } else {
       log::info("Not enough workspace for outliers. Re-allocating to " +
-                std::to_string(workspace.outlier_count));
-      workspace.outlier_idx_array =
-          Array<1, LENGTH, DeviceType>({(SIZE)workspace.outlier_count});
-      workspace.outliers_array =
-          Array<1, QUANTIZED_INT, DeviceType>({(SIZE)workspace.outlier_count});
-      workspace.outlier_idx_subarray = SubArray(workspace.outlier_idx_array);
-      workspace.outliers_subarray = SubArray(workspace.outliers_array);
-      workspace.outlier_count_array.memset(0);
+                std::to_string(workspace.huffman_workspace.outlier_count));
+      workspace.huffman_workspace.outlier_idx_array =
+          Array<1, LENGTH, DeviceType>({(SIZE)workspace.huffman_workspace.outlier_count});
+      workspace.huffman_workspace.outliers_array =
+          Array<1, QUANTIZED_INT, DeviceType>({(SIZE)workspace.huffman_workspace.outlier_count});
+      workspace.huffman_workspace.outlier_idx_subarray = SubArray(workspace.huffman_workspace.outlier_idx_array);
+      workspace.huffman_workspace.outliers_subarray = SubArray(workspace.huffman_workspace.outliers_array);
+      workspace.huffman_workspace.outlier_count_array.memset(0);
     }
   }
   if (config.reorder) {
@@ -792,8 +792,8 @@ void LinearDequanziation(
   SIZE total_elems = hierarchy.total_num_elems();
   out_array.resize(hierarchy.level_shape(hierarchy.l_target()));
   SubArray<D, T, DeviceType> out_subarray(out_array);
-  MemoryManager<DeviceType>::Copy1D(workspace.outlier_count_subarray.data(),
-                                    &workspace.outlier_count, 1, queue_idx);
+  MemoryManager<DeviceType>::Copy1D(workspace.huffman_workspace.outlier_count_subarray.data(),
+                                    &workspace.huffman_workspace.outlier_count, 1, queue_idx);
   SubArray<2, SIZE, DeviceType> level_ranges_subarray(hierarchy.level_ranges());
   SubArray<3, T, DeviceType> level_volumes_subarray(
       hierarchy.level_volumes(true));
@@ -839,11 +839,11 @@ void LinearDequanziation(
   if (log::level & log::TIME)
     timer.start();
 
-  if (prep_huffman && workspace.outlier_count) {
+  if (prep_huffman && workspace.huffman_workspace.outlier_count) {
     DeviceLauncher<DeviceType>::Execute(
         OutlierRestoreKernel<D, T, DeviceType>(
-            workspace.quantized_subarray, workspace.outlier_count,
-            workspace.outlier_idx_subarray, workspace.outliers_subarray),
+            workspace.quantized_subarray, workspace.huffman_workspace.outlier_count,
+            workspace.huffman_workspace.outlier_idx_subarray, workspace.huffman_workspace.outliers_subarray),
         queue_idx);
   }
 
@@ -853,8 +853,8 @@ void LinearDequanziation(
           workspace.quantizers_subarray, level_volumes_subarray, s,
           config.huff_dict_size, out_array, workspace.quantized_subarray,
           prep_huffman, config.reorder, quantized_linearized_v,
-          workspace.outlier_count_subarray, workspace.outlier_idx_subarray,
-          workspace.outliers_subarray),
+          workspace.huffman_workspace.outlier_count_subarray, workspace.huffman_workspace.outlier_idx_subarray,
+          workspace.huffman_workspace.outliers_subarray),
       queue_idx);
 
   DeviceRuntime<DeviceType>::SyncQueue(queue_idx);

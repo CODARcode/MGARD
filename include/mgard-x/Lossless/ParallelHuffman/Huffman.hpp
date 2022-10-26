@@ -17,19 +17,21 @@ static bool debug_print_huffman = false;
 #include "GetCodebook.hpp"
 #include "Histogram.hpp"
 #include "HuffmanWorkspace.hpp"
+#include "OutlierSeparator.hpp"
+#include "DictionaryShift.hpp"
 
 #include <chrono>
 using namespace std::chrono;
 
 namespace mgard_x {
 
-template <typename Q, typename H, typename DeviceType>
+template <typename Q, typename S, typename H, typename DeviceType>
 void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
                      int chunk_size, int dict_size, LENGTH outlier_count,
                      SubArray<1, LENGTH, DeviceType> outlier_idx_subarray,
                      SubArray<1, QUANTIZED_INT, DeviceType> outlier_subarray,
                      Array<1, Byte, DeviceType> &compressed_data,
-                     HuffmanWorkspace<Q, H, DeviceType> &workspace) {
+                     HuffmanWorkspace<Q, S, H, DeviceType> &workspace) {
 
   Timer timer;
   if (log::level & log::TIME)
@@ -47,7 +49,7 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
     PrintSubarray("Histogram::freq_subarray", workspace.freq_subarray);
   }
 
-  GetCodebook<Q, H, DeviceType>(dict_size, workspace.freq_subarray,
+  GetCodebook(dict_size, workspace.freq_subarray,
                                 workspace.codebook_subarray,
                                 workspace.decodebook_subarray, workspace);
   if (debug_print_huffman) {
@@ -202,12 +204,12 @@ void HuffmanCompress(SubArray<1, Q, DeviceType> &dprimary_subarray,
   }
 }
 
-template <typename Q, typename H, typename DeviceType>
+template <typename Q, typename S, typename H, typename DeviceType>
 void HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
                        Array<1, Q, DeviceType> &primary, LENGTH &outlier_count,
                        SubArray<1, LENGTH, DeviceType> &outlier_idx_subarray,
                        SubArray<1, QUANTIZED_INT, DeviceType> &outlier_subarray,
-                       HuffmanWorkspace<Q, H, DeviceType> &workspace) {
+                       HuffmanWorkspace<Q, S, H, DeviceType> &workspace) {
   Timer timer;
   if (log::level & log::TIME)
     timer.start();
@@ -285,6 +287,15 @@ void HuffmanDecompress(SubArray<1, Byte, DeviceType> compressed_data,
     timer.clear();
   }
 }
+
+template <typename Q, typename S, typename H, typename DeviceType>
+void HuffmanCompress(SubArray<1, Q, DeviceType> &in_subarray,
+                     int chunk_size, int dict_size,
+                     Array<1, Byte, DeviceType> &compressed_data,
+                     HuffmanWorkspace<Q, S, H, DeviceType> &workspace) {
+
+}
+
 
 } // namespace mgard_x
 
