@@ -31,10 +31,10 @@ void LosslessCompress(
         SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType>(
             {total_elems},
             (QUANTIZED_UNSIGNED_INT *)workspace.quantized_subarray.data());
-    HuffmanCompress<QUANTIZED_UNSIGNED_INT, HUFFMAN_CODE, DeviceType>(
+    HuffmanCompress(
         cast_quantized_subarray, config.huff_block_size, config.huff_dict_size,
-        workspace.outlier_count, workspace.outlier_idx_subarray,
-        workspace.outliers_subarray, compressed_array,
+        workspace.huffman_workspace.outlier_count, workspace.huffman_workspace.outlier_idx_subarray,
+        workspace.huffman_workspace.outliers_subarray, compressed_array,
         workspace.huffman_workspace);
 
     if (config.lossless == lossless_type::Huffman_LZ4) {
@@ -89,9 +89,9 @@ void LosslessDecompress(
     Array<1, QUANTIZED_UNSIGNED_INT, DeviceType> cast_quantized_array(
         {total_elems},
         (QUANTIZED_UNSIGNED_INT *)workspace.quantized_subarray.data());
-    HuffmanDecompress<QUANTIZED_UNSIGNED_INT, HUFFMAN_CODE, DeviceType>(
-        compressed_subarray, cast_quantized_array, workspace.outlier_count,
-        workspace.outlier_idx_subarray, workspace.outliers_subarray,
+    HuffmanDecompress(
+        compressed_subarray, cast_quantized_array, workspace.huffman_workspace.outlier_count,
+        workspace.huffman_workspace.outlier_idx_subarray, workspace.huffman_workspace.outliers_subarray,
         workspace.huffman_workspace);
   } else {
     Array<1, QUANTIZED_INT, DeviceType> quantized_array =

@@ -13,7 +13,7 @@
 
 namespace mgard_x {
 
-template <typename Q, typename H, typename DeviceType> class HuffmanWorkspace {
+template <typename Q, typename S, typename H, typename DeviceType> class HuffmanWorkspace {
 public:
   HuffmanWorkspace() {
     // By defualt it is not pre-allocated
@@ -21,6 +21,10 @@ public:
   }
 
   void initialize_subarray() {
+    outlier_count_subarray = SubArray(outlier_count_array);
+    outlier_idx_subarray = SubArray(outlier_idx_array);
+    outliers_subarray = SubArray(outliers_array);
+
     freq_subarray = SubArray(freq_array);
     codebook_subarray = SubArray(codebook_array);
     decodebook_subarray = SubArray(decodebook_array);
@@ -50,8 +54,12 @@ public:
         SubArray(diagonal_path_intersections_array);
   }
 
-  size_t estimate_size(SIZE primary_count, SIZE dict_size, SIZE chunk_size) {
+  size_t estimate_size(SIZE primary_count, SIZE dict_size, SIZE chunk_size, double estimated_outlier_ratio = 0.5) {
     size_t size = 0;
+    size += sizeof(LENGTH);
+    size += primary_count * estimated_outlier_ratio * sizeof(LENGTH);
+    size += primary_count * estimated_outlier_ratio * sizeof(S);
+
     size += dict_size * sizeof(unsigned int);
     size += dict_size * sizeof(H);
     size_t type_bw = sizeof(H) * 8;
@@ -83,7 +91,14 @@ public:
     return size;
   }
 
-  void allocate(SIZE primary_count, SIZE dict_size, SIZE chunk_size) {
+  void allocate(SIZE primary_count, SIZE dict_size, SIZE chunk_size, double estimated_outlier_ratio = 0.5) {
+
+    outlier_count_array = Array<1, LENGTH, DeviceType>({1}, false, false);
+    outlier_idx_array = Array<1, LENGTH, DeviceType>(
+        {(SIZE)(primary_count * estimated_outlier_ratio)});
+    outliers_array = Array<1, S, DeviceType>(
+        {(SIZE)(primary_count * estimated_outlier_ratio)});
+
     freq_array = Array<1, unsigned int, DeviceType>({dict_size});
     codebook_array = Array<1, H, DeviceType>({dict_size});
     size_t type_bw = sizeof(H) * 8;
@@ -122,12 +137,18 @@ public:
                    DeviceRuntime<DeviceType>::GetNumSMs();
     diagonal_path_intersections_array =
         Array<1, uint32_t, DeviceType>({2 * (mblocks + 1)});
+
+    outlier_count_array.memset(0);
+    outlier_idx_array.memset(0);
+    outliers_array.memset(0);
+
     initialize_subarray();
 
     pre_allocated = true;
   }
 
   void reset(int queue_idx) {
+    outlier_count_array.memset(0);
     freq_array.memset(0, queue_idx);
     codebook_array.memset(0, queue_idx);
     decodebook_array.memset(0xff, queue_idx);
@@ -137,8 +158,12 @@ public:
     CL_array.memset(0, queue_idx);
   }
 
-  void move(const HuffmanWorkspace<Q, H, DeviceType> &workspace) {
+  void move(const HuffmanWorkspace<Q, S, H, DeviceType> &workspace) {
     // Move instead of copy
+    outlier_count_array = std::move(workspace.outlier_count_array);
+    outlier_idx_array = std::move(workspace.outlier_idx_array);
+    outliers_array = std::move(workspace.outliers_array);
+
     freq_array = std::move(workspace.freq_array);
     codebook_array = std::move(workspace.codebook_array);
     decodebook_array = std::move(workspace.decodebook_array);
@@ -170,8 +195,12 @@ public:
     initialize_subarray();
   }
 
-  void move(HuffmanWorkspace<Q, H, DeviceType> &&workspace) {
+  void move(HuffmanWorkspace<Q, S, H, DeviceType> &&workspace) {
     // Move instead of copy
+    outlier_count_array = std::move(workspace.outlier_count_array);
+    outlier_idx_array = std::move(workspace.outlier_idx_array);
+    outliers_array = std::move(workspace.outliers_array);
+
     freq_array = std::move(workspace.freq_array);
     codebook_array = std::move(workspace.codebook_array);
     decodebook_array = std::move(workspace.decodebook_array);
@@ -207,24 +236,29 @@ public:
     allocate(primary_count, dict_size, chunk_size);
   }
 
-  HuffmanWorkspace(const HuffmanWorkspace<Q, H, DeviceType> &workspace) {
+  HuffmanWorkspace(const HuffmanWorkspace<Q, S, H, DeviceType> &workspace) {
     move(std::move(workspace));
   }
 
   HuffmanWorkspace &
-  operator=(const HuffmanWorkspace<Q, H, DeviceType> &workspace) {
+  operator=(const HuffmanWorkspace<Q, S, H, DeviceType> &workspace) {
     move(std::move(workspace));
   }
 
-  HuffmanWorkspace(HuffmanWorkspace<Q, H, DeviceType> &&workspace) {
+  HuffmanWorkspace(HuffmanWorkspace<Q, S, H, DeviceType> &&workspace) {
     move(std::move(workspace));
   }
 
-  HuffmanWorkspace &operator=(HuffmanWorkspace<Q, H, DeviceType> &&workspace) {
+  HuffmanWorkspace &operator=(HuffmanWorkspace<Q, S, H, DeviceType> &&workspace) {
     move(std::move(workspace));
   }
 
   bool pre_allocated;
+
+  LENGTH outlier_count;
+  Array<1, LENGTH, DeviceType> outlier_count_array;
+  Array<1, LENGTH, DeviceType> outlier_idx_array;
+  Array<1, QUANTIZED_INT, DeviceType> outliers_array;
 
   Array<1, unsigned int, DeviceType> freq_array;
   Array<1, H, DeviceType> codebook_array;
@@ -252,6 +286,10 @@ public:
   Array<1, H, DeviceType> _d_codebook_array_org;
   Array<1, int, DeviceType> status_array;
   Array<1, uint32_t, DeviceType> diagonal_path_intersections_array;
+
+  SubArray<1, LENGTH, DeviceType> outlier_count_subarray;
+  SubArray<1, LENGTH, DeviceType> outlier_idx_subarray;
+  SubArray<1, QUANTIZED_INT, DeviceType> outliers_subarray;
 
   SubArray<1, unsigned int, DeviceType> freq_subarray;
   SubArray<1, H, DeviceType> codebook_subarray;
