@@ -680,13 +680,13 @@ private:
 
 // general bitplane encoder that encodes data by block using T_stream type
 // buffer
-template <typename T_data, typename T_bitplane, typename T_error,
+template <DIM D, typename T_data, typename T_bitplane, typename T_error,
           typename DeviceType>
 class GroupedBPEncoder
-    : public concepts::BitplaneEncoderInterface<T_data, T_bitplane, T_error,
+    : public concepts::BitplaneEncoderInterface<D, T_data, T_bitplane, T_error,
                                                 DeviceType> {
 public:
-  GroupedBPEncoder() {
+  GroupedBPEncoder(Hierarchy<D, T_data, DeviceType> &hierarchy): hierarchy(hierarchy) {
     static_assert(std::is_floating_point<T_data>::value,
                   "GeneralBPEncoder: input data must be floating points.");
     static_assert(!std::is_same<T_data, long double>::value,
@@ -695,82 +695,74 @@ public:
                   "GroupedBPBlockEncoder: streams must be unsigned integers.");
     static_assert(std::is_integral<T_bitplane>::value,
                   "GroupedBPBlockEncoder: streams must be unsigned integers.");
+
+    std::vector<SIZE> level_num_elems(hierarchy.l_target() + 1);
+    SIZE prev_num_elems = 0;
+    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
+      SIZE curr_num_elems = 1;
+      for (DIM d = 0; d < D; d++) {
+        curr_num_elems *= hierarchy.level_shape(level_idx, d);
+      }
+      level_num_elems[level_idx] = curr_num_elems - prev_num_elems;
+      prev_num_elems = curr_num_elems;
+      // printf("%u ", level_num_elems[level_idx]);
+    }
+    SIZE max_level_num_elems = level_num_elems[hierarchy.l_target()];
+
+    SIZE max_bitplane = 64;
+    level_errors_work_array = Array<2, T_error, DeviceType>({max_bitplane+1, num_blocks(max_level_num_elems)});
+    DeviceCollective<DeviceType>::Sum(num_blocks(max_level_num_elems), SubArray<1, T_error, DeviceType>(), 
+                                      SubArray<1, T_error, DeviceType>(), level_error_sum_work_array, 0);
+
+    level_signs = std::vector<Array<1, bool, DeviceType>>(hierarchy.l_target() + 1);
+    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
+      level_signs[level_idx] = Array<1, bool, DeviceType>({level_num_elems[level_idx]});
+    }
   }
 
-  Array<2, T_bitplane, DeviceType>
-  encode(SIZE n, SIZE num_bitplanes, int32_t exp,
+ void encode(SIZE n, SIZE num_bitplanes, int32_t exp,
          SubArray<1, T_data, DeviceType> v,
+         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
          SubArray<1, T_error, DeviceType> level_errors,
-         std::vector<SIZE> &streams_sizes, int queue_idx) const {
+         std::vector<SIZE> &streams_sizes, int queue_idx) {
 
-    SIZE num_batches_per_TB = 2;
-    const SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
-    const SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
-    SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
-    SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
-
-    Array<2, T_error, DeviceType> level_errors_work_array(
-        {(SIZE)num_bitplanes + 1, num_blocks});
     SubArray<2, T_error, DeviceType> level_errors_work(level_errors_work_array);
-
-    Array<2, T_bitplane, DeviceType> encoded_bitplanes_array(
-        {(SIZE)num_bitplanes, (SIZE)bitplane_max_length_total});
-    SubArray<2, T_bitplane, DeviceType> encoded_bitplanes_subarray(
-        encoded_bitplanes_array);
 
     DeviceLauncher<DeviceType>::Execute(
         GroupedEncoderKernel<T_data, T_bitplane, T_error, BINARY_TYPE,
                              DATA_ENCODING_ALGORITHM,
                              ERROR_COLLECTING_ALGORITHM, DeviceType>(
             n, num_batches_per_TB, num_bitplanes, exp, v,
-            encoded_bitplanes_subarray, level_errors_work),
+            encoded_bitplanes, level_errors_work),
         queue_idx);
 
-    SIZE reduce_size = (n - 1) / num_elems_per_TB + 1;
+    SIZE reduce_size = num_blocks(n);
     for (int i = 0; i < num_bitplanes + 1; i++) {
       SubArray<1, T_error, DeviceType> curr_errors({reduce_size},
                                                    level_errors_work(i, 0));
       SubArray<1, T_error, DeviceType> sum_error({1}, level_errors(i));
-      Array<1, Byte, DeviceType> workspace;
-      DeviceCollective<DeviceType>::Sum(reduce_size, curr_errors, sum_error, workspace, queue_idx);
-      DeviceCollective<DeviceType>::Sum(reduce_size, curr_errors, sum_error, workspace, queue_idx);
+      DeviceCollective<DeviceType>::Sum(reduce_size, curr_errors, sum_error, level_error_sum_work_array, queue_idx);
     }
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
     for (int i = 0; i < num_bitplanes; i++) {
-      streams_sizes[i] = bitplane_max_length_total * sizeof(T_bitplane);
+      streams_sizes[i] = buffer_size(n) * sizeof(T_bitplane);
     }
-
-    return encoded_bitplanes_array;
   }
 
-  Array<1, T_data, DeviceType>
+  void
   decode(SIZE n, SIZE num_bitplanes, int32_t exp,
          SubArray<2, T_bitplane, DeviceType> encoded_bitplanes, int level,
+         SubArray<1, T_data, DeviceType> v, 
          int queue_idx) {}
 
   // decode the data and record necessary information for progressiveness
-  Array<1, T_data, DeviceType>
+  void
   progressive_decode(SIZE n, SIZE starting_bitplane, SIZE num_bitplanes,
                      int32_t exp,
                      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
-                     int level, int queue_idx) {
-
-    SIZE num_batches_per_TB = 2;
-    const SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
-    const SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
-    SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
-    SIZE bitplane_max_length_total = bitplane_max_length_per_TB * num_blocks;
-
-    if (level_signs.size() == level) {
-      level_signs.push_back(Array<1, bool, DeviceType>({n}));
-    }
-
+                     int level, SubArray<1, T_data, DeviceType> v, int queue_idx) {
     SubArray<1, bool, DeviceType> signs_subarray(level_signs[level]);
-
-    Array<1, T_data, DeviceType> v_array({(SIZE)n});
-    SubArray<1, T_data, DeviceType> v(v_array);
-
     if (num_bitplanes > 0) {
       DeviceLauncher<DeviceType>::Execute(
           GroupedDecoderKernel<T_data, T_bitplane, BINARY_TYPE,
@@ -778,16 +770,10 @@ public:
               n, num_batches_per_TB, starting_bitplane, num_bitplanes, exp,
               encoded_bitplanes, signs_subarray, v),
           queue_idx);
-    } else {
-      // should be set to zero when not decoding any bitplanes
-      v_array.memset(0);
     }
-
-    return v_array;
   }
 
   SIZE buffer_size(SIZE n) const {
-    SIZE num_batches_per_TB = 2;
     const SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
     const SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
     SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
@@ -795,9 +781,20 @@ public:
     return bitplane_max_length_total;
   }
 
+  SIZE num_blocks(SIZE n) const {
+    const SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
+    const SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
+    SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
+  }
+
   void print() const { std::cout << "Grouped bitplane encoder" << std::endl; }
 
 private:
+  Hierarchy<D, T_data, DeviceType> &hierarchy;
+  SIZE num_batches_per_TB = 2;
+  Array<2, T_error, DeviceType> level_errors_work_array;
+  Array<1, Byte, DeviceType> level_error_sum_work_array;
+
   std::vector<Array<1, bool, DeviceType>> level_signs;
   std::vector<std::vector<uint8_t>> level_recording_bitplanes;
 };

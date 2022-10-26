@@ -23,9 +23,9 @@ class ComposedRefactor
 
 public:
   ComposedRefactor(Hierarchy<D, T_data, DeviceType> &hierarchy,
-                   Decomposer decomposer, Interleaver interleaver,
-                   Encoder encoder, Compressor compressor,
-                   ErrorCollector collector, Writer writer)
+                   Decomposer &decomposer, Interleaver &interleaver,
+                   Encoder &encoder, Compressor &compressor,
+                   ErrorCollector &collector, Writer &writer)
       : hierarchy(hierarchy), decomposer(decomposer), interleaver(interleaver),
         encoder(encoder), compressor(compressor), collector(collector),
         writer(writer) {}
@@ -141,9 +141,7 @@ private:
           SubArray<1, T_data, DeviceType>(levels_array[level_idx]);
     }
 
-    // printf("done create levels_data\n");
-
-    interleaver.interleave(data, levels_data, target_level + 1, queue_idx);
+    interleaver.interleave(data, levels_data, target_level, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     // timer.print("Interleave");
@@ -169,12 +167,17 @@ private:
       // timer.print("level_max_error");
 
       timer.start();
+      Array<2, T_bitplane, DeviceType> encoded_bitplanes_array(
+        {(SIZE)num_bitplanes, encoder.buffer_size(level_num_elems[level_idx])});
+      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes(
+          encoded_bitplanes_array);
       Array<1, T_error, DeviceType> level_errors_array({num_bitplanes + 1});
       SubArray<1, T_error, DeviceType> level_errors(level_errors_array);
       std::vector<SIZE> bitplane_sizes(num_bitplanes);
-      Array<2, T_bitplane, DeviceType> encoded_bitplanes = encoder.encode(
+      encoder.encode(
           level_num_elems[level_idx], num_bitplanes, level_exp,
-          levels_data[level_idx], level_errors, bitplane_sizes, queue_idx);
+          levels_data[level_idx], encoded_bitplanes,
+          level_errors, bitplane_sizes, queue_idx);
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       // PrintSubarray("level_errors", level_errors);
       if (level_idx == 0) {
@@ -197,7 +200,7 @@ private:
       std::vector<Array<1, Byte, DeviceType>> compressed_encoded_bitplanes;
       compressed_bitplanes.push_back(compressed_encoded_bitplanes);
       uint8_t stopping_index = compressor.compress_level(
-          bitplane_sizes, encoded_bitplanes, compressed_bitplanes[level_idx]);
+          bitplane_sizes, encoded_bitplanes_array, compressed_bitplanes[level_idx]);
       stopping_indices.push_back(stopping_index);
       level_sizes.push_back(bitplane_sizes);
 
@@ -229,12 +232,12 @@ private:
   }
 
   Hierarchy<D, T_data, DeviceType> &hierarchy;
-  Decomposer decomposer;
-  Interleaver interleaver;
-  Encoder encoder;
-  Compressor compressor;
-  ErrorCollector collector;
-  Writer writer;
+  Decomposer &decomposer;
+  Interleaver &interleaver;
+  Encoder &encoder;
+  Compressor &compressor;
+  ErrorCollector &collector;
+  Writer &writer;
 
   Array<D, T_data, DeviceType> data_array;
   // std::vector<T> data;

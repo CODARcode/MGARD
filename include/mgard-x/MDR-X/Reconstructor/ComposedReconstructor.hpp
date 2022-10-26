@@ -27,9 +27,9 @@ class ComposedReconstructor
                                               DeviceType> {
 public:
   ComposedReconstructor(Hierarchy<D, T_data, DeviceType> &hierarchy,
-                        Decomposer decomposer, Interleaver interleaver,
-                        Encoder encoder, Compressor compressor,
-                        SizeInterpreter interpreter, Retriever retriever)
+                        Decomposer &decomposer, Interleaver &interleaver,
+                        Encoder &encoder, Compressor &compressor,
+                        SizeInterpreter &interpreter, Retriever &retriever)
       : hierarchy(hierarchy), decomposer(decomposer), interleaver(interleaver),
         encoder(encoder), compressor(compressor), interpreter(interpreter),
         retriever(retriever) {
@@ -257,14 +257,19 @@ private:
       int level_exp = 0;
       frexp(level_error_bounds[level_idx], &level_exp);
       // Decode bitplanes: encoded_bitplanes --> levels_array[level_idx]
-      levels_array[level_idx] = encoder.progressive_decode(
+      levels_array[level_idx] = Array<1, T_data, DeviceType>({level_num_elems[level_idx]});
+      levels_data[level_idx] = SubArray(levels_array[level_idx]);
+      encoder.progressive_decode(
           level_num_elems[level_idx], prev_level_num_bitplanes[level_idx],
           num_bitplanes, level_exp,
           SubArray<2, T_bitplane, DeviceType>(encoded_bitplanes), level_idx,
-          queue_idx);
+          levels_data[level_idx], queue_idx);
+      if (num_bitplanes == 0) {
+        levels_array[level_idx].memset(0);
+      }
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-      levels_data[level_idx] =
-          SubArray<1, T_data, DeviceType>(levels_array[level_idx]);
+      // levels_data[level_idx] =
+      //     SubArray<1, T_data, DeviceType>(levels_array[level_idx]);
       compressor.decompress_release();
       timer.end();
       // timer.print("Decoding");
@@ -301,12 +306,12 @@ private:
   }
 
   Hierarchy<D, T_data, DeviceType> &hierarchy;
-  Decomposer decomposer;
-  Interleaver interleaver;
-  Encoder encoder;
-  SizeInterpreter interpreter;
-  Retriever retriever;
-  Compressor compressor;
+  Decomposer &decomposer;
+  Interleaver &interleaver;
+  Encoder &encoder;
+  SizeInterpreter &interpreter;
+  Retriever &retriever;
+  Compressor &compressor;
 
   // std::vector<std::vector<Array<1, Byte>>>
   // compressed_bitplanes;
