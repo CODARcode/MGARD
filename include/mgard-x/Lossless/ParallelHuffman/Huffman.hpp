@@ -12,6 +12,7 @@ static bool debug_print_huffman = false;
 
 #include "../LosslessCompressorInterface.hpp"
 
+#include "../../RuntimeX/Utilities/Serializer.hpp"
 #include "Condense.hpp"
 #include "Decode.hpp"
 #include "Deflate.hpp"
@@ -21,7 +22,6 @@ static bool debug_print_huffman = false;
 #include "Histogram.hpp"
 #include "HuffmanWorkspace.hpp"
 #include "OutlierSeparator.hpp"
-#include "../../RuntimeX/Utilities/Serializer.hpp"
 
 #include <chrono>
 using namespace std::chrono;
@@ -31,11 +31,11 @@ namespace mgard_x {
 template <typename Q, typename S, typename H, typename DeviceType>
 class Huffman : public LosslessCompressorInterface<S, DeviceType> {
 public:
-  Huffman(SIZE n, int dict_size, int chunk_size,
+  Huffman(SIZE max_size, int dict_size, int chunk_size,
           double estimated_outlier_ratio = 1.0)
-      : n(n), dict_size(dict_size), chunk_size(chunk_size) {
-    workspace = HuffmanWorkspace<Q, S, H, DeviceType>(n, dict_size, chunk_size,
-                                                      estimated_outlier_ratio);
+      : max_size(max_size), dict_size(dict_size), chunk_size(chunk_size) {
+    workspace = HuffmanWorkspace<Q, S, H, DeviceType>(
+        max_size, dict_size, chunk_size, estimated_outlier_ratio);
   }
 
   static size_t EstimateMemoryFootprint(SIZE primary_count, SIZE dict_size,
@@ -197,8 +197,8 @@ public:
                            workspace.outlier_idx_subarray.data(),
                            workspace.outlier_count, byte_offset);
     SerializeArray<S>(compressed_data_subarray,
-                                  workspace.outlier_subarray.data(),
-                                  workspace.outlier_count, byte_offset);
+                      workspace.outlier_subarray.data(),
+                      workspace.outlier_count, byte_offset);
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
@@ -207,9 +207,8 @@ public:
     log::info("Huffman block size: " + std::to_string(chunk_size));
     log::info("Huffman dictionary size: " + std::to_string(dict_size));
     log::info(
-        "Huffman compress ratio: " +
-        std::to_string(primary_count * sizeof(Q)) + "/" +
-        std::to_string(compressed_data.shape(0)) + " (" +
+        "Huffman compress ratio: " + std::to_string(primary_count * sizeof(Q)) +
+        "/" + std::to_string(compressed_data.shape(0)) + " (" +
         std::to_string((double)primary_count * sizeof(Q) /
                        compressed_data.shape(0)) +
         ")");
@@ -325,8 +324,9 @@ public:
     if (workspace.outlier_count <= workspace.outlier_subarray.shape(0)) {
       // outlier buffer has sufficient size
       log::info("Outlier ratio: " + std::to_string(workspace.outlier_count) +
-                "/" + std::to_string(n) + " (" +
-                std::to_string((double)100 * workspace.outlier_count / n) +
+                "/" + std::to_string(original_data.shape(0)) + " (" +
+                std::to_string((double)100 * workspace.outlier_count /
+                               original_data.shape(0)) +
                 "%)");
     } else {
       log::err("Not enough workspace for outliers.");
@@ -340,15 +340,17 @@ public:
     }
 
     // Cast to unsigned type
-    Array<1, Q, DeviceType> primary_data({n}, (Q *)original_data.data());
+    Array<1, Q, DeviceType> primary_data({original_data.shape(0)},
+                                         (Q *)original_data.data());
     CompressPrimary(primary_data, compressed_data, queue_idx);
   }
 
   void Decompress(Array<1, Byte, DeviceType> &compressed_data,
                   Array<1, S, DeviceType> &decompressed_data, int queue_idx) {
 
-    // Cast to unsigned type
-    Array<1, Q, DeviceType> primary_data({n}, (Q *)decompressed_data.data());
+    // Cast to unsigned type.
+    // We use temporarily use size 1 as it we be resized to the correct size.
+    Array<1, Q, DeviceType> primary_data({1}, (Q *)decompressed_data.data());
 
     DecompressPrimary(compressed_data, primary_data, queue_idx);
 
@@ -375,7 +377,7 @@ public:
     }
   }
 
-  SIZE n;
+  SIZE max_size;
   int dict_size;
   int chunk_size;
   HuffmanWorkspace<Q, S, H, DeviceType> workspace;
