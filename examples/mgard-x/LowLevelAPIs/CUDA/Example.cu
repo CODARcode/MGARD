@@ -22,10 +22,11 @@ int main() {
 
   std::cout << "Compressing with MGARD-X CUDA backend...";
   double tol = 0.01, s = 0, norm;
-  mgard_x::CompressionLowLevelWorkspace workspace(hierarchy);
+  mgard_x::Compressor compressor(hierarchy, config);
   mgard_x::Array<1, unsigned char, mgard_x::CUDA> compressed_array;
-  mgard_x::compress(hierarchy, in_array, mgard_x::error_bound_type::REL, tol, s,
-                    norm, config, workspace, compressed_array);
+  compressor.Compress(in_array, mgard_x::error_bound_type::REL, tol, s,
+                    norm, compressed_array, 0);
+  mgard_x::DeviceRuntime<mgard_x::CUDA>::SyncQueue(0);
   // Get compressed size in number of bytes.
   size_t compressed_size = compressed_array.shape(0);
   unsigned char *compressed_array_cpu = compressed_array.hostCopy();
@@ -34,9 +35,10 @@ int main() {
   std::cout << "Decompressing with MGARD-X CUDA backend...";
   // decompression
   mgard_x::Array<3, double, mgard_x::CUDA> decompressed_array;
-  mgard_x::decompress(hierarchy, compressed_array,
-                      mgard_x::error_bound_type::REL, tol, s, norm, config,
-                      workspace, decompressed_array);
+  compressor.Decompress(compressed_array,
+                      mgard_x::error_bound_type::REL, tol, s, norm, 
+                      decompressed_array, 0);
+  mgard_x::DeviceRuntime<mgard_x::CUDA>::SyncQueue(0);
   delete[] in_array_cpu;
   double *decompressed_array_cpu = decompressed_array.hostCopy();
   std::cout << "Done\n";

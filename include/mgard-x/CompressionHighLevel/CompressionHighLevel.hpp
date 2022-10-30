@@ -15,7 +15,7 @@
 #include "../Hierarchy/Hierarchy.h"
 #include "../RuntimeX/RuntimeX.h"
 
-#include "../CompressionLowLevel/CompressionLowLevel.h"
+#include "../CompressionLowLevel/Compressor.h"
 #include "../CompressionLowLevel/NormCalculator.hpp"
 
 #include "DomainDecomposer.hpp"
@@ -286,7 +286,6 @@ void compress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
   // Trigger the copy constructor to copy hierarchy to the current device
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
-  // CompressionLowLevelWorkspace workspace(hierarchy, config, 0.1);
   Compressor compressor(hierarchy, config);
   std::stringstream ss;
   for (DIM d = 0; d < D; d++) {
@@ -294,10 +293,6 @@ void compress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
   }
   log::info("Compressing subdomain " + std::to_string(subdomain_id) +
             " with shape: " + ss.str());
-  // compress<D, T, DeviceType>(hierarchy, device_subdomain_buffer,
-  // local_ebtype,
-  //                            local_tol, s, norm, config, workspace,
-  //                            device_compressed_buffer);
   compressor.Compress(device_subdomain_buffer, local_ebtype, local_tol, s, norm,
                       device_compressed_buffer, 0);
   if (device_compressed_buffer.shape(0) >
@@ -349,7 +344,6 @@ void compress_subdomain_series(
     // Trigger the copy constructor to copy hierarchy to the current device
     Hierarchy<D, T, DeviceType> hierarchy =
         domain_decomposer.subdomain_hierarchy(subdomain_id);
-    // CompressionLowLevelWorkspace workspace(hierarchy, config, 0.1);
     Compressor compressor(hierarchy, config);
     std::stringstream ss;
     for (DIM d = 0; d < D; d++) {
@@ -357,20 +351,6 @@ void compress_subdomain_series(
     }
     log::info("Compressing subdomain " + std::to_string(subdomain_id) +
               " with shape: " + ss.str());
-    // if (local_ebtype == error_bound_type::REL) {
-    //   norm = norm_calculator(
-    //       device_subdomain_buffer, workspace.norm_tmp_subarray,
-    //       workspace.norm_subarray, s, config.normalize_coordinates);
-    // }
-
-    // Decompose(hierarchy, device_subdomain_buffer, config,
-    //           workspace.data_refactoring_workspace, 0);
-
-    // LinearQuanziation(hierarchy, device_subdomain_buffer, config,
-    // local_ebtype,
-    //                   local_tol, s, norm, workspace, 0);
-
-    // LosslessCompress(hierarchy, device_compressed_buffer, config, workspace);
     compressor.Compress(device_subdomain_buffer, local_ebtype, local_tol, s,
                         norm, device_compressed_buffer, 0);
 
@@ -414,7 +394,6 @@ void compress_subdomain_series_w_prefetch(
       domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
   // The workspace can be resued since all subdomains should be equal/smaller
   // than the first one
-  // CompressionLowLevelWorkspace workspace(hierarchy, config, 0.5);
   Compressor<D, T, DeviceType> compressor(hierarchy, config);
   // Two buffers one for current and one for next
   Array<D, T, DeviceType> device_subdomain_buffer[2];
@@ -453,7 +432,6 @@ void compress_subdomain_series_w_prefetch(
     if (!can_reuse(hierarchy,
                    domain_decomposer.subdomain_shape(curr_subdomain_id))) {
       hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
-      // workspace = CompressionLowLevelWorkspace(hierarchy, config, 0.1);
       compressor = Compressor<D, T, DeviceType>(hierarchy, config);
     }
 
@@ -462,23 +440,6 @@ void compress_subdomain_series_w_prefetch(
     }
     log::info("Compressing subdomain " + std::to_string(curr_subdomain_id) +
               " with shape: " + ss.str());
-
-    // if (local_ebtype == error_bound_type::REL) {
-    //   norm = norm_calculator(
-    //       device_subdomain_buffer[current_buffer],
-    //       workspace.norm_tmp_subarray, workspace.norm_subarray, s,
-    //       config.normalize_coordinates);
-    // }
-
-    // Decompose(hierarchy, device_subdomain_buffer[current_buffer], config,
-    //           workspace.data_refactoring_workspace, 0);
-
-    // LinearQuanziation(hierarchy, device_subdomain_buffer[current_buffer],
-    //                   config, local_ebtype, local_tol, s, norm, workspace,
-    //                   0);
-
-    // LosslessCompress(hierarchy, device_compressed_buffer, config, workspace);
-
     compressor.Decompose(device_subdomain_buffer[current_buffer], 0);
     compressor.Quantize(device_subdomain_buffer[current_buffer], local_ebtype,
                         local_tol, s, norm, 0);
@@ -547,8 +508,6 @@ void decompress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
   // Trigger the copy constructor to copy hierarchy to the current device
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
-
-  // CompressionLowLevelWorkspace workspace(hierarchy, config, 0.0);
   Compressor compressor(hierarchy, config);
   std::stringstream ss;
   for (DIM d = 0; d < D; d++) {
@@ -556,9 +515,6 @@ void decompress_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
   }
   log::info("Decompressing subdomain " + std::to_string(subdomain_id) +
             " with shape: " + ss.str());
-  // decompress<D, T, DeviceType>(hierarchy, device_compressed_buffer,
-  //                              local_ebtype, local_tol, s, norm, config,
-  //                              workspace, device_subdomain_buffer);
   compressor.Decompress(device_compressed_buffer, local_ebtype, local_tol, s,
                         norm, device_subdomain_buffer, 0);
 
@@ -614,8 +570,6 @@ void decompress_subdomain_series(
     // Trigger the copy constructor to copy hierarchy to the current device
     Hierarchy<D, T, DeviceType> hierarchy =
         domain_decomposer.subdomain_hierarchy(subdomain_id);
-
-    // CompressionLowLevelWorkspace workspace(hierarchy, config, 0.0);
     Compressor compressor(hierarchy, config);
     std::stringstream ss;
     for (DIM d = 0; d < D; d++) {
@@ -623,13 +577,6 @@ void decompress_subdomain_series(
     }
     log::info("Decompressing subdomain " + std::to_string(subdomain_id) +
               " with shape: " + ss.str());
-    // LosslessDecompress(hierarchy, device_compressed_buffer, config,
-    // workspace);
-
-    // LinearDequanziation(hierarchy, device_subdomain_buffer, config,
-    //                     local_ebtype, local_tol, s, norm, workspace, 0);
-    // Recompose(hierarchy, device_subdomain_buffer, config,
-    //           workspace.data_refactoring_workspace, 0);
     compressor.Decompress(device_compressed_buffer, local_ebtype, local_tol, s,
                           norm, device_subdomain_buffer, 0);
 
@@ -660,7 +607,6 @@ void decompress_subdomain_series_w_prefetch(
       domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
   // The workspace can be resued since all subdomains should be equal/smaller
   // than the first one
-  // CompressionLowLevelWorkspace workspace(hierarchy, config, 0.1);
   Compressor<D, T, DeviceType> compressor(hierarchy, config);
   // Two buffers one for current and one for next
   Array<D, T, DeviceType> device_subdomain_buffer[2];
@@ -728,7 +674,6 @@ void decompress_subdomain_series_w_prefetch(
     if (!can_reuse(hierarchy,
                    domain_decomposer.subdomain_shape(curr_subdomain_id))) {
       hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
-      // workspace = CompressionLowLevelWorkspace(hierarchy, config, 0.1);
       compressor = Compressor<D, T, DeviceType>(hierarchy, config);
     }
 
@@ -738,11 +683,7 @@ void decompress_subdomain_series_w_prefetch(
     }
     log::info("Decompressing subdomain " + std::to_string(curr_subdomain_id) +
               " with shape: " + ss.str());
-
-    // LosslessDecompress(hierarchy, device_compressed_buffer[current_buffer],
-    //                    config, workspace);
     compressor.LosslessDecompress(device_compressed_buffer[current_buffer], 0);
-
     if (i > 0) {
       // We delay D2H since since it can delay the D2H in lossless decompession
       // and dequantization
@@ -752,17 +693,8 @@ void decompress_subdomain_series_w_prefetch(
                                        prev_subdomain_id, SUBDOMAIN_TO_ORIGINAL,
                                        2);
     }
-
-    // LinearDequanziation(hierarchy, device_subdomain_buffer[current_buffer],
-    //                     config, local_ebtype, local_tol, s, norm, workspace,
-    //                     0);
-
     compressor.Dequantize(device_subdomain_buffer[current_buffer], local_ebtype,
                           local_tol, s, norm, 0);
-
-    // Recompose(hierarchy, device_subdomain_buffer[current_buffer], config,
-    //           workspace.data_refactoring_workspace, 0);
-
     compressor.Recompose(device_subdomain_buffer[current_buffer], 0);
 
     // Make sure the next subdomain is copied before the next iteration

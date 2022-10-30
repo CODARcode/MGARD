@@ -7,10 +7,8 @@
 
 #include "LosslessCompressorInterface.hpp"
 #include "ParallelHuffman/Huffman.hpp"
-#ifdef MGARDX_COMPILE_CUDA
-#include "../Lossless/Cascaded.hpp"
-#include "../Lossless/LZ4.hpp"
-#endif
+#include "Cascaded.hpp"
+#include "LZ4.hpp"
 #include "CPU.hpp"
 #include "Zstd.hpp"
 
@@ -18,92 +16,6 @@
 #define MGARD_X_LOSSLESS_TEMPLATE_HPP
 
 namespace mgard_x {
-
-template <DIM D, typename T, typename DeviceType>
-void LosslessCompress(
-    Hierarchy<D, T, DeviceType> &hierarchy,
-    Array<1, Byte, DeviceType> &compressed_array, Config config,
-    CompressionLowLevelWorkspace<D, T, DeviceType> &workspace) {
-  SIZE total_elems = hierarchy.total_num_elems();
-  if (config.lossless != lossless_type::CPU_Lossless) {
-    // Huffman compression
-    // Cast to 1D unsigned integers when do CPU compression
-    SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType> cast_quantized_subarray =
-        SubArray<1, QUANTIZED_UNSIGNED_INT, DeviceType>(
-            {total_elems},
-            (QUANTIZED_UNSIGNED_INT *)workspace.quantized_subarray.data());
-    HuffmanCompress(cast_quantized_subarray, config.huff_block_size,
-                    config.huff_dict_size,
-                    workspace.huffman_workspace.outlier_count,
-                    workspace.huffman_workspace.outlier_idx_subarray,
-                    workspace.huffman_workspace.outlier_subarray,
-                    compressed_array, workspace.huffman_workspace, 0);
-
-    if (config.lossless == lossless_type::Huffman_LZ4) {
-#ifdef MGARDX_COMPILE_CUDA
-      LZ4Compress(compressed_array, config.lz4_block_size);
-#else
-      config.lossless = lossless_type::Huffman;
-      log::warn("LZ for is only available on CUDA devices. Portable version is "
-                "in development.");
-#endif
-    }
-
-    if (config.lossless == lossless_type::Huffman_Zstd) {
-      ZstdCompress(compressed_array, config.zstd_compress_level);
-    }
-  } else {
-    // Cast to 1D signed integers when do CPU compression
-    SubArray<1, QUANTIZED_INT, DeviceType> cast_linearized_subarray =
-        SubArray<1, QUANTIZED_INT, DeviceType>(
-            {total_elems},
-            (QUANTIZED_INT *)workspace.quantized_subarray.data());
-
-    compressed_array =
-        CPUCompress<QUANTIZED_INT, DeviceType>(cast_linearized_subarray);
-  }
-}
-
-template <DIM D, typename T, typename DeviceType>
-void LosslessDecompress(
-    Hierarchy<D, T, DeviceType> &hierarchy,
-    Array<1, Byte, DeviceType> &compressed_array, Config config,
-    CompressionLowLevelWorkspace<D, T, DeviceType> &workspace) {
-  SIZE total_elems = hierarchy.total_num_elems();
-  SubArray compressed_subarray(compressed_array);
-  if (config.lossless != lossless_type::CPU_Lossless) {
-    if (config.lossless == lossless_type::Huffman_LZ4) {
-#ifdef MGARDX_COMPILE_CUDA
-      LZ4Decompress(compressed_array);
-      compressed_subarray = SubArray(compressed_array);
-#else
-      log::err("LZ4 is only available in CUDA. Portable LZ4 is in development. "
-               "Please use the CUDA backend to decompress for now.");
-      exit(-1);
-#endif
-    }
-
-    if (config.lossless == lossless_type::Huffman_Zstd) {
-      ZstdDecompress(compressed_array);
-      compressed_subarray = SubArray(compressed_array);
-    }
-
-    Array<1, QUANTIZED_UNSIGNED_INT, DeviceType> cast_quantized_array(
-        {total_elems},
-        (QUANTIZED_UNSIGNED_INT *)workspace.quantized_subarray.data());
-    HuffmanDecompress(compressed_subarray, cast_quantized_array,
-                      workspace.huffman_workspace.outlier_count,
-                      workspace.huffman_workspace.outlier_idx_subarray,
-                      workspace.huffman_workspace.outlier_subarray,
-                      workspace.huffman_workspace, 0);
-  } else {
-    Array<1, QUANTIZED_INT, DeviceType> quantized_array =
-        CPUDecompress<QUANTIZED_INT, DeviceType>(compressed_subarray);
-    // We have to copy since quantized_array will be deleted
-    MemoryManager<DeviceType>::Copy1D(workspace.quantized_subarray.data(),
-                                      quantized_array.data(), total_elems);
-  }
-}
 
 template <typename T, typename H, typename DeviceType>
 class ComposedLosslessCompressor

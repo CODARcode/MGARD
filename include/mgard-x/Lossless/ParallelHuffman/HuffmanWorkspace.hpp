@@ -55,7 +55,7 @@ public:
         SubArray(diagonal_path_intersections_array);
   }
 
-  static size_t estimate_size(SIZE primary_count, SIZE dict_size,
+  static size_t EstimateMemoryFootprint(SIZE primary_count, SIZE dict_size,
                               SIZE chunk_size,
                               double estimated_outlier_ratio = 1) {
     size_t size = 0;
@@ -162,101 +162,9 @@ public:
     CL_array.memset(0, queue_idx);
   }
 
-  void move(const HuffmanWorkspace<Q, S, H, DeviceType> &workspace) {
-    // Move instead of copy
-    outlier_count_array = std::move(workspace.outlier_count_array);
-    outlier_idx_array = std::move(workspace.outlier_idx_array);
-    outlier_array = std::move(workspace.outlier_array);
-
-    freq_array = std::move(workspace.freq_array);
-    codebook_array = std::move(workspace.codebook_array);
-    decodebook_array = std::move(workspace.decodebook_array);
-    huff_array = std::move(workspace.huff_array);
-    huff_bitwidths_array = std::move(workspace.huff_bitwidths_array);
-    condense_write_offsets_array =
-        std::move(workspace.condense_write_offsets_array);
-    condense_actual_lengths_array =
-        std::move(workspace.condense_actual_lengths_array);
-
-    first_nonzero_index_array = std::move(workspace.first_nonzero_index_array);
-    sort_by_key_workspace = std::move(workspace.sort_by_key_workspace);
-    _d_freq_copy_array = std::move(workspace._d_freq_copy_array);
-    _d_qcode_copy_array = std::move(workspace._d_qcode_copy_array);
-    CL_array = std::move(workspace.CL_array);
-    lNodesLeader_array = std::move(workspace.lNodesLeader_array);
-    iNodesFreq_array = std::move(workspace.iNodesFreq_array);
-    iNodesLeader_array = std::move(workspace.iNodesLeader_array);
-    tempFreq_array = std::move(workspace.tempFreq_array);
-    tempIsLeaf_array = std::move(workspace.tempIsLeaf_array);
-    tempIndex_array = std::move(workspace.tempIndex_array);
-    copyFreq_array = std::move(workspace.copyFreq_array);
-    copyIsLeaf_array = std::move(workspace.copyIsLeaf_array);
-    copyIndex_array = std::move(workspace.copyIndex_array);
-    _d_codebook_array_org = std::move(workspace._d_codebook_array_org);
-    status_array = std::move(workspace.status_array);
-    diagonal_path_intersections_array =
-        std::move(workspace.diagonal_path_intersections_array);
-    initialize_subarray();
-  }
-
-  void move(HuffmanWorkspace<Q, S, H, DeviceType> &&workspace) {
-    // Move instead of copy
-    outlier_count_array = std::move(workspace.outlier_count_array);
-    outlier_idx_array = std::move(workspace.outlier_idx_array);
-    outlier_array = std::move(workspace.outlier_array);
-
-    freq_array = std::move(workspace.freq_array);
-    codebook_array = std::move(workspace.codebook_array);
-    decodebook_array = std::move(workspace.decodebook_array);
-    huff_array = std::move(workspace.huff_array);
-    huff_bitwidths_array = std::move(workspace.huff_bitwidths_array);
-    condense_write_offsets_array =
-        std::move(workspace.condense_write_offsets_array);
-    condense_actual_lengths_array =
-        std::move(workspace.condense_actual_lengths_array);
-
-    first_nonzero_index_array = std::move(workspace.first_nonzero_index_array);
-    sort_by_key_workspace = std::move(workspace.sort_by_key_workspace);
-    _d_freq_copy_array = std::move(workspace._d_freq_copy_array);
-    _d_qcode_copy_array = std::move(workspace._d_qcode_copy_array);
-    CL_array = std::move(workspace.CL_array);
-    lNodesLeader_array = std::move(workspace.lNodesLeader_array);
-    iNodesFreq_array = std::move(workspace.iNodesFreq_array);
-    iNodesLeader_array = std::move(workspace.iNodesLeader_array);
-    tempFreq_array = std::move(workspace.tempFreq_array);
-    tempIsLeaf_array = std::move(workspace.tempIsLeaf_array);
-    tempIndex_array = std::move(workspace.tempIndex_array);
-    copyFreq_array = std::move(workspace.copyFreq_array);
-    copyIsLeaf_array = std::move(workspace.copyIsLeaf_array);
-    copyIndex_array = std::move(workspace.copyIndex_array);
-    _d_codebook_array_org = std::move(workspace._d_codebook_array_org);
-    status_array = std::move(workspace.status_array);
-    diagonal_path_intersections_array =
-        std::move(workspace.diagonal_path_intersections_array);
-    initialize_subarray();
-  }
-
   HuffmanWorkspace(SIZE primary_count, SIZE dict_size, SIZE chunk_size,
-                   double estimated_outlier_ratio = 0.5) {
+                   double estimated_outlier_ratio = 1.0) {
     allocate(primary_count, dict_size, chunk_size, estimated_outlier_ratio);
-  }
-
-  HuffmanWorkspace(const HuffmanWorkspace<Q, S, H, DeviceType> &workspace) {
-    move(std::move(workspace));
-  }
-
-  HuffmanWorkspace &
-  operator=(const HuffmanWorkspace<Q, S, H, DeviceType> &workspace) {
-    move(std::move(workspace));
-  }
-
-  HuffmanWorkspace(HuffmanWorkspace<Q, S, H, DeviceType> &&workspace) {
-    move(std::move(workspace));
-  }
-
-  HuffmanWorkspace &
-  operator=(HuffmanWorkspace<Q, S, H, DeviceType> &&workspace) {
-    move(std::move(workspace));
   }
 
   bool pre_allocated;
