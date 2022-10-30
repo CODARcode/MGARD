@@ -14,7 +14,7 @@ int main() {
   //... load data into in_array_cpu
   std::vector<mgard_x::SIZE> shape{n1, n2, n3};
   mgard_x::Config config;
-  config.lossless = mgard_x::lossless_type::Huffman;
+  config.lossless = mgard_x::lossless_type::Huffman_LZ4;
   mgard_x::Hierarchy<3, double, mgard_x::OPENMP> hierarchy(shape, config);
   mgard_x::Array<3, double, mgard_x::OPENMP> in_array(shape);
   in_array.load(in_array_cpu);
@@ -22,10 +22,11 @@ int main() {
 
   std::cout << "Compressing with MGARD-X OPENMP backend...";
   double tol = 0.01, s = 0, norm;
-  mgard_x::CompressionLowLevelWorkspace workspace(hierarchy);
+  mgard_x::Compressor compressor(hierarchy, config);
   mgard_x::Array<1, unsigned char, mgard_x::OPENMP> compressed_array;
-  mgard_x::compress(hierarchy, in_array, mgard_x::error_bound_type::REL, tol, s,
-                    norm, config, workspace, compressed_array);
+  compressor.Compress(in_array, mgard_x::error_bound_type::REL, tol, s,
+                    norm, compressed_array, 0);
+  mgard_x::DeviceRuntime<mgard_x::OPENMP>::SyncQueue(0);
   // Get compressed size in number of bytes.
   size_t compressed_size = compressed_array.shape(0);
   unsigned char *compressed_array_cpu = compressed_array.hostCopy();
@@ -34,9 +35,10 @@ int main() {
   std::cout << "Decompressing with MGARD-X OPENMP backend...";
   // decompression
   mgard_x::Array<3, double, mgard_x::OPENMP> decompressed_array;
-  mgard_x::decompress(hierarchy, compressed_array,
-                      mgard_x::error_bound_type::REL, tol, s, norm, config,
-                      workspace, decompressed_array);
+  compressor.Decompress(compressed_array,
+                      mgard_x::error_bound_type::REL, tol, s, norm, 
+                      decompressed_array, 0);
+  mgard_x::DeviceRuntime<mgard_x::OPENMP>::SyncQueue(0);
   delete[] in_array_cpu;
   double *decompressed_array_cpu = decompressed_array.hostCopy();
   std::cout << "Done\n";
