@@ -722,6 +722,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy(const Hierarchy &hierarchy) {
   _dist_array = hierarchy._dist_array;
   _ratio_array = hierarchy._ratio_array;
   _level_volumes = hierarchy._level_volumes;
+  _level_volumes_reciprocal = hierarchy._level_volumes_reciprocal;
   _am_array = hierarchy._am_array;
   _bm_array = hierarchy._bm_array;
   _level_shape = hierarchy._level_shape;
