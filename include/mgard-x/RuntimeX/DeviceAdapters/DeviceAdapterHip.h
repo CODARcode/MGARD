@@ -649,7 +649,8 @@ public:
   MGARDX_CONT static void Malloc1D(T *&ptr, SIZE n,
                                    int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     log::dbg("Calling MemoryManager<HIP>::Malloc1D");
-    if (n == 0) return;
+    if (n == 0)
+      return;
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       DeviceRuntime<HIP>::SyncQueue(queue_idx);
     }
@@ -668,7 +669,8 @@ public:
   MGARDX_CONT static void MallocND(T *&ptr, SIZE n1, SIZE n2, SIZE &ld,
                                    int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     log::dbg("Calling MemoryManager<HIP>::MallocND");
-    if (n1 == 0 || n2 == 0) return;
+    if (n1 == 0 || n2 == 0)
+      return;
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       DeviceRuntime<HIP>::SyncQueue(queue_idx);
     }
@@ -695,7 +697,8 @@ public:
   MGARDX_CONT static void
   MallocManaged1D(T *&ptr, SIZE n, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     log::dbg("Calling MemoryManager<HIP>::MallocManaged1D");
-    if (n == 0) return;
+    if (n == 0)
+      return;
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       DeviceRuntime<HIP>::SyncQueue(queue_idx);
     }
@@ -759,14 +762,13 @@ public:
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     // HIP seesm to have bug when n2 = 1
     if (n2 != 1) {
-       gpuErrchk(hipMemcpy2DAsync(dst_ptr, dst_ld * sizeof(converted_T), src_ptr,
-                               src_ld * sizeof(converted_T),
-                               n1 * sizeof(converted_T), n2, hipMemcpyDefault,
-                               stream));
+      gpuErrchk(hipMemcpy2DAsync(dst_ptr, dst_ld * sizeof(converted_T), src_ptr,
+                                 src_ld * sizeof(converted_T),
+                                 n1 * sizeof(converted_T), n2, hipMemcpyDefault,
+                                 stream));
     } else {
       gpuErrchk(hipMemcpyAsync(dst_ptr, src_ptr, n1 * sizeof(converted_T),
-                             hipMemcpyDefault, stream));
-
+                               hipMemcpyDefault, stream));
     }
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       DeviceRuntime<HIP>::SyncQueue(queue_idx);
@@ -868,9 +870,9 @@ public:
   template <typename T> MGARDX_CONT static bool CheckHostRegister(T *ptr) {
     log::dbg("Calling MemoryManager<HIP>::CheckHostRegister");
     // Disabled since it is not working correctly
-    //unsigned int flags;
-    //hipHostGetFlags(&flags, (void *)ptr);
-    //return hipGetLastError() == hipSuccess;
+    // unsigned int flags;
+    // hipHostGetFlags(&flags, (void *)ptr);
+    // return hipGetLastError() == hipSuccess;
     return true;
   }
 
@@ -878,16 +880,16 @@ public:
     log::dbg("Calling MemoryManager<HIP>::HostRegister");
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
-    //if (!CheckHostRegister(ptr)) {
-      gpuErrchk(hipHostRegister((void *)ptr, n * sizeof(converted_T),
-                                hipHostRegisterPortable));
+    // if (!CheckHostRegister(ptr)) {
+    gpuErrchk(hipHostRegister((void *)ptr, n * sizeof(converted_T),
+                              hipHostRegisterPortable));
     //}
   }
 
   template <typename T> MGARDX_CONT static void HostUnregister(T *ptr) {
     log::dbg("Calling MemoryManager<HIP>::HostUnregister");
-    //if (CheckHostRegister(ptr)) {
-      gpuErrchk(hipHostUnregister((void *)ptr));
+    // if (CheckHostRegister(ptr)) {
+    gpuErrchk(hipHostUnregister((void *)ptr));
     //}
   }
 
@@ -2157,7 +2159,7 @@ public:
     auto task =                                                                \
         kernel.template GenTask<config.z, config.y, config.x>(queue_idx);      \
     if constexpr (KernelType::EnableConfig()) {                                \
-        ConfigTask(task);                                                      \
+      ConfigTask(task);                                                        \
     }                                                                          \
     ret = Execute(task);                                                       \
     if (ret.success && min_time > ret.execution_time) {                        \

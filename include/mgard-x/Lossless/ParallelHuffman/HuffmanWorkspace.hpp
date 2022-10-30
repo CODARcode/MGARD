@@ -13,7 +13,8 @@
 
 namespace mgard_x {
 
-template <typename Q, typename S, typename H, typename DeviceType> class HuffmanWorkspace {
+template <typename Q, typename S, typename H, typename DeviceType>
+class HuffmanWorkspace {
 public:
   HuffmanWorkspace() {
     // By defualt it is not pre-allocated
@@ -23,7 +24,7 @@ public:
   void initialize_subarray() {
     outlier_count_subarray = SubArray(outlier_count_array);
     outlier_idx_subarray = SubArray(outlier_idx_array);
-    outliers_subarray = SubArray(outliers_array);
+    outlier_subarray = SubArray(outlier_array);
 
     freq_subarray = SubArray(freq_array);
     codebook_subarray = SubArray(codebook_array);
@@ -54,7 +55,9 @@ public:
         SubArray(diagonal_path_intersections_array);
   }
 
-  size_t estimate_size(SIZE primary_count, SIZE dict_size, SIZE chunk_size, double estimated_outlier_ratio = 0.5) {
+  static size_t estimate_size(SIZE primary_count, SIZE dict_size,
+                              SIZE chunk_size,
+                              double estimated_outlier_ratio = 1) {
     size_t size = 0;
     size += sizeof(LENGTH);
     size += primary_count * estimated_outlier_ratio * sizeof(LENGTH);
@@ -91,12 +94,13 @@ public:
     return size;
   }
 
-  void allocate(SIZE primary_count, SIZE dict_size, SIZE chunk_size, double estimated_outlier_ratio = 0.5) {
+  void allocate(SIZE primary_count, SIZE dict_size, SIZE chunk_size,
+                double estimated_outlier_ratio = 1) {
 
     outlier_count_array = Array<1, LENGTH, DeviceType>({1}, false, false);
     outlier_idx_array = Array<1, LENGTH, DeviceType>(
         {(SIZE)(primary_count * estimated_outlier_ratio)});
-    outliers_array = Array<1, S, DeviceType>(
+    outlier_array = Array<1, S, DeviceType>(
         {(SIZE)(primary_count * estimated_outlier_ratio)});
 
     freq_array = Array<1, unsigned int, DeviceType>({dict_size});
@@ -140,7 +144,7 @@ public:
 
     outlier_count_array.memset(0);
     outlier_idx_array.memset(0);
-    outliers_array.memset(0);
+    outlier_array.memset(0);
 
     initialize_subarray();
 
@@ -162,7 +166,7 @@ public:
     // Move instead of copy
     outlier_count_array = std::move(workspace.outlier_count_array);
     outlier_idx_array = std::move(workspace.outlier_idx_array);
-    outliers_array = std::move(workspace.outliers_array);
+    outlier_array = std::move(workspace.outlier_array);
 
     freq_array = std::move(workspace.freq_array);
     codebook_array = std::move(workspace.codebook_array);
@@ -199,7 +203,7 @@ public:
     // Move instead of copy
     outlier_count_array = std::move(workspace.outlier_count_array);
     outlier_idx_array = std::move(workspace.outlier_idx_array);
-    outliers_array = std::move(workspace.outliers_array);
+    outlier_array = std::move(workspace.outlier_array);
 
     freq_array = std::move(workspace.freq_array);
     codebook_array = std::move(workspace.codebook_array);
@@ -232,8 +236,9 @@ public:
     initialize_subarray();
   }
 
-  HuffmanWorkspace(SIZE primary_count, SIZE dict_size, SIZE chunk_size) {
-    allocate(primary_count, dict_size, chunk_size);
+  HuffmanWorkspace(SIZE primary_count, SIZE dict_size, SIZE chunk_size,
+                   double estimated_outlier_ratio = 0.5) {
+    allocate(primary_count, dict_size, chunk_size, estimated_outlier_ratio);
   }
 
   HuffmanWorkspace(const HuffmanWorkspace<Q, S, H, DeviceType> &workspace) {
@@ -249,7 +254,8 @@ public:
     move(std::move(workspace));
   }
 
-  HuffmanWorkspace &operator=(HuffmanWorkspace<Q, S, H, DeviceType> &&workspace) {
+  HuffmanWorkspace &
+  operator=(HuffmanWorkspace<Q, S, H, DeviceType> &&workspace) {
     move(std::move(workspace));
   }
 
@@ -258,7 +264,7 @@ public:
   LENGTH outlier_count;
   Array<1, LENGTH, DeviceType> outlier_count_array;
   Array<1, LENGTH, DeviceType> outlier_idx_array;
-  Array<1, QUANTIZED_INT, DeviceType> outliers_array;
+  Array<1, S, DeviceType> outlier_array;
 
   Array<1, unsigned int, DeviceType> freq_array;
   Array<1, H, DeviceType> codebook_array;
@@ -289,7 +295,7 @@ public:
 
   SubArray<1, LENGTH, DeviceType> outlier_count_subarray;
   SubArray<1, LENGTH, DeviceType> outlier_idx_subarray;
-  SubArray<1, QUANTIZED_INT, DeviceType> outliers_subarray;
+  SubArray<1, S, DeviceType> outlier_subarray;
 
   SubArray<1, unsigned int, DeviceType> freq_subarray;
   SubArray<1, H, DeviceType> codebook_subarray;

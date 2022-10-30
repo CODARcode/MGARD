@@ -257,7 +257,8 @@ private:
       int level_exp = 0;
       frexp(level_error_bounds[level_idx], &level_exp);
       // Decode bitplanes: encoded_bitplanes --> levels_array[level_idx]
-      levels_array[level_idx] = Array<1, T_data, DeviceType>({level_num_elems[level_idx]});
+      levels_array[level_idx] =
+          Array<1, T_data, DeviceType>({level_num_elems[level_idx]});
       levels_data[level_idx] = SubArray(levels_array[level_idx]);
       encoder.progressive_decode(
           level_num_elems[level_idx], prev_level_num_bitplanes[level_idx],

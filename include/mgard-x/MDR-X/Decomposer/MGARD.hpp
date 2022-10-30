@@ -72,8 +72,8 @@ class MGARDOrthoganalDecomposer
 public:
   MGARDOrthoganalDecomposer(Hierarchy<D, T, DeviceType> &hierarchy)
       : hierarchy(hierarchy) {
-        workspace = DataRefactoringWorkspace<D, T, DeviceType>(hierarchy);
-      }
+    workspace = DataRefactoringWorkspace<D, T, DeviceType>(hierarchy);
+  }
   void decompose(SubArray<D, T, DeviceType> v, SIZE target_level,
                  int queue_idx) const {
     mgard_x::decompose<D, T, DeviceType>(

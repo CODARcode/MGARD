@@ -153,9 +153,11 @@ private:
       SubArray<1, T_data, DeviceType> result(result_array);
       Array<1, Byte, DeviceType> workspace;
       DeviceCollective<DeviceType>::AbsMax(levels_data[level_idx].shape(0),
-                          levels_data[level_idx], result, workspace, queue_idx);
+                                           levels_data[level_idx], result,
+                                           workspace, queue_idx);
       DeviceCollective<DeviceType>::AbsMax(levels_data[level_idx].shape(0),
-                          levels_data[level_idx], result, workspace, queue_idx);
+                                           levels_data[level_idx], result,
+                                           workspace, queue_idx);
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       T_data level_max_error = *(result_array.hostCopy());
       int level_exp = 0;
@@ -168,16 +170,16 @@ private:
 
       timer.start();
       Array<2, T_bitplane, DeviceType> encoded_bitplanes_array(
-        {(SIZE)num_bitplanes, encoder.buffer_size(level_num_elems[level_idx])});
+          {(SIZE)num_bitplanes,
+           encoder.buffer_size(level_num_elems[level_idx])});
       SubArray<2, T_bitplane, DeviceType> encoded_bitplanes(
           encoded_bitplanes_array);
       Array<1, T_error, DeviceType> level_errors_array({num_bitplanes + 1});
       SubArray<1, T_error, DeviceType> level_errors(level_errors_array);
       std::vector<SIZE> bitplane_sizes(num_bitplanes);
-      encoder.encode(
-          level_num_elems[level_idx], num_bitplanes, level_exp,
-          levels_data[level_idx], encoded_bitplanes,
-          level_errors, bitplane_sizes, queue_idx);
+      encoder.encode(level_num_elems[level_idx], num_bitplanes, level_exp,
+                     levels_data[level_idx], encoded_bitplanes, level_errors,
+                     bitplane_sizes, queue_idx);
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       // PrintSubarray("level_errors", level_errors);
       if (level_idx == 0) {
@@ -199,8 +201,9 @@ private:
       timer.start();
       std::vector<Array<1, Byte, DeviceType>> compressed_encoded_bitplanes;
       compressed_bitplanes.push_back(compressed_encoded_bitplanes);
-      uint8_t stopping_index = compressor.compress_level(
-          bitplane_sizes, encoded_bitplanes_array, compressed_bitplanes[level_idx]);
+      uint8_t stopping_index =
+          compressor.compress_level(bitplane_sizes, encoded_bitplanes_array,
+                                    compressed_bitplanes[level_idx]);
       stopping_indices.push_back(stopping_index);
       level_sizes.push_back(bitplane_sizes);
 
