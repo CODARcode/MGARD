@@ -21,6 +21,7 @@ static bool debug_print_huffman = false;
 #include "Histogram.hpp"
 #include "HuffmanWorkspace.hpp"
 #include "OutlierSeparator.hpp"
+#include "../../RuntimeX/Utilities/Serializer.hpp"
 
 #include <chrono>
 using namespace std::chrono;
@@ -148,7 +149,7 @@ public:
     // outliter
     advance_with_align<LENGTH>(byte_offset, 1);
     advance_with_align<LENGTH>(byte_offset, workspace.outlier_count);
-    advance_with_align<QUANTIZED_INT>(byte_offset, workspace.outlier_count);
+    advance_with_align<S>(byte_offset, workspace.outlier_count);
 
     compressed_data.resize({(SIZE)(byte_offset)});
     SubArray compressed_data_subarray(compressed_data);
@@ -195,7 +196,7 @@ public:
     SerializeArray<LENGTH>(compressed_data_subarray,
                            workspace.outlier_idx_subarray.data(),
                            workspace.outlier_count, byte_offset);
-    SerializeArray<QUANTIZED_INT>(compressed_data_subarray,
+    SerializeArray<S>(compressed_data_subarray,
                                   workspace.outlier_subarray.data(),
                                   workspace.outlier_count, byte_offset);
 
@@ -207,9 +208,9 @@ public:
     log::info("Huffman dictionary size: " + std::to_string(dict_size));
     log::info(
         "Huffman compress ratio: " +
-        std::to_string(primary_count * sizeof(QUANTIZED_UNSIGNED_INT)) + "/" +
+        std::to_string(primary_count * sizeof(Q)) + "/" +
         std::to_string(compressed_data.shape(0)) + " (" +
-        std::to_string((double)primary_count * sizeof(QUANTIZED_UNSIGNED_INT) /
+        std::to_string((double)primary_count * sizeof(Q) /
                        compressed_data.shape(0)) +
         ")");
 
