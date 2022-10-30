@@ -61,9 +61,9 @@ class DirectInterleaver
 public:
   DirectInterleaver(Hierarchy<D, T, DeviceType> &hierarchy)
       : hierarchy(hierarchy) {
-        MemoryManager<DeviceType>::Malloc1D(levels_decomposed_data_device,
-                                            hierarchy.l_target() + 1);
-      }
+    MemoryManager<DeviceType>::Malloc1D(levels_decomposed_data_device,
+                                        hierarchy.l_target() + 1);
+  }
   ~DirectInterleaver() {
     MemoryManager<DeviceType>::Free(levels_decomposed_data_device);
   }
@@ -93,11 +93,9 @@ public:
   }
   void print() const { std::cout << "Direct interleaver" << std::endl; }
 
-
 private:
   Hierarchy<D, T, DeviceType> &hierarchy;
   SubArray<1, T, DeviceType> *levels_decomposed_data_device = nullptr;
-
 };
 
 } // namespace MDR

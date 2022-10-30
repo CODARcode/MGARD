@@ -64,6 +64,30 @@ void compress(Hierarchy<D, T, DeviceType> &hierarchy,
 
   LosslessCompress(hierarchy, compressed_array, config, workspace);
 
+  // DataRefactoring refactor(hierarchy, config);
+  // refactor.Decompose(original_array, 0);
+
+  // using LosslessType = ComposedLossless<QUANTIZED_UNSIGNED_INT, HUFFMAN_CODE,
+  // DeviceType>;
+  // // Lossless<QUANTIZED_INT, HUFFMAN_CODE, DeviceType>
+  // lossless(hierarchy.total_num_elems(), config);
+
+  // LosslessType lossless(hierarchy.total_num_elems(), config);
+
+  // LinearQuantizer<D, T, QUANTIZED_INT, LosslessType, DeviceType> quantizer(
+  //                                 hierarchy, config, lossless);
+
+  // quantizer.Quantize(original_array, type, tol, s, norm,
+  // workspace.quantized_array, 0);
+
+  // // SubArray<1, QUANTIZED_INT, DeviceType> quantized_liearized_subarray =
+  // workspace.quantized_subarray.Linearize(); Array<1, QUANTIZED_UNSIGNED_INT,
+  // DeviceType> quantized_liearized_subarray({hierarchy.total_num_elems()},
+  //                                                                     (QUANTIZED_UNSIGNED_INT*)
+  //                                                                     workspace.quantized_subarray.data());
+
+  // lossless.Compress(quantized_liearized_subarray, compressed_array, 0);
+
   if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncQueue(0);
     timer_total.end();
@@ -92,6 +116,32 @@ void decompress(Hierarchy<D, T, DeviceType> &hierarchy,
   if (log::level & log::TIME)
     timer_total.start();
 
+  // using LosslessType = ComposedLossless<QUANTIZED_UNSIGNED_INT, HUFFMAN_CODE,
+  // DeviceType>;
+  // // using LosslessType = Lossless<QUANTIZED_INT, HUFFMAN_CODE, DeviceType>;
+  // LosslessType lossless(hierarchy.total_num_elems(), config);
+
+  // decompressed_array.resize(hierarchy.level_shape(hierarchy.l_target()));
+  // // Array<1, QUANTIZED_INT, DeviceType> quantized_liearized_data(
+  // //       {hierarchy.total_num_elems()},
+  // workspace.quantized_subarray.data());
+
+  // Array<1, QUANTIZED_UNSIGNED_INT, DeviceType> quantized_liearized_data(
+  //       {hierarchy.total_num_elems()},
+  //       (QUANTIZED_UNSIGNED_INT*)workspace.quantized_subarray.data());
+
+  // lossless.Decompress(compressed_array, quantized_liearized_data,  0);
+
+  // LinearQuantizer<D, T, QUANTIZED_INT, LosslessType, DeviceType> quantizer(
+  //                                 hierarchy, config, lossless);
+  // SubArray decompressed_subarray(decompressed_array);
+
+  // quantizer.Dequantize(workspace.quantized_array, type, tol, s, norm,
+  // decompressed_array, 0);
+
+  // DataRefactoring refactor(hierarchy, config);
+  // refactor.Recompose(decompressed_array, 0);
+
   LosslessDecompress(hierarchy, compressed_array, config, workspace);
 
   LinearDequanziation(hierarchy, decompressed_array, config, type, tol, s, norm,
@@ -111,6 +161,7 @@ void decompress(Hierarchy<D, T, DeviceType> &hierarchy,
     timer_total.clear();
   }
 }
+
 } // namespace mgard_x
 
 #endif

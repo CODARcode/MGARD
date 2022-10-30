@@ -97,7 +97,8 @@ int main(int argc, char **argv) {
   // auto encoder = mgard_x::MDR::GroupedBPEncoder<D, T, T_stream, T_error,
   // DeviceType>(hierarchy);
   auto encoder =
-      mgard_x::MDR::GroupedWarpBPEncoder<D, T, T_stream, T_error, DeviceType>(hierarchy);
+      mgard_x::MDR::GroupedWarpBPEncoder<D, T, T_stream, T_error, DeviceType>(
+          hierarchy);
 
   auto compressor =
       mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>();

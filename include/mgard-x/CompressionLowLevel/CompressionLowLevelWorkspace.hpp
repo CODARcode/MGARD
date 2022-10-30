@@ -37,7 +37,7 @@ public:
   }
 
   size_t estimate_size(std::vector<SIZE> shape, SIZE l_target, SIZE dict_size,
-                       SIZE chunk_size, double estimated_outlier_ratio = 0.5) {
+                       SIZE chunk_size, double estimated_outlier_ratio = 1.0) {
     SIZE total_num_elems = 1;
     for (DIM d = 0; d < D; d++)
       total_num_elems *= shape[d];
@@ -48,16 +48,15 @@ public:
     // size += total_num_elems() * sizeof(T);
     size += sizeof(T);
     size += data_refactoring_workspace.estimate_size(shape);
-    size +=
-        huffman_workspace.estimate_size(total_num_elems, dict_size, chunk_size,
-                                        estimated_outlier_ratio);
+    size += huffman_workspace.estimate_size(
+        total_num_elems, dict_size, chunk_size, estimated_outlier_ratio);
     size += roundup((l_target + 1) * sizeof(T), pitch_size);
     size += roundup(sizeof(LENGTH), pitch_size);
     return size;
   }
 
   void allocate(Hierarchy<D, T, DeviceType> &hierarchy, Config config,
-                double estimated_outlier_ratio) {
+                double estimated_outlier_ratio = 1.0) {
     shape = hierarchy.level_shape(hierarchy.l_target());
     total_elems = hierarchy.total_num_elems();
     // Do pre-allocation
@@ -66,7 +65,7 @@ public:
     norm_array = Array<1, T, DeviceType>({1});
     data_refactoring_workspace.allocate(hierarchy);
     huffman_workspace.allocate(total_elems, config.huff_dict_size,
-                               config.huff_block_size);
+                               config.huff_block_size, estimated_outlier_ratio);
     quantizers_array = Array<1, T, DeviceType>({hierarchy.l_target() + 1});
     // quantized_array = Array<D, QUANTIZED_INT, DeviceType>(
     // hierarchy.level_shape(hierarchy.l_target()), false, false);
@@ -107,7 +106,7 @@ public:
 
   CompressionLowLevelWorkspace(Hierarchy<D, T, DeviceType> &hierarchy,
                                Config config,
-                               double estimated_outlier_ratio = 0.3) {
+                               double estimated_outlier_ratio = 1.0) {
     allocate(hierarchy, config, estimated_outlier_ratio);
   }
 
@@ -138,7 +137,8 @@ public:
   LENGTH outlier_count;
 
   DataRefactoringWorkspace<D, T, DeviceType> data_refactoring_workspace;
-  HuffmanWorkspace<QUANTIZED_UNSIGNED_INT, QUANTIZED_INT, HUFFMAN_CODE, DeviceType>
+  HuffmanWorkspace<QUANTIZED_UNSIGNED_INT, QUANTIZED_INT, HUFFMAN_CODE,
+                   DeviceType>
       huffman_workspace;
 
   Array<1, T, DeviceType> norm_tmp_array;

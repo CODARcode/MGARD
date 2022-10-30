@@ -22,7 +22,8 @@ void GetCodebook(int dict_size,
                  SubArray<1, unsigned int, DeviceType> _d_freq_subarray,
                  SubArray<1, H, DeviceType> _d_codebook_subarray,
                  SubArray<1, uint8_t, DeviceType> _d_decode_meta_subarray,
-                 HuffmanWorkspace<Q, S, H, DeviceType> &workspace) {
+                 HuffmanWorkspace<Q, S, H, DeviceType> &workspace,
+                 int queue_idx) {
   // Metadata
   auto type_bw = sizeof(H) * 8;
 
@@ -35,27 +36,29 @@ void GetCodebook(int dict_size,
 
   // Sort Qcodes by frequency
   DeviceLauncher<DeviceType>::Execute(
-      FillArraySequenceKernel(_d_qcode_subarray), 0);
+      FillArraySequenceKernel(_d_qcode_subarray), queue_idx);
 
   MemoryManager<DeviceType>::Copy1D(workspace._d_freq_copy_subarray.data(),
-                                    _d_freq_subarray.data(), dict_size, 0);
+                                    _d_freq_subarray.data(), dict_size,
+                                    queue_idx);
   MemoryManager<DeviceType>::Copy1D(workspace._d_qcode_copy_subarray.data(),
-                                    _d_qcode_subarray.data(), dict_size, 0);
+                                    _d_qcode_subarray.data(), dict_size,
+                                    queue_idx);
   DeviceCollective<DeviceType>::SortByKey(
       (SIZE)dict_size, workspace._d_freq_copy_subarray,
       workspace._d_qcode_copy_subarray, _d_freq_subarray, _d_qcode_subarray,
-      workspace.sort_by_key_workspace, 0);
+      workspace.sort_by_key_workspace, queue_idx);
 
   DeviceLauncher<DeviceType>::Execute(
       GetFirstNonzeroIndexKernel<unsigned int, DeviceType>(
           _d_freq_subarray, workspace.first_nonzero_index_subarray),
-      0);
+      queue_idx);
 
   unsigned int first_nonzero_index;
   MemoryManager<DeviceType>().Copy1D(
       &first_nonzero_index, workspace.first_nonzero_index_subarray(IDX(0)), 1,
-      0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
+      queue_idx);
+  DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
   if (debug_print_huffman) {
     PrintSubarray("SortByKey::_d_freq_subarray", _d_freq_subarray);
@@ -80,12 +83,12 @@ void GetCodebook(int dict_size,
           workspace.copyIsLeaf_subarray, workspace.copyIndex_subarray,
           workspace.diagonal_path_intersections_subarray,
           workspace.status_subarray),
-      0);
+      queue_idx);
 
   unsigned int max_CL;
   MemoryManager<DeviceType>().Copy1D(&max_CL, workspace.CL_subarray(IDX(0)), 1,
-                                     0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
+                                     queue_idx);
+  DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
   if (debug_print_huffman) {
     PrintSubarray("GenerateCL::CL_subarray", workspace.CL_subarray);
@@ -107,23 +110,23 @@ void GetCodebook(int dict_size,
       GenerateCWKernel<unsigned int, H, DeviceType>(
           workspace.CL_subarray, _nz_d_codebook_subarray, _d_first_subarray,
           _d_entry_subarray, nz_dict_size, workspace.status_subarray),
-      0);
+      queue_idx);
 
   DeviceLauncher<DeviceType>::Execute(
-      ReverseArrayKernel<H, DeviceType>(_d_codebook_subarray), 0);
+      ReverseArrayKernel<H, DeviceType>(_d_codebook_subarray), queue_idx);
   DeviceLauncher<DeviceType>::Execute(
-      ReverseArrayKernel<Q, DeviceType>(_d_qcode_subarray), 0);
+      ReverseArrayKernel<Q, DeviceType>(_d_qcode_subarray), queue_idx);
 
   MemoryManager<DeviceType>().Copy1D(workspace._d_codebook_subarray_org.data(),
                                      _d_codebook_subarray.data(),
-                                     _d_codebook_subarray.shape(0), 0);
+                                     _d_codebook_subarray.shape(0), queue_idx);
 
   DeviceLauncher<DeviceType>::Execute(
       ReorderByIndexKernel<H, Q, DeviceType>(workspace._d_codebook_subarray_org,
                                              _d_codebook_subarray,
                                              _d_qcode_subarray),
-      0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
+      queue_idx);
+  DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 }
 
 } // namespace mgard_x

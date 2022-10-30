@@ -802,7 +802,8 @@ class GroupedWarpBPEncoder
     : public concepts::BitplaneEncoderInterface<D, T_data, T_bitplane, T_error,
                                                 DeviceType> {
 public:
-  GroupedWarpBPEncoder(Hierarchy<D, T_data, DeviceType> &hierarchy): hierarchy(hierarchy) {
+  GroupedWarpBPEncoder(Hierarchy<D, T_data, DeviceType> &hierarchy)
+      : hierarchy(hierarchy) {
     static_assert(std::is_floating_point<T_data>::value,
                   "GeneralBPEncoder: input data must be floating points.");
     static_assert(!std::is_same<T_data, long double>::value,
@@ -823,22 +824,25 @@ public:
       // printf("%u ", level_num_elems[level_idx]);
     }
     SIZE max_bitplane = 64;
-    level_errors_work_array = Array<2, T_error, DeviceType>({max_bitplane+1, MGARDX_NUM_SMs});
-    DeviceCollective<DeviceType>::Sum(MGARDX_NUM_SMs, SubArray<1, T_error, DeviceType>(), 
-                                      SubArray<1, T_error, DeviceType>(), level_error_sum_work_array, 0);
+    level_errors_work_array =
+        Array<2, T_error, DeviceType>({max_bitplane + 1, MGARDX_NUM_SMs});
+    DeviceCollective<DeviceType>::Sum(
+        MGARDX_NUM_SMs, SubArray<1, T_error, DeviceType>(),
+        SubArray<1, T_error, DeviceType>(), level_error_sum_work_array, 0);
 
-    level_signs = std::vector<Array<1, bool, DeviceType>>(hierarchy.l_target() + 1);
+    level_signs =
+        std::vector<Array<1, bool, DeviceType>>(hierarchy.l_target() + 1);
     for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
-      level_signs[level_idx] = Array<1, bool, DeviceType>({level_num_elems[level_idx]});
+      level_signs[level_idx] =
+          Array<1, bool, DeviceType>({level_num_elems[level_idx]});
     }
   }
 
-  void
-  encode(SIZE n, SIZE num_bitplanes, int32_t exp,
-         SubArray<1, T_data, DeviceType> v,
-         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
-         SubArray<1, T_error, DeviceType> level_errors,
-         std::vector<SIZE> &streams_sizes, int queue_idx) {
+  void encode(SIZE n, SIZE num_bitplanes, int32_t exp,
+              SubArray<1, T_data, DeviceType> v,
+              SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+              SubArray<1, T_error, DeviceType> level_errors,
+              std::vector<SIZE> &streams_sizes, int queue_idx) {
 
     SubArray<2, T_error, DeviceType> level_errors_work(level_errors_work_array);
 
@@ -927,7 +931,8 @@ public:
       SubArray<1, T_error, DeviceType> curr_errors({reduce_size},
                                                    level_errors_work(i, 0));
       SubArray<1, T_error, DeviceType> sum_error({1}, level_errors(i));
-      DeviceCollective<DeviceType>::Sum(reduce_size, curr_errors, sum_error, level_error_sum_work_array, queue_idx);
+      DeviceCollective<DeviceType>::Sum(reduce_size, curr_errors, sum_error,
+                                        level_error_sum_work_array, queue_idx);
     }
     DeviceRuntime<DeviceType>().SyncQueue(queue_idx);
 
@@ -936,18 +941,16 @@ public:
     }
   }
 
-  void
-  decode(SIZE n, SIZE num_bitplanes, int32_t exp,
-         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes, int level,
-         SubArray<1, T_data, DeviceType> v, 
-         int queue_idx) {}
+  void decode(SIZE n, SIZE num_bitplanes, int32_t exp,
+              SubArray<2, T_bitplane, DeviceType> encoded_bitplanes, int level,
+              SubArray<1, T_data, DeviceType> v, int queue_idx) {}
 
   // decode the data and record necessary information for progressiveness
-  void
-  progressive_decode(SIZE n, SIZE starting_bitplane, SIZE num_bitplanes,
-                     int32_t exp,
-                     SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
-                     int level, SubArray<1, T_data, DeviceType> v, int queue_idx) {
+  void progressive_decode(SIZE n, SIZE starting_bitplane, SIZE num_bitplanes,
+                          int32_t exp,
+                          SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                          int level, SubArray<1, T_data, DeviceType> v,
+                          int queue_idx) {
 
     SubArray<1, bool, DeviceType> signs_subarray(level_signs[level]);
 

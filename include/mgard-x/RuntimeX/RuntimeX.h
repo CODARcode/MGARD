@@ -13,9 +13,9 @@
 #include "DataTypes.h"
 
 #include "AutoTuners/AutoTuner.h"
+#include "DeviceAdapters/DeviceAdapter.h"
 #include "Kernel/Kernel.h"
 #include "Tasks/Task.h"
-#include "DeviceAdapters/DeviceAdapter.h"
 
 // Serial backend should be always available
 #if MGARD_ENABLE_SERIAL

@@ -18,5 +18,7 @@ compress<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     CompressionLowLevelWorkspace<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>& workspace,
     Array<1, Byte, @DEVICE_TYPE@> &compressed_array);
 
+template class Compressor<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>;
+
 } // namespace mgard_x
 // clang-format on
