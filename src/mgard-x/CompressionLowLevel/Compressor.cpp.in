@@ -6,6 +6,10 @@
  */
 
 #include "mgard-x/CompressionLowLevel/Compressor.hpp"
-#include "mgard-x/Hierarchy/Hierarchy.hpp"
-#include "mgard-x/RuntimeX/DataStructures/Array.hpp"
-#include "mgard-x/RuntimeX/RuntimeX.h"
+// clang-format off
+namespace mgard_x {
+
+template class Compressor<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>;
+
+} // namespace mgard_x
+// clang-format on
