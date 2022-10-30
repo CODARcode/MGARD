@@ -7,10 +7,13 @@
 #include "nvcomp/lz4.hpp"
 #include "nvcomp/nvcompManagerFactory.hpp"
 
+#endif
+
 namespace mgard_x {
 
 template <typename DeviceType>
 void LZ4Compress(Array<1, Byte, DeviceType> &data, size_t chunk_size) {
+#ifdef MGARDX_COMPILE_CUDA
   Timer timer;
   if (log::level & log::TIME)
     timer.start();
@@ -37,10 +40,16 @@ void LZ4Compress(Array<1, Byte, DeviceType> &data, size_t chunk_size) {
     timer.print("LZ4 compress");
     timer.clear();
   }
+#else
+  log::err("LZ4 for is only available on CUDA devices. Portable version is "
+           "in development.");
+  exit(-1);
+#endif
 }
 
 template <typename DeviceType>
 void LZ4Decompress(Array<1, Byte, DeviceType> &data) {
+#ifdef MGARDX_COMPILE_CUDA
   Timer timer;
   if (log::level & log::TIME)
     timer.start();
@@ -62,9 +71,13 @@ void LZ4Decompress(Array<1, Byte, DeviceType> &data) {
     timer.print("LZ4 decompress");
     timer.clear();
   }
+#else
+  log::err("LZ4 for is only available on CUDA devices. Portable version is "
+           "in development.");
+  exit(-1);
+#endif
 }
 
 } // namespace mgard_x
 
-#endif
 #endif
