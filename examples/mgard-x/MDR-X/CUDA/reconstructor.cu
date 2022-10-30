@@ -159,8 +159,9 @@ int main(int argc, char **argv) {
       mgard_x::MDR::DirectInterleaver<D, T_data, DeviceType>(hierarchy);
   // auto encoder = mgard_x::MDR::GroupedBPEncoder<D, T_data, T_stream, T_error,
   // DeviceType>(hierarchy);
-  auto encoder = mgard_x::MDR::GroupedWarpBPEncoder<D, T_data, T_stream, T_error,
-                                                    DeviceType>(hierarchy);
+  auto encoder =
+      mgard_x::MDR::GroupedWarpBPEncoder<D, T_data, T_stream, T_error,
+                                         DeviceType>(hierarchy);
   auto compressor =
       mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>();
   auto retriever = mgard_x::MDR::ConcatLevelFileRetriever(metadata_file, files);

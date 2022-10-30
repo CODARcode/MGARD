@@ -36,25 +36,21 @@ class BitplaneEncoderInterface {
 public:
   virtual ~BitplaneEncoderInterface() = default;
 
-  virtual void
-  encode(SIZE n, SIZE num_bitplanes, int32_t exp,
-         SubArray<1, T_data, DeviceType> v,
-         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
-         SubArray<1, T_error, DeviceType> level_errors,
-         std::vector<SIZE> &streams_sizes, int queue_idx) = 0;
+  virtual void encode(SIZE n, SIZE num_bitplanes, int32_t exp,
+                      SubArray<1, T_data, DeviceType> v,
+                      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                      SubArray<1, T_error, DeviceType> level_errors,
+                      std::vector<SIZE> &streams_sizes, int queue_idx) = 0;
 
-  virtual void
-  decode(SIZE n, SIZE num_bitplanes, int32_t exp,
-         SubArray<2, T_bitplane, DeviceType> encoded_bitplanes, int level,
-         SubArray<1, T_data, DeviceType> v, 
-         int queue_idx) = 0;
+  virtual void decode(SIZE n, SIZE num_bitplanes, int32_t exp,
+                      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                      int level, SubArray<1, T_data, DeviceType> v,
+                      int queue_idx) = 0;
 
-  virtual void
-  progressive_decode(SIZE n, SIZE starting_bitplanes, SIZE num_bitplanes,
-                     int32_t exp,
-                     SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
-                     int level, 
-                     SubArray<1, T_data, DeviceType> v, int queue_idx) = 0;
+  virtual void progressive_decode(
+      SIZE n, SIZE starting_bitplanes, SIZE num_bitplanes, int32_t exp,
+      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes, int level,
+      SubArray<1, T_data, DeviceType> v, int queue_idx) = 0;
 
   virtual SIZE buffer_size(SIZE n) const = 0;
 
