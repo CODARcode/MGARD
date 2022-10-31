@@ -1,6 +1,7 @@
 #ifndef _MDR_DEFAULT_LEVEL_COMPRESSOR_HPP
 #define _MDR_DEFAULT_LEVEL_COMPRESSOR_HPP
 
+#include "../../Lossless/ParallelHuffman/Huffman.hpp"
 #include "../RefactorUtils.hpp"
 #include "LevelCompressorInterface.hpp"
 #include "LosslessCompressor.hpp"
@@ -57,14 +58,16 @@ template <typename T, typename DeviceType>
 class DefaultLevelCompressor
     : public concepts::LevelCompressorInterface<T, DeviceType> {
 public:
-  DefaultLevelCompressor() {}
+  DefaultLevelCompressor(SIZE max_n, int dict_size, int chunk_size,
+          double estimated_outlier_ratio = 1.0): huffman(max_n, dict_size, chunk_size, estimated_outlier_ratio) {
+  }
   ~DefaultLevelCompressor(){};
 
   // compress level, overwrite and free original streams; rewrite streams sizes
   uint8_t compress_level(
       std::vector<SIZE> &bitplane_sizes,
       Array<2, T, DeviceType> &encoded_bitplanes,
-      std::vector<Array<1, Byte, DeviceType>> &compressed_bitplanes) {
+      std::vector<Array<1, Byte, DeviceType>> &compressed_bitplanes, int queue_idx) {
 
     SubArray<2, T, DeviceType> encoded_bitplanes_subarray(encoded_bitplanes);
     for (SIZE bitplane_idx = 0;
@@ -83,8 +86,12 @@ public:
       Array<1, Byte, DeviceType> compressed_bitplane(
           {compressed_bitplane_size});
       compressed_bitplane.load(compressed_host);
-      compressed_bitplanes.push_back(compressed_bitplane);
+      compressed_bitplanes[bitplane_idx] = compressed_bitplane;
       bitplane_sizes[bitplane_idx] = compressed_bitplane_size;
+
+      // Array<1, T, DeviceType> encoded_bitplane({encoded_bitplanes_subarray.shape(1)}, bitplane);
+      // huffman.Compress(encoded_bitplane, compressed_bitplanes[bitplane_idx], queue_idx);
+      // bitplane_sizes[bitplane_idx] = compressed_bitplanes[bitplane_idx].shape(0);      
     }
     return 0;
   }
@@ -95,11 +102,12 @@ public:
       std::vector<SIZE> &bitplane_sizes,
       std::vector<Array<1, Byte, DeviceType>> &compressed_bitplanes,
       Array<2, T, DeviceType> &encoded_bitplanes, uint8_t starting_bitplane,
-      uint8_t num_bitplanes, uint8_t stopping_index) {
+      uint8_t num_bitplanes, uint8_t stopping_index, int queue_idx) {
 
     SubArray<2, T, DeviceType> encoded_bitplanes_subarray(encoded_bitplanes);
 
     for (SIZE bitplane_idx = 0; bitplane_idx < num_bitplanes; bitplane_idx++) {
+      T *bitplane = encoded_bitplanes_subarray(bitplane_idx, 0);
       SubArray<1, Byte, DeviceType> compressed_bitplane_subarray(
           compressed_bitplanes[bitplane_idx]);
       Byte *compressed_host = new Byte[bitplane_sizes[bitplane_idx]];
@@ -112,12 +120,15 @@ public:
       Byte *bitplane_host = NULL;
       bitplane_sizes[bitplane_idx] = ::MDR::ZSTD::decompress(
           compressed_host, bitplane_sizes[bitplane_idx], &bitplane_host);
-      T *bitplane = encoded_bitplanes_subarray(bitplane_idx, 0);
-
+      
       MemoryManager<DeviceType>::Copy1D(
           bitplane, (T *)bitplane_host,
           bitplane_sizes[bitplane_idx] / sizeof(T), 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
+
+      // Array<1, T, DeviceType> encoded_bitplane({encoded_bitplanes_subarray.shape(1)}, bitplane);
+      // huffman.Decompress(compressed_bitplanes[bitplane_idx], encoded_bitplane, queue_idx);
+
     }
   }
 
@@ -125,6 +136,8 @@ public:
   void decompress_release() {}
 
   void print() const {}
+
+  Huffman<T, T, HUFFMAN_CODE, DeviceType> huffman;
 };
 
 } // namespace MDR

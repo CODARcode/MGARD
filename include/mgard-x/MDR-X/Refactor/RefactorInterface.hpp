@@ -26,7 +26,7 @@ namespace MDR {
 namespace concepts {
 
 // refactor: a general interface for scnetific data refactor
-template <DIM D, typename T_data, typename T_bitplane, typename DeviceType>
+template <DIM D, typename T_data, typename DeviceType>
 class RefactorInterface {
 public:
   virtual ~RefactorInterface() = default;

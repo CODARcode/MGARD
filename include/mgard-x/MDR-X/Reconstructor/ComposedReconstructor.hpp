@@ -18,60 +18,73 @@ namespace mgard_x {
 namespace MDR {
 // a decomposition-based scientific data reconstructor: inverse operator of
 // composed refactor
-template <DIM D, typename T_data, typename T_bitplane, class Decomposer,
-          class Interleaver, class Encoder, class Compressor,
-          class SizeInterpreter, class ErrorEstimator, class Retriever,
-          typename DeviceType>
+template <DIM D, typename T_data, typename DeviceType>
 class ComposedReconstructor
-    : public concepts::ReconstructorInterface<D, T_data, T_bitplane,
-                                              DeviceType> {
+    : public concepts::ReconstructorInterface<D, T_data, DeviceType> {
+
+using T_bitplane = uint32_t;
+using T_error = double;
+using Decomposer = MGARDOrthoganalDecomposer<D, T_data, DeviceType>;
+using Interleaver = DirectInterleaver<D, T_data, DeviceType>;
+using Encoder = GroupedBPEncoder<D, T_data, T_bitplane, T_error, DeviceType>;
+using Compressor = DefaultLevelCompressor<T_bitplane, DeviceType>;
+using Retriever = ConcatLevelFileRetriever;
+
 public:
-  ComposedReconstructor(Hierarchy<D, T_data, DeviceType> &hierarchy,
-                        Decomposer &decomposer, Interleaver &interleaver,
-                        Encoder &encoder, Compressor &compressor,
-                        SizeInterpreter &interpreter, Retriever &retriever)
-      : hierarchy(hierarchy), decomposer(decomposer), interleaver(interleaver),
-        encoder(encoder), compressor(compressor), interpreter(interpreter),
-        retriever(retriever) {
+  ComposedReconstructor(Hierarchy<D, T_data, DeviceType> hierarchy,
+                        std::string metadata_file, std::vector<std::string> files
+                        )
+      : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
+        encoder(hierarchy), compressor(hierarchy.total_num_elems()/8, 8192, 20480, 1.0),
+        retriever(metadata_file, files) {
     prev_reconstructed = false;
   }
 
   // reconstruct data from encoded streams
-  Array<D, T_data, DeviceType> reconstruct(double tolerance) {
+  Array<D, T_data, DeviceType> reconstruct(double tolerance, double s) {
     mgard_x::Timer timer;
     timer.start();
+
     std::vector<std::vector<double>> level_abs_errors;
     uint8_t target_level = level_error_bounds.size() - 1;
     std::vector<std::vector<double>> &level_errors = level_squared_errors;
-    if (std::is_base_of<MDR::MaxErrorEstimator<T_data>,
-                        ErrorEstimator>::value) {
-      // std::cout << "ErrorEstimator is base of MaxErrorEstimator, computing "
-      //              "absolute error"
-      //           << std::endl;
-      MDR::MaxErrorCollector<T_data> collector =
-          MDR::MaxErrorCollector<T_data>();
+    std::vector<uint8_t> prev_level_num_bitplanes(level_num_bitplanes);
+    std::vector<SIZE> retrieve_sizes;
+    if (s == std::numeric_limits<double>::infinity()) {
+      std::cout << "ErrorEstimator is base of MaxErrorEstimator, computing "
+                   "absolute error"
+                << std::endl;
+      MDR::MaxErrorCollector<T_data> collector = MDR::MaxErrorCollector<T_data>();
       for (int i = 0; i <= target_level; i++) {
         auto collected_error = collector.collect_level_error(
             NULL, 0, level_squared_errors[i].size(), level_error_bounds[i]);
         level_abs_errors.push_back(collected_error);
       }
       level_errors = level_abs_errors;
-    } else if (std::is_base_of<MDR::SquaredErrorEstimator<T_data>,
-                               ErrorEstimator>::value) {
-      // std::cout << "ErrorEstimator is base of SquaredErrorEstimator, using "
-      //              "level squared error directly"
-      //           << std::endl;
+
+      MaxErrorEstimatorOB<T_data> estimator(D);
+      SignExcludeGreedyBasedSizeInterpreter interpreter(estimator);
+      // RoundRobinSizeInterpreter interpreter(estimator);
+      // InorderSizeInterpreter interpreter(estimator);
+      retrieve_sizes = interpreter.interpret_retrieve_size(
+        level_sizes, level_errors, tolerance, level_num_bitplanes);
     } else {
-      std::cerr << "Customized error estimator not supported yet" << std::endl;
-      exit(-1);
+      std::cout << "ErrorEstimator is base of SquaredErrorEstimator, using "
+                   "level squared error directly"
+                << std::endl;
+      SNormErrorEstimator<T_data> estimator(D, hierarchy.l_target(), s);
+      SignExcludeGreedyBasedSizeInterpreter interpreter(estimator);
+      // NegaBinaryGreedyBasedSizeInterpreter interpreter(estimator);      
+      retrieve_sizes = interpreter.interpret_retrieve_size(
+        level_sizes, level_errors, tolerance, level_num_bitplanes);
     }
     timer.end();
     timer.print("Preprocessing");
 
     timer.start();
-    auto prev_level_num_bitplanes(level_num_bitplanes);
-    auto retrieve_sizes = interpreter.interpret_retrieve_size(
-        level_sizes, level_errors, tolerance, level_num_bitplanes);
+    // auto prev_level_num_bitplanes(level_num_bitplanes);
+    // auto retrieve_sizes = interpreter.interpret_retrieve_size(
+    //     level_sizes, level_errors, tolerance, level_num_bitplanes);
     // retrieve data
     level_components = retriever.retrieve_level_components(
         level_sizes, retrieve_sizes, prev_level_num_bitplanes,
@@ -106,17 +119,17 @@ public:
   }
 
   // reconstruct progressively based on available data
-  Array<D, T_data, DeviceType> progressive_reconstruct(double tolerance) {
+  Array<D, T_data, DeviceType> progressive_reconstruct(double tolerance, double s) {
 
     // printf("start progressive_reconstruct\n");
     if (!prev_reconstructed) { // First time reconstruction
-      data_array = reconstruct(tolerance);
+      data_array = reconstruct(tolerance, s);
       prev_reconstructed = true;
       return data_array;
     } else {
       Array<D, T_data, DeviceType> curr_data_array(data_array);
       // Reconstruct based on newly retrieved bitplanes
-      data_array = reconstruct(tolerance);
+      data_array = reconstruct(tolerance, s);
       // TODO: if we change resolusion here, we need to do something
       // Combine previously recomposed data with newly recomposed data
       SubArray<D, T_data, DeviceType> data_subarray(data_array);
@@ -169,8 +182,6 @@ public:
     interleaver.print();
     std::cout << "Encoder: ";
     encoder.print();
-    std::cout << "SizeInterpreter: ";
-    interpreter.print();
     std::cout << "Retriever: ";
     retriever.print();
   }
@@ -223,7 +234,7 @@ private:
     }
 
     timer.end();
-    // timer.print("Reconstruct Preprocessing");
+    timer.print("Reconstruct Preprocessing");
 
     Array<1, T_data, DeviceType> *levels_array =
         new Array<1, T_data, DeviceType>[target_level + 1];
@@ -247,9 +258,9 @@ private:
           level_sizes[level_idx], compressed_bitplanes[level_idx],
           encoded_bitplanes, prev_level_num_bitplanes[level_idx],
           level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx],
-          stopping_indices[level_idx]);
+          stopping_indices[level_idx], queue_idx);
       timer.end();
-      // timer.print("Lossless");
+      timer.print("Lossless");
       timer.start();
 
       // Compute the exponent of max abs value of the current level needed for
@@ -273,7 +284,7 @@ private:
       //     SubArray<1, T_data, DeviceType>(levels_array[level_idx]);
       compressor.decompress_release();
       timer.end();
-      // timer.print("Decoding");
+      timer.print("Decoding");
       // std::cout << "recompose: level " << level_idx << " num_bitplanes: " <<
       // num_bitplanes << "\n";
 
@@ -291,28 +302,27 @@ private:
                            target_level, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
-    // timer.print("Reposition");
+    timer.print("Reposition");
 
     timer.start();
     // PrintSubarray("before recompose", SubArray(data_array));
     // Recompose data
-    decomposer.recompose(SubArray<D, T_data, DeviceType>(output_data),
-                         target_level, queue_idx);
+    decomposer.recompose(output_data, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     // PrintSubarray("after recompose", SubArray(data_array));
     timer.end();
-    // timer.print("Recomposing");
+    timer.print("Recomposing");
 
     return output_data;
   }
 
-  Hierarchy<D, T_data, DeviceType> &hierarchy;
-  Decomposer &decomposer;
-  Interleaver &interleaver;
-  Encoder &encoder;
-  SizeInterpreter &interpreter;
-  Retriever &retriever;
-  Compressor &compressor;
+  Hierarchy<D, T_data, DeviceType> hierarchy;
+  Decomposer decomposer;
+  Interleaver interleaver;
+  Encoder encoder;
+  Compressor compressor;
+  Retriever retriever;
+  
 
   // std::vector<std::vector<Array<1, Byte>>>
   // compressed_bitplanes;

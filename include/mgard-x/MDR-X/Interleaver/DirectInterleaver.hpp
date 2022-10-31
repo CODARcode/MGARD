@@ -59,7 +59,7 @@ template <DIM D, typename T, typename DeviceType>
 class DirectInterleaver
     : public concepts::InterleaverInterface<D, T, DeviceType> {
 public:
-  DirectInterleaver(Hierarchy<D, T, DeviceType> &hierarchy)
+  DirectInterleaver(Hierarchy<D, T, DeviceType> hierarchy)
       : hierarchy(hierarchy) {
     MemoryManager<DeviceType>::Malloc1D(levels_decomposed_data_device,
                                         hierarchy.l_target() + 1);
@@ -67,9 +67,16 @@ public:
   ~DirectInterleaver() {
     MemoryManager<DeviceType>::Free(levels_decomposed_data_device);
   }
+
+  DirectInterleaver(const DirectInterleaver &direct_interleaver) {
+    hierarchy = direct_interleaver.hierarchy;
+    MemoryManager<DeviceType>::Malloc1D(levels_decomposed_data_device,
+                                        hierarchy.l_target() + 1);
+  }
+
   void interleave(SubArray<D, T, DeviceType> decomposed_data,
                   SubArray<1, T, DeviceType> *levels_decomposed_data,
-                  SIZE target_level, int queue_idx) const {
+                  SIZE target_level, int queue_idx) {
     MemoryManager<DeviceType>::Copy1D(levels_decomposed_data_device,
                                       levels_decomposed_data, target_level + 1,
                                       queue_idx);
@@ -81,7 +88,7 @@ public:
   }
   void reposition(SubArray<1, T, DeviceType> *levels_decomposed_data,
                   SubArray<D, T, DeviceType> decomposed_data, SIZE target_level,
-                  int queue_idx) const {
+                  int queue_idx) {
     MemoryManager<DeviceType>::Copy1D(levels_decomposed_data_device,
                                       levels_decomposed_data, target_level + 1,
                                       queue_idx);
@@ -94,7 +101,7 @@ public:
   void print() const { std::cout << "Direct interleaver" << std::endl; }
 
 private:
-  Hierarchy<D, T, DeviceType> &hierarchy;
+  Hierarchy<D, T, DeviceType> hierarchy;
   SubArray<1, T, DeviceType> *levels_decomposed_data_device = nullptr;
 };
 

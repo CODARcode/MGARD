@@ -1,7 +1,7 @@
 #ifndef _MDR_MGARD_DECOMPOSER_HPP
 #define _MDR_MGARD_DECOMPOSER_HPP
 
-#include "../../DataRefactoring/DataRefactoring.hpp"
+#include "../../DataRefactoring/DataRefactor.hpp"
 #include "DecomposerInterface.hpp"
 #include "decompose.hpp"
 #include "recompose.hpp"
@@ -70,31 +70,22 @@ template <DIM D, typename T, typename DeviceType>
 class MGARDOrthoganalDecomposer
     : public concepts::DecomposerInterface<D, T, DeviceType> {
 public:
-  MGARDOrthoganalDecomposer(Hierarchy<D, T, DeviceType> &hierarchy)
-      : hierarchy(hierarchy) {
-    workspace = DataRefactoringWorkspace<D, T, DeviceType>(hierarchy);
+  MGARDOrthoganalDecomposer(Hierarchy<D, T, DeviceType> hierarchy)
+      : hierarchy(hierarchy), refactor(hierarchy, Config()) {
   }
-  void decompose(SubArray<D, T, DeviceType> v, SIZE target_level,
-                 int queue_idx) const {
-    mgard_x::decompose<D, T, DeviceType>(
-        hierarchy, v, workspace.refactoring_w_subarray,
-        workspace.refactoring_b_subarray, 0, queue_idx);
-    mgard_x::DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+  void decompose(Array<D, T, DeviceType> &v, int queue_idx) {
+    refactor.Decompose(v, queue_idx);
   }
-  void recompose(SubArray<D, T, DeviceType> v, SIZE target_level,
-                 int queue_idx) const {
-    mgard_x::recompose<D, T, DeviceType>(
-        hierarchy, v, workspace.refactoring_w_subarray,
-        workspace.refactoring_b_subarray, target_level, queue_idx);
-    mgard_x::DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+  void recompose(Array<D, T, DeviceType> &v, int queue_idx) {
+    refactor.Recompose(v, queue_idx);
   }
   void print() const {
     std::cout << "MGARD orthogonal decomposer" << std::endl;
   }
 
 private:
-  Hierarchy<D, T, DeviceType> &hierarchy;
-  DataRefactoringWorkspace<D, T, DeviceType> workspace;
+  Hierarchy<D, T, DeviceType> hierarchy;
+  DataRefactor<D, T, DeviceType> refactor;
 };
 
 } // namespace MDR

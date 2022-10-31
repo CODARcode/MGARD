@@ -8,21 +8,15 @@
 #include <vector>
 using namespace std;
 
-template <mgard_x::DIM D, class T_data, class T_bitplane, class T_error,
-          typename DeviceType, class Decomposer, class Interleaver,
-          class Encoder, class Compressor, class ErrorCollector, class Writer>
+template <mgard_x::DIM D, class T_data, typename DeviceType>
 void test(string filename, const vector<mgard_x::SIZE> &dims, int target_level,
           int num_bitplanes,
           mgard_x::Hierarchy<D, T_data, DeviceType> &hierarchy,
-          Decomposer &decomposer, Interleaver &interleaver, Encoder &encoder,
-          Compressor &compressor, ErrorCollector &collector, Writer &writer) {
+          std::string metadata_file, std::vector<std::string> files) {
 
   auto refactor =
-      mgard_x::MDR::ComposedRefactor<D, T_data, T_bitplane, T_error, Decomposer,
-                                     Interleaver, Encoder, Compressor,
-                                     ErrorCollector, Writer, DeviceType>(
-          hierarchy, decomposer, interleaver, encoder, compressor, collector,
-          writer);
+      mgard_x::MDR::ComposedRefactor<D, T_data, DeviceType>(
+          hierarchy, metadata_file, files);
   size_t num_elements = 1;
 
   printf("loading file\n");
@@ -81,6 +75,7 @@ int main(int argc, char **argv) {
   const mgard_x::DIM D = 3;
   printf("dims: %lu %lu %lu\n", dims[0], dims[1], dims[2]);
 
+  mgard_x::log::level |= mgard_x::log::INFO;
   mgard_x::Config config;
   config.max_larget_level = target_level;
   mgard_x::Hierarchy<D, T, DeviceType> hierarchy(dims, config);
@@ -94,14 +89,14 @@ int main(int argc, char **argv) {
   // auto interleaver = mgard_x::MDR::SFCInterleaver<T>();
   // auto interleaver = mgard_x::MDR::BlockedInterleaver<T>();
 
-  // auto encoder = mgard_x::MDR::GroupedBPEncoder<D, T, T_stream, T_error,
-  // DeviceType>(hierarchy);
-  auto encoder =
-      mgard_x::MDR::GroupedWarpBPEncoder<D, T, T_stream, T_error, DeviceType>(
-          hierarchy);
+  auto encoder = mgard_x::MDR::GroupedBPEncoder<D, T, T_stream, T_error,
+  DeviceType>(hierarchy);
+  // auto encoder =
+  //     mgard_x::MDR::GroupedWarpBPEncoder<D, T, T_stream, T_error, DeviceType>(
+  //         hierarchy);
 
   auto compressor =
-      mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>();
+      mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>(hierarchy.total_num_elems(), 8192, 20480, 1.0);
   // auto compressor = mgard_x::MDR::AdaptiveLevelCompressor(32);
   // auto compressor = mgard_x::MDR::NullLevelCompressor();
 
@@ -112,9 +107,9 @@ int main(int argc, char **argv) {
   // auto writer = mgard_x::MDR::HPSSFileWriter(metadata_file, files, 2048,
   // 512 * 1024 * 1024);
 
-  test<D, T, T_stream, T_error, DeviceType>(
-      filename, dims, target_level, num_bitplanes, hierarchy, decomposer,
-      interleaver, encoder, compressor, collector, writer);
+  test<D, T, DeviceType>(
+      filename, dims, target_level, num_bitplanes, hierarchy, 
+      metadata_file, files);
 
   // test2<T>(filename, dims, target_level, num_bitplanes, decomposer,
   //         interleaver, encoder, compressor, collector, writer);
