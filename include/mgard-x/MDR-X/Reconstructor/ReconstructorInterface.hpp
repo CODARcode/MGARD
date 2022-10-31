@@ -27,15 +27,15 @@ namespace MDR {
 namespace concepts {
 
 // reconstructor: a general interface for scientific data reconstructor
-template <DIM D, typename T_data, typename T_bitplane, typename DeviceType>
+template <DIM D, typename T_data, typename DeviceType>
 class ReconstructorInterface {
 public:
   virtual ~ReconstructorInterface() = default;
 
-  virtual Array<D, T_data, DeviceType> reconstruct(double tolerance) = 0;
+  virtual Array<D, T_data, DeviceType> reconstruct(double tolerance, double s) = 0;
 
   virtual Array<D, T_data, DeviceType>
-  progressive_reconstruct(double tolerance) = 0;
+  progressive_reconstruct(double tolerance, double s) = 0;
 
   virtual void load_metadata() = 0;
 

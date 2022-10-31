@@ -15,20 +15,27 @@ namespace mgard_x {
 namespace MDR {
 // a decomposition-based scientific data refactor: compose a refactor using
 // decomposer, interleaver, encoder, and error collector
-template <DIM D, typename T_data, typename T_bitplane, typename T_error,
-          class Decomposer, class Interleaver, class Encoder, class Compressor,
-          class ErrorCollector, class Writer, typename DeviceType>
+template <DIM D, typename T_data, typename DeviceType>
 class ComposedRefactor
-    : public concepts::RefactorInterface<D, T_data, T_bitplane, DeviceType> {
+    : public concepts::RefactorInterface<D, T_data, DeviceType> {
+
+using T_bitplane = uint32_t;
+using T_error = double;
+using Decomposer = MGARDOrthoganalDecomposer<D, T_data, DeviceType>;
+using Interleaver = DirectInterleaver<D, T_data, DeviceType>;
+using Encoder = GroupedBPEncoder<D, T_data, T_bitplane, T_error, DeviceType>;
+using Compressor = DefaultLevelCompressor<T_bitplane, DeviceType>;
+using ErrorCollector = MaxErrorCollector<T_data>;
+using Writer = ConcatLevelFileWriter;
 
 public:
-  ComposedRefactor(Hierarchy<D, T_data, DeviceType> &hierarchy,
-                   Decomposer &decomposer, Interleaver &interleaver,
-                   Encoder &encoder, Compressor &compressor,
-                   ErrorCollector &collector, Writer &writer)
-      : hierarchy(hierarchy), decomposer(decomposer), interleaver(interleaver),
-        encoder(encoder), compressor(compressor), collector(collector),
-        writer(writer) {}
+  ComposedRefactor(Hierarchy<D, T_data, DeviceType> hierarchy,
+                   std::string metadata_file, std::vector<std::string> files
+                   )
+      : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
+        encoder(hierarchy), compressor(hierarchy.total_num_elems()/8, 8192, 20480, 1.0),
+        collector(),
+        writer(metadata_file, files) {}
 
   void refactor(Array<D, T_data, DeviceType> &data_array,
                 const std::vector<SIZE> &dims, uint8_t target_level,
@@ -106,14 +113,12 @@ private:
     SubArray<D, T_data, DeviceType> data(data_array);
 
     MDR::Timer timer;
-    // // decompose data hierarchically
+    // decompose data hierarchically
     timer.start();
-    // PrintSubarray("before decomposition", data);
-    decomposer.decompose(data, target_level, queue_idx);
-    // PrintSubarray("after decomposition", data);
+    decomposer.decompose(data_array, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
-    // timer.print("Decompose");
+    timer.print("Decompose");
     timer.start();
 
     // printf("level_num_elems: ");
@@ -144,7 +149,8 @@ private:
     interleaver.interleave(data, levels_data, target_level, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
-    // timer.print("Interleave");
+    timer.print("Interleave");
+
     std::vector<std::vector<Array<1, Byte, DeviceType>>> compressed_bitplanes;
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
 
@@ -166,7 +172,7 @@ private:
       // level_max_error, level_exp);
       level_error_bounds.push_back(level_max_error);
       timer.end();
-      // timer.print("level_max_error");
+      timer.print("level_max_error");
 
       timer.start();
       Array<2, T_bitplane, DeviceType> encoded_bitplanes_array(
@@ -196,22 +202,23 @@ private:
       }
       level_squared_errors.push_back(squared_error);
       timer.end();
-      // timer.print("Encoding");
+      timer.print("Encoding");
 
       timer.start();
-      std::vector<Array<1, Byte, DeviceType>> compressed_encoded_bitplanes;
+      std::vector<Array<1, Byte, DeviceType>> compressed_encoded_bitplanes(num_bitplanes);
       compressed_bitplanes.push_back(compressed_encoded_bitplanes);
       uint8_t stopping_index =
           compressor.compress_level(bitplane_sizes, encoded_bitplanes_array,
-                                    compressed_bitplanes[level_idx]);
+                                    compressed_bitplanes[level_idx], queue_idx);
       stopping_indices.push_back(stopping_index);
       level_sizes.push_back(bitplane_sizes);
-
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.end();
-      // timer.print("Lossless");
+      timer.print("Lossless");
     }
 
     timer.start();
+    std::cout << "start writing\n";
     // write level components
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
       level_components.push_back(std::vector<uint8_t *>());
@@ -229,18 +236,18 @@ private:
     }
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
-    // timer.print("Copy to CPU");
+    timer.print("Copy to CPU");
 
     return true;
   }
 
-  Hierarchy<D, T_data, DeviceType> &hierarchy;
-  Decomposer &decomposer;
-  Interleaver &interleaver;
-  Encoder &encoder;
-  Compressor &compressor;
-  ErrorCollector &collector;
-  Writer &writer;
+  Hierarchy<D, T_data, DeviceType> hierarchy;
+  Decomposer decomposer;
+  Interleaver interleaver;
+  Encoder encoder;
+  Compressor compressor;
+  ErrorCollector collector;
+  Writer writer;
 
   Array<D, T_data, DeviceType> data_array;
   // std::vector<T> data;
