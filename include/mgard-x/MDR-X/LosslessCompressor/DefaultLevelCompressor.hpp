@@ -64,7 +64,7 @@ public:
   ~DefaultLevelCompressor(){};
 
   // compress level, overwrite and free original streams; rewrite streams sizes
-  uint8_t compress_level(
+  void compress_level(
       std::vector<SIZE> &bitplane_sizes,
       Array<2, T, DeviceType> &encoded_bitplanes,
       std::vector<Array<1, Byte, DeviceType>> &compressed_bitplanes, int queue_idx) {
@@ -93,7 +93,6 @@ public:
       // huffman.Compress(encoded_bitplane, compressed_bitplanes[bitplane_idx], queue_idx);
       // bitplane_sizes[bitplane_idx] = compressed_bitplanes[bitplane_idx].shape(0);      
     }
-    return 0;
   }
 
   // decompress level, create new buffer and overwrite original streams; will
@@ -102,7 +101,7 @@ public:
       std::vector<SIZE> &bitplane_sizes,
       std::vector<Array<1, Byte, DeviceType>> &compressed_bitplanes,
       Array<2, T, DeviceType> &encoded_bitplanes, uint8_t starting_bitplane,
-      uint8_t num_bitplanes, uint8_t stopping_index, int queue_idx) {
+      uint8_t num_bitplanes, int queue_idx) {
 
     SubArray<2, T, DeviceType> encoded_bitplanes_subarray(encoded_bitplanes);
 
