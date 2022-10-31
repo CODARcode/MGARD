@@ -36,11 +36,11 @@ public:
 
   virtual void interleave(SubArray<D, T, DeviceType> decomposed_data,
                           SubArray<1, T, DeviceType> *levels_decomposed_data,
-                          SIZE num_levels, int queue_idx) const = 0;
+                          SIZE num_levels, int queue_idx) = 0;
 
   virtual void reposition(SubArray<1, T, DeviceType> *levels_decomposed_data,
                           SubArray<D, T, DeviceType> decomposed_data,
-                          SIZE num_levels, int queue_idx) const = 0;
+                          SIZE num_levels, int queue_idx) = 0;
 
   virtual void print() const = 0;
 };

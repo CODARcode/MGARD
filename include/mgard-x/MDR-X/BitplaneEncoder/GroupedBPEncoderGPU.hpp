@@ -686,7 +686,7 @@ class GroupedBPEncoder
     : public concepts::BitplaneEncoderInterface<D, T_data, T_bitplane, T_error,
                                                 DeviceType> {
 public:
-  GroupedBPEncoder(Hierarchy<D, T_data, DeviceType> &hierarchy)
+  GroupedBPEncoder(Hierarchy<D, T_data, DeviceType> hierarchy)
       : hierarchy(hierarchy) {
     static_assert(std::is_floating_point<T_data>::value,
                   "GeneralBPEncoder: input data must be floating points.");
@@ -749,8 +749,6 @@ public:
       DeviceCollective<DeviceType>::Sum(reduce_size, curr_errors, sum_error,
                                         level_error_sum_work_array, queue_idx);
     }
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-
     for (int i = 0; i < num_bitplanes; i++) {
       streams_sizes[i] = buffer_size(n) * sizeof(T_bitplane);
     }
@@ -794,7 +792,7 @@ public:
   void print() const { std::cout << "Grouped bitplane encoder" << std::endl; }
 
 private:
-  Hierarchy<D, T_data, DeviceType> &hierarchy;
+  Hierarchy<D, T_data, DeviceType> hierarchy;
   SIZE num_batches_per_TB = 2;
   Array<2, T_error, DeviceType> level_errors_work_array;
   Array<1, Byte, DeviceType> level_error_sum_work_array;
