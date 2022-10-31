@@ -67,8 +67,8 @@ public:
         sizeof(uint8_t) + MDR::get_size(dimensions) // dimensions
         + sizeof(uint8_t) + MDR::get_size(level_error_bounds) +
         MDR::get_size(level_squared_errors) +
-        MDR::get_size(level_sizes) // level information
-        + MDR::get_size(stopping_indices) + MDR::get_size(level_num);
+        MDR::get_size(level_sizes);
+        // + MDR::get_size(stopping_indices) + MDR::get_size(level_num);
     uint8_t *metadata = (uint8_t *)malloc(metadata_size);
     uint8_t *metadata_pos = metadata;
     *(metadata_pos++) = (uint8_t)dimensions.size();
@@ -77,8 +77,8 @@ public:
     MDR::serialize(level_error_bounds, metadata_pos);
     MDR::serialize(level_squared_errors, metadata_pos);
     MDR::serialize(level_sizes, metadata_pos);
-    MDR::serialize(stopping_indices, metadata_pos);
-    MDR::serialize(level_num, metadata_pos);
+    // MDR::serialize(stopping_indices, metadata_pos);
+    // MDR::serialize(level_num, metadata_pos);
     writer.write_metadata(metadata, metadata_size);
     free(metadata);
   }
@@ -207,10 +207,10 @@ private:
       timer.start();
       std::vector<Array<1, Byte, DeviceType>> compressed_encoded_bitplanes(num_bitplanes);
       compressed_bitplanes.push_back(compressed_encoded_bitplanes);
-      uint8_t stopping_index =
+      // uint8_t stopping_index =
           compressor.compress_level(bitplane_sizes, encoded_bitplanes_array,
                                     compressed_bitplanes[level_idx], queue_idx);
-      stopping_indices.push_back(stopping_index);
+      // stopping_indices.push_back(stopping_index);
       level_sizes.push_back(bitplane_sizes);
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.end();
@@ -218,7 +218,6 @@ private:
     }
 
     timer.start();
-    std::cout << "start writing\n";
     // write level components
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
       level_components.push_back(std::vector<uint8_t *>());
@@ -254,7 +253,7 @@ private:
 
   std::vector<SIZE> dimensions;
   std::vector<T_data> level_error_bounds;
-  std::vector<uint8_t> stopping_indices;
+  // std::vector<uint8_t> stopping_indices;
   std::vector<std::vector<Byte *>> level_components;
   std::vector<std::vector<SIZE>> level_sizes;
   std::vector<SIZE> level_num;

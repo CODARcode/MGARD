@@ -163,8 +163,8 @@ public:
     MDR::deserialize(metadata_pos, num_levels, level_error_bounds);
     MDR::deserialize(metadata_pos, num_levels, level_squared_errors);
     MDR::deserialize(metadata_pos, num_levels, level_sizes);
-    MDR::deserialize(metadata_pos, num_levels, stopping_indices);
-    MDR::deserialize(metadata_pos, num_levels, level_num);
+    // MDR::deserialize(metadata_pos, num_levels, stopping_indices);
+    // MDR::deserialize(metadata_pos, num_levels, level_num);
     level_num_bitplanes = std::vector<uint8_t>(num_levels, 0);
     free(metadata);
   }
@@ -257,8 +257,7 @@ private:
       compressor.decompress_level(
           level_sizes[level_idx], compressed_bitplanes[level_idx],
           encoded_bitplanes, prev_level_num_bitplanes[level_idx],
-          level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx],
-          stopping_indices[level_idx], queue_idx);
+          level_num_bitplanes[level_idx] - prev_level_num_bitplanes[level_idx], queue_idx);
       timer.end();
       timer.print("Lossless");
       timer.start();
@@ -336,7 +335,7 @@ private:
   std::vector<SIZE> dimensions;
   std::vector<T_data> level_error_bounds;
   std::vector<uint8_t> level_num_bitplanes;
-  std::vector<uint8_t> stopping_indices;
+  // std::vector<uint8_t> stopping_indices;
   std::vector<std::vector<const uint8_t *>> level_components;
   std::vector<std::vector<SIZE>> level_sizes;
   std::vector<SIZE> level_num;
