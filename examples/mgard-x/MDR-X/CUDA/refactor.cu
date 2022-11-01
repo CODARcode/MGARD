@@ -72,12 +72,13 @@ void test(string filename, int num_bitplanes,
   // mgard_x::Timer timer;
   // timer.start();
 
-  mgard_x::MDR::MDRData<D, T_data, DeviceType> mdr_data;
+  mgard_x::MDR::MDRData<D, T_data, DeviceType> mdr_data(hierarchy.l_target()+1, num_bitplanes);
+  mgard_x::MDR::MDRMetaData<D, T_data, DeviceType> mdr_metadata(hierarchy.l_target()+1, num_bitplanes);
   {
     auto refactor =
         mgard_x::MDR::ComposedRefactor<D, T_data, DeviceType>(
             hierarchy, metadata_file, files);
-    refactor.refactor(input_array, num_bitplanes, mdr_data, 0);
+    refactor.Refactor(input_array, num_bitplanes, mdr_metadata, mdr_data, 0);
   }
 
   {
@@ -87,25 +88,25 @@ void test(string filename, int num_bitplanes,
 
     
 
-    reconstructor.load_metadata();
+    // reconstructor.load_metadata();
 
-    mdr_data.InitializeForReconstruction();
+    mdr_metadata.InitializeForReconstruction();
     mgard_x::Array<D, T_data, DeviceType> reconstructed_data;
     for (int i = 0; i < tolerance.size(); i++) {
       mgard_x::log::level |= mgard_x::log::TIME;
       // mgard_x::Timer timer;
       // timer.start();
-      reconstructor.GenerateRequest(mdr_data, tolerance[i], s);
-      mdr_data.PrintStatus();
-      mdr_data.LoadBitplans();
-      reconstructor.progressive_reconstruct(tolerance[i], s, reconstructed_data);
-      // reconstructor.ProgressiveReconstruct(mdr_data, reconstructed_data, 0);
+      reconstructor.GenerateRequest(mdr_metadata, tolerance[i], s);
+      mdr_metadata.PrintStatus();
+      mdr_metadata.LoadBitplans();
+      // reconstructor.progressive_reconstruct(tolerance[i], s, reconstructed_data);
+      reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data, reconstructed_data, 0);
       // timer.end();
       // timer.print("Reconstruct");
       auto dims = reconstructor.get_dimensions();
       size_t size = 1;
-      for (int i = 0; i < dims.size(); i++) {
-        size *= dims[i];
+      for (int d = 0; d < D; d++) {
+        size *= hierarchy.level_shape(hierarchy.l_target(), d);
       }
       print_statistics(data.data(), reconstructed_data.hostCopy(), size);
     }
