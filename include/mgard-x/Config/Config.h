@@ -23,6 +23,7 @@ struct Config {
   SIZE max_larget_level;
   bool prefetch;
   SIZE max_memory_footprint;
+  int total_num_bitplanes;
 
   Config();
   void apply();

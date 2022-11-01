@@ -72,26 +72,27 @@ void test(string filename, int num_bitplanes,
   // mgard_x::Timer timer;
   // timer.start();
 
+  mgard_x::Config config;
   mgard_x::MDR::MDRData<D, T_data, DeviceType> mdr_data(hierarchy.l_target()+1, num_bitplanes);
   mgard_x::MDR::MDRMetaData<D, T_data, DeviceType> mdr_metadata(hierarchy.l_target()+1, num_bitplanes);
   {
     auto refactor =
         mgard_x::MDR::ComposedRefactor<D, T_data, DeviceType>(
-            hierarchy, metadata_file, files);
-    refactor.Refactor(input_array, num_bitplanes, mdr_metadata, mdr_data, 0);
+            hierarchy, config, metadata_file, files);
+    refactor.Refactor(input_array, mdr_metadata, mdr_data, 0);
   }
 
   {
     auto reconstructor = mgard_x::MDR::ComposedReconstructor<
-        D, T_data, DeviceType>(
-        hierarchy, metadata_file, files);
+        D, T_data, DeviceType>(hierarchy, config, metadata_file, files);
 
     
 
     // reconstructor.load_metadata();
 
     mdr_metadata.InitializeForReconstruction();
-    mgard_x::Array<D, T_data, DeviceType> reconstructed_data;
+    mgard_x::Array<D, T_data, DeviceType> reconstructed_data(hierarchy.level_shape(hierarchy.l_target()));
+    reconstructed_data.memset(0);
     for (int i = 0; i < tolerance.size(); i++) {
       mgard_x::log::level |= mgard_x::log::TIME;
       // mgard_x::Timer timer;
