@@ -106,23 +106,21 @@ public:
     SubArray<2, T, DeviceType> encoded_bitplanes_subarray(encoded_bitplanes);
 
     for (SIZE bitplane_idx = 0; bitplane_idx < num_bitplanes; bitplane_idx++) {
-      T *bitplane = encoded_bitplanes_subarray(bitplane_idx, 0);
-      SubArray<1, Byte, DeviceType> compressed_bitplane_subarray(
-          compressed_bitplanes[bitplane_idx]);
-      Byte *compressed_host = new Byte[bitplane_sizes[bitplane_idx]];
-
+      SIZE compressed_size = bitplane_sizes[starting_bitplane + bitplane_idx];
+      Byte *compressed_host = new Byte[compressed_size];
       MemoryManager<DeviceType>::Copy1D(
-          compressed_host, compressed_bitplane_subarray.data(),
-          bitplane_sizes[starting_bitplane + bitplane_idx], 0);
+          compressed_host, compressed_bitplanes[starting_bitplane + bitplane_idx].data(),
+          compressed_size, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
 
       Byte *bitplane_host = NULL;
-      bitplane_sizes[bitplane_idx] = ::MDR::ZSTD::decompress(
-          compressed_host, bitplane_sizes[bitplane_idx], &bitplane_host);
+      SIZE decompressed_size = ::MDR::ZSTD::decompress(
+          compressed_host, compressed_size, &bitplane_host);
       
+      T *bitplane = encoded_bitplanes_subarray(bitplane_idx, 0);
       MemoryManager<DeviceType>::Copy1D(
           bitplane, (T *)bitplane_host,
-          bitplane_sizes[bitplane_idx] / sizeof(T), 0);
+          decompressed_size / sizeof(T), 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
 
       // Array<1, T, DeviceType> encoded_bitplane({encoded_bitplanes_subarray.shape(1)}, bitplane);

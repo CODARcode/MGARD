@@ -86,8 +86,8 @@ void test(string filename, const vector<double> &tolerance,
     mgard_x::log::level |= mgard_x::log::TIME;
     // mgard_x::Timer timer;
     // timer.start();
-    mgard_x::Array<D, T_data, DeviceType> reconstructed_data =
-        reconstructor.progressive_reconstruct(tolerance[i], s);
+    mgard_x::Array<D, T_data, DeviceType> reconstructed_data;
+    reconstructor.progressive_reconstruct(tolerance[i], s, reconstructed_data);
     // timer.end();
     // timer.print("Reconstruct");
     auto dims = reconstructor.get_dimensions();
