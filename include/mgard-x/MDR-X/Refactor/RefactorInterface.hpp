@@ -32,10 +32,11 @@ class RefactorInterface {
 public:
   virtual ~RefactorInterface() = default;
 
-  virtual void refactor(Array<D, T_data, DeviceType> &data_array, uint8_t num_bitplanes, 
+  virtual void refactor(Array<D, T_data, DeviceType> &data_array, uint8_t num_bitplanes,
+                        ::mgard_x::MDR::MDRMetaData<D, T_data, DeviceType> &mdr_metadata,
                         ::mgard_x::MDR::MDRData<D, T_data, DeviceType> &mdr_data, int queue_idx) = 0;
 
-  virtual void write_metadata(::mgard_x::MDR::MDRData<D, T_data, DeviceType> &mdr_data) = 0;
+  virtual void write_metadata(::mgard_x::MDR::MDRMetaData<D, T_data, DeviceType> &mdr_metadata) = 0;
 
   virtual void print() const = 0;
 };
