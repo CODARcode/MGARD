@@ -34,12 +34,14 @@ using Retriever = ConcatLevelFileRetriever;
 
 public:
   ComposedReconstructor(Hierarchy<D, T_data, DeviceType> hierarchy,
+                        Config config,
                         std::string metadata_file, std::vector<std::string> files
                         )
       : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
-        encoder(hierarchy), compressor(hierarchy.total_num_elems()/8, 8192, 20480, 1.0),
-        retriever(metadata_file, files) {
+        encoder(hierarchy), compressor(hierarchy.total_num_elems()/8, config.huff_dict_size, config.huff_block_size, 1.0),
+        total_num_bitplanes(config.total_num_bitplanes), retriever(metadata_file, files) {
     prev_reconstructed = false;
+    partial_reconsctructed_data = Array<D, T_data, DeviceType>(hierarchy.level_shape(hierarchy.l_target()));
   }
 
   void GenerateRequest(MDRMetaData<D, T_data, DeviceType> &mdr_metadata, double tolerance, double s) {
@@ -84,7 +86,7 @@ public:
   void ProgressiveReconstruct(MDRMetaData<D, T_data, DeviceType> &mdr_metadata, MDRData<D, T_data, DeviceType> &mdr_data, 
                               Array<D, T_data, DeviceType> &reconstructed_data, int queue_idx) {
 
-    mdr_metadata.VerifyLoadedBitplans(mdr_data);
+    mdr_data.VerifyLoadedBitplans(mdr_metadata);
     // Calculating number of elements/coefficient in each level
     SIZE target_level = hierarchy.l_target();
     std::vector<SIZE> level_num_elems(target_level + 1);
@@ -181,7 +183,7 @@ public:
     timer.start();
     // Put decoded coefficients back to reordered layout
     interleaver.reposition(levels_data,
-                           SubArray<D, T_data, DeviceType>(reconstructed_data),
+                           SubArray<D, T_data, DeviceType>(partial_reconsctructed_data),
                            target_level, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
@@ -190,10 +192,14 @@ public:
     timer.start();
     // PrintSubarray("before recompose", SubArray(data_array));
     // Recompose data
-    decomposer.recompose(reconstructed_data, queue_idx);
+    decomposer.recompose(partial_reconsctructed_data, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Recomposing");
+
+    SubArray partial_reconstructed_subarray(partial_reconsctructed_data);
+    SubArray reconstructed_subarray(reconstructed_data);
+    AddND(partial_reconstructed_subarray, reconstructed_subarray, queue_idx);
 
     mdr_metadata.DoneReconstruct();
   }
@@ -515,6 +521,9 @@ private:
 
   // std::vector<std::vector<Array<1, Byte>>>
   // compressed_bitplanes;
+
+  Array<D, T_data, DeviceType> partial_reconsctructed_data;
+  int total_num_bitplanes;
 
   std::vector<Array<1, T_data, DeviceType>> levels_array;
   std::vector<SubArray<1, T_data, DeviceType>> levels_data;

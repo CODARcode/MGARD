@@ -30,15 +30,14 @@ using ErrorCollector = MaxErrorCollector<T_data>;
 using Writer = ConcatLevelFileWriter;
 
 public:
-  ComposedRefactor(Hierarchy<D, T_data, DeviceType> hierarchy,
+  ComposedRefactor(Hierarchy<D, T_data, DeviceType> hierarchy, Config config,
                    std::string metadata_file, std::vector<std::string> files
                    )
       : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
-        encoder(hierarchy), compressor(hierarchy.total_num_elems()/8, 8192, 20480, 1.0),
-        collector(),
-        writer(metadata_file, files) {}
+        encoder(hierarchy), compressor(hierarchy.total_num_elems()/8, config.huff_dict_size, config.huff_block_size, 1.0),
+        collector(), total_num_bitplanes(config.total_num_bitplanes), writer(metadata_file, files) {}
 
-  void Refactor(Array<D, T_data, DeviceType> &data_array, uint8_t num_bitplanes, 
+  void Refactor(Array<D, T_data, DeviceType> &data_array,
                 MDRMetaData<D, T_data, DeviceType> &mdr_metadata,
                 MDRData<D, T_data, DeviceType> &mdr_data, int queue_idx) {
     SIZE target_level = hierarchy.l_target();
@@ -120,14 +119,14 @@ public:
 
       timer.start();
       Array<2, T_bitplane, DeviceType> encoded_bitplanes_array(
-          {(SIZE)num_bitplanes,
+          {(SIZE)total_num_bitplanes,
            encoder.buffer_size(level_num_elems[level_idx])});
       SubArray<2, T_bitplane, DeviceType> encoded_bitplanes(
           encoded_bitplanes_array);
-      Array<1, T_error, DeviceType> level_errors_array({num_bitplanes + 1});
+      Array<1, T_error, DeviceType> level_errors_array({total_num_bitplanes + 1});
       SubArray<1, T_error, DeviceType> level_errors(level_errors_array);
-      std::vector<SIZE> bitplane_sizes(num_bitplanes);
-      encoder.encode(level_num_elems[level_idx], num_bitplanes, level_exp,
+      std::vector<SIZE> bitplane_sizes(total_num_bitplanes);
+      encoder.encode(level_num_elems[level_idx], total_num_bitplanes, level_exp,
                      levels_data[level_idx], encoded_bitplanes, level_errors,
                      bitplane_sizes, queue_idx);
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
@@ -141,7 +140,7 @@ public:
 
       std::vector<T_error> squared_error;
       T_error *level_errors_host = level_errors_array.hostCopy(true);
-      for (int i = 0; i < num_bitplanes + 1; i++) {
+      for (int i = 0; i < total_num_bitplanes + 1; i++) {
         squared_error.push_back(level_errors_host[i]);
       }
       mdr_metadata.level_squared_errors.push_back(squared_error);
@@ -149,7 +148,7 @@ public:
       timer.print("Encoding");
 
       timer.start();
-      std::vector<Array<1, Byte, DeviceType>> compressed_encoded_bitplanes(num_bitplanes);
+      std::vector<Array<1, Byte, DeviceType>> compressed_encoded_bitplanes(total_num_bitplanes);
       mdr_data.compressed_bitplanes.push_back(compressed_encoded_bitplanes);
       // uint8_t stopping_index =
           compressor.compress_level(bitplane_sizes, encoded_bitplanes_array,
@@ -165,7 +164,7 @@ public:
     // write level components
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
       level_components.push_back(std::vector<uint8_t *>());
-      for (int bitplane_idx = 0; bitplane_idx < num_bitplanes; bitplane_idx++) {
+      for (int bitplane_idx = 0; bitplane_idx < total_num_bitplanes; bitplane_idx++) {
 
         Byte *bitplane;
         MemoryManager<DeviceType>::MallocHost(
@@ -182,14 +181,14 @@ public:
     timer.print("Copy to CPU");
   }
 
-  void refactor(Array<D, T_data, DeviceType> &data_array, uint8_t num_bitplanes, 
+  void refactor(Array<D, T_data, DeviceType> &data_array, uint8_t total_num_bitplanes, 
                 MDRMetaData<D, T_data, DeviceType> &mdr_metadata,
                 MDRData<D, T_data, DeviceType> &mdr_data, int queue_idx) {
 
     mgard_x::Timer timer;
 
     timer.start();
-    do_refactor(data_array, num_bitplanes, mdr_metadata, mdr_data, queue_idx);
+    do_refactor(data_array, total_num_bitplanes, mdr_metadata, mdr_data, queue_idx);
     timer.end();
     timer.print("Refactor");
     // timer.start();
@@ -239,7 +238,7 @@ public:
   }
 
 private:
-  bool do_refactor(Array<D, T_data, DeviceType> &data_array, SIZE num_bitplanes, 
+  bool do_refactor(Array<D, T_data, DeviceType> &data_array, SIZE total_num_bitplanes, 
                 MDRMetaData<D, T_data, DeviceType> &mdr_metadata,
                 MDRData<D, T_data, DeviceType> &mdr_data, int queue_idx) {
     SIZE target_level = hierarchy.l_target();
@@ -321,14 +320,14 @@ private:
 
       timer.start();
       Array<2, T_bitplane, DeviceType> encoded_bitplanes_array(
-          {(SIZE)num_bitplanes,
+          {(SIZE)total_num_bitplanes,
            encoder.buffer_size(level_num_elems[level_idx])});
       SubArray<2, T_bitplane, DeviceType> encoded_bitplanes(
           encoded_bitplanes_array);
-      Array<1, T_error, DeviceType> level_errors_array({num_bitplanes + 1});
+      Array<1, T_error, DeviceType> level_errors_array({total_num_bitplanes + 1});
       SubArray<1, T_error, DeviceType> level_errors(level_errors_array);
-      std::vector<SIZE> bitplane_sizes(num_bitplanes);
-      encoder.encode(level_num_elems[level_idx], num_bitplanes, level_exp,
+      std::vector<SIZE> bitplane_sizes(total_num_bitplanes);
+      encoder.encode(level_num_elems[level_idx], total_num_bitplanes, level_exp,
                      levels_data[level_idx], encoded_bitplanes, level_errors,
                      bitplane_sizes, queue_idx);
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
@@ -342,7 +341,7 @@ private:
 
       std::vector<T_error> squared_error;
       T_error *level_errors_host = level_errors_array.hostCopy(true);
-      for (int i = 0; i < num_bitplanes + 1; i++) {
+      for (int i = 0; i < total_num_bitplanes + 1; i++) {
         squared_error.push_back(level_errors_host[i]);
       }
       mdr_metadata.level_squared_errors.push_back(squared_error);
@@ -350,7 +349,7 @@ private:
       timer.print("Encoding");
 
       timer.start();
-      std::vector<Array<1, Byte, DeviceType>> compressed_encoded_bitplanes(num_bitplanes);
+      std::vector<Array<1, Byte, DeviceType>> compressed_encoded_bitplanes(total_num_bitplanes);
       mdr_data.compressed_bitplanes.push_back(compressed_encoded_bitplanes);
       // uint8_t stopping_index =
           compressor.compress_level(bitplane_sizes, encoded_bitplanes_array,
@@ -366,7 +365,7 @@ private:
     // write level components
     for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
       level_components.push_back(std::vector<uint8_t *>());
-      for (int bitplane_idx = 0; bitplane_idx < num_bitplanes; bitplane_idx++) {
+      for (int bitplane_idx = 0; bitplane_idx < total_num_bitplanes; bitplane_idx++) {
 
         Byte *bitplane;
         MemoryManager<DeviceType>::MallocHost(
@@ -393,6 +392,7 @@ private:
   ErrorCollector collector;
   Writer writer;
 
+  int total_num_bitplanes;
   // Array<D, T_data, DeviceType> data_array;
   // std::vector<T> data;
 
