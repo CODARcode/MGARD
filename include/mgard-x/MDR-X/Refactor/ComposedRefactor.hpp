@@ -9,6 +9,7 @@
 #include "../RefactorUtils.hpp"
 #include "../Writer/Writer.hpp"
 #include "RefactorInterface.hpp"
+#include "../DataStructures/MDRData.hpp"
 #include <algorithm>
 #include <iostream>
 namespace mgard_x {
@@ -37,46 +38,42 @@ public:
         collector(),
         writer(metadata_file, files) {}
 
-  void refactor(Array<D, T_data, DeviceType> &data_array,
-                const std::vector<SIZE> &dims, uint8_t target_level,
-                uint8_t num_bitplanes) {
+  void refactor(Array<D, T_data, DeviceType> &data_array, uint8_t num_bitplanes, 
+                MDRData<D, T_data, DeviceType> &mdr_data, int queue_idx) {
 
     mgard_x::Timer timer;
-    this->data_array = data_array;
 
     timer.start();
-    if (refactor(target_level, num_bitplanes, 0)) {
-      timer.end();
-      timer.print("Refactor");
-      timer.start();
-      level_num = writer.write_level_components(level_components, level_sizes);
-      timer.end();
-      timer.print("Write");
-    }
-
-    write_metadata();
-    for (int i = 0; i < level_components.size(); i++) {
-      for (int j = 0; j < level_components[i].size(); j++) {
-        MemoryManager<DeviceType>::FreeHost(level_components[i][j]);
-      }
-    }
+    do_refactor(data_array, num_bitplanes, mdr_data, queue_idx);
+    timer.end();
+    timer.print("Refactor");
+    // timer.start();
+    // writer.write_level_components(level_components, mdr_data.level_sizes);
+    // timer.end();
+    // timer.print("Write");
+    // write_metadata(mdr_data);
+    // for (int i = 0; i < level_components.size(); i++) {
+    //   for (int j = 0; j < level_components[i].size(); j++) {
+    //     MemoryManager<DeviceType>::FreeHost(level_components[i][j]);
+    //   }
+    // }
   }
 
-  void write_metadata() const {
+  void write_metadata(MDRData<D, T_data, DeviceType> &mdr_data) {
     SIZE metadata_size =
-        sizeof(uint8_t) + MDR::get_size(dimensions) // dimensions
-        + sizeof(uint8_t) + MDR::get_size(level_error_bounds) +
-        MDR::get_size(level_squared_errors) +
-        MDR::get_size(level_sizes);
+        sizeof(uint8_t) + MDR::get_size(hierarchy.level_shape(hierarchy.l_target())) // dimensions
+        + sizeof(uint8_t) + MDR::get_size(mdr_data.level_error_bounds) +
+        MDR::get_size(mdr_data.level_squared_errors) +
+        MDR::get_size(mdr_data.level_sizes);
         // + MDR::get_size(stopping_indices) + MDR::get_size(level_num);
     uint8_t *metadata = (uint8_t *)malloc(metadata_size);
     uint8_t *metadata_pos = metadata;
-    *(metadata_pos++) = (uint8_t)dimensions.size();
-    MDR::serialize(dimensions, metadata_pos);
-    *(metadata_pos++) = (uint8_t)level_error_bounds.size();
-    MDR::serialize(level_error_bounds, metadata_pos);
-    MDR::serialize(level_squared_errors, metadata_pos);
-    MDR::serialize(level_sizes, metadata_pos);
+    *(metadata_pos++) = (uint8_t)D;
+    MDR::serialize(hierarchy.level_shape(hierarchy.l_target()), metadata_pos);
+    *(metadata_pos++) = (uint8_t)mdr_data.level_error_bounds.size();
+    MDR::serialize(mdr_data.level_error_bounds, metadata_pos);
+    MDR::serialize(mdr_data.level_squared_errors, metadata_pos);
+    MDR::serialize(mdr_data.level_sizes, metadata_pos);
     // MDR::serialize(stopping_indices, metadata_pos);
     // MDR::serialize(level_num, metadata_pos);
     writer.write_metadata(metadata, metadata_size);
@@ -97,7 +94,9 @@ public:
   }
 
 private:
-  bool refactor(SIZE target_level, SIZE num_bitplanes, int queue_idx) {
+  bool do_refactor(Array<D, T_data, DeviceType> &data_array, SIZE num_bitplanes, 
+                MDRData<D, T_data, DeviceType> &mdr_data, int queue_idx) {
+    SIZE target_level = hierarchy.l_target();
     // printf("target_level = %u\n", target_level);
     // std::cout << "min: " << log2(*min_element(dimensions.begin(),
     // dimensions.end())) << std::endl; uint8_t max_level =
@@ -106,9 +105,9 @@ private:
     //     std::cerr << "Target level is higher than " << max_level <<
     //     std::endl; return false;
     // }
-    for (DIM d = 0; d < D; d++) {
-      dimensions.push_back(hierarchy.level_shape(target_level, d));
-    }
+    // for (DIM d = 0; d < D; d++) {
+    //   dimensions.push_back(hierarchy.level_shape(target_level, d));
+    // }
 
     SubArray<D, T_data, DeviceType> data(data_array);
 
@@ -170,7 +169,7 @@ private:
       frexp(level_max_error, &level_exp);
       // printf("level: %d, level_max_error: %.10f, level_exp: %d\n", level_idx,
       // level_max_error, level_exp);
-      level_error_bounds.push_back(level_max_error);
+      mdr_data.level_error_bounds.push_back(level_max_error);
       timer.end();
       timer.print("level_max_error");
 
@@ -200,18 +199,18 @@ private:
       for (int i = 0; i < num_bitplanes + 1; i++) {
         squared_error.push_back(level_errors_host[i]);
       }
-      level_squared_errors.push_back(squared_error);
+      mdr_data.level_squared_errors.push_back(squared_error);
       timer.end();
       timer.print("Encoding");
 
       timer.start();
       std::vector<Array<1, Byte, DeviceType>> compressed_encoded_bitplanes(num_bitplanes);
-      compressed_bitplanes.push_back(compressed_encoded_bitplanes);
+      mdr_data.compressed_bitplanes.push_back(compressed_encoded_bitplanes);
       // uint8_t stopping_index =
           compressor.compress_level(bitplane_sizes, encoded_bitplanes_array,
-                                    compressed_bitplanes[level_idx], queue_idx);
+                                    mdr_data.compressed_bitplanes[level_idx], queue_idx);
       // stopping_indices.push_back(stopping_index);
-      level_sizes.push_back(bitplane_sizes);
+      mdr_data.level_sizes.push_back(bitplane_sizes);
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.end();
       timer.print("Lossless");
@@ -225,11 +224,11 @@ private:
 
         Byte *bitplane;
         MemoryManager<DeviceType>::MallocHost(
-            bitplane, compressed_bitplanes[level_idx][bitplane_idx].shape(0),
+            bitplane, mdr_data.compressed_bitplanes[level_idx][bitplane_idx].shape(0),
             queue_idx);
         MemoryManager<DeviceType>::Copy1D(
-            bitplane, compressed_bitplanes[level_idx][bitplane_idx].data(),
-            compressed_bitplanes[level_idx][bitplane_idx].shape(0), queue_idx);
+            bitplane, mdr_data.compressed_bitplanes[level_idx][bitplane_idx].data(),
+            mdr_data.compressed_bitplanes[level_idx][bitplane_idx].shape(0), queue_idx);
         level_components[level_idx].push_back(bitplane);
       }
     }
@@ -248,16 +247,16 @@ private:
   ErrorCollector collector;
   Writer writer;
 
-  Array<D, T_data, DeviceType> data_array;
+  // Array<D, T_data, DeviceType> data_array;
   // std::vector<T> data;
 
-  std::vector<SIZE> dimensions;
-  std::vector<T_data> level_error_bounds;
+  // std::vector<SIZE> dimensions;
+  // std::vector<T_data> level_error_bounds;
   // std::vector<uint8_t> stopping_indices;
   std::vector<std::vector<Byte *>> level_components;
-  std::vector<std::vector<SIZE>> level_sizes;
-  std::vector<SIZE> level_num;
-  std::vector<std::vector<T_error>> level_squared_errors;
+  // std::vector<std::vector<SIZE>> level_sizes;
+  // std::vector<SIZE> level_num;
+  // std::vector<std::vector<T_error>> level_squared_errors;
 };
 } // namespace MDR
 } // namespace mgard_x

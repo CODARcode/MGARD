@@ -2,6 +2,7 @@
 #define _MDR_REFACTOR_INTERFACE_HPP
 
 #include "../../RuntimeX/RuntimeX.h"
+#include "../DataStructures/MDRData.hpp"
 
 namespace MDR {
 namespace concepts {
@@ -31,11 +32,10 @@ class RefactorInterface {
 public:
   virtual ~RefactorInterface() = default;
 
-  virtual void refactor(Array<D, T_data, DeviceType> &data_array,
-                        const std::vector<SIZE> &dims, uint8_t target_level,
-                        uint8_t num_bitplanes) = 0;
+  virtual void refactor(Array<D, T_data, DeviceType> &data_array, uint8_t num_bitplanes, 
+                        ::mgard_x::MDR::MDRData<D, T_data, DeviceType> &mdr_data, int queue_idx) = 0;
 
-  virtual void write_metadata() const = 0;
+  virtual void write_metadata(::mgard_x::MDR::MDRData<D, T_data, DeviceType> &mdr_data) = 0;
 
   virtual void print() const = 0;
 };
