@@ -9,7 +9,7 @@
 #include "../RefactorUtils.hpp"
 #include "../Writer/Writer.hpp"
 #include "RefactorInterface.hpp"
-#include "../DataStructures/MDRData.hpp"
+// #include "../DataStructures/MDRData.hpp"
 #include <algorithm>
 #include <iostream>
 namespace mgard_x {
@@ -37,10 +37,17 @@ public:
         encoder(hierarchy), compressor(hierarchy.total_num_elems()/8, config.huff_dict_size, config.huff_block_size, 1.0),
         collector(), total_num_bitplanes(config.total_num_bitplanes), writer(metadata_file, files) {}
 
+  ComposedRefactor(Hierarchy<D, T_data, DeviceType> hierarchy, Config config)
+      : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
+        encoder(hierarchy), compressor(hierarchy.total_num_elems()/8, config.huff_dict_size, config.huff_block_size, 1.0),
+        collector(), total_num_bitplanes(config.total_num_bitplanes), writer(std::string(""), std::vector<std::string>()) {}
+
   void Refactor(Array<D, T_data, DeviceType> &data_array,
-                MDRMetaData<D, T_data, DeviceType> &mdr_metadata,
-                MDRData<D, T_data, DeviceType> &mdr_data, int queue_idx) {
+                MDRMetaData &mdr_metadata,
+                MDRData<DeviceType> &mdr_data, int queue_idx) {
     SIZE target_level = hierarchy.l_target();
+    mdr_metadata.num_levels = target_level+1;
+    mdr_metadata.num_bitplanes = total_num_bitplanes;
     // printf("target_level = %u\n", target_level);
     // std::cout << "min: " << log2(*min_element(dimensions.begin(),
     // dimensions.end())) << std::endl; uint8_t max_level =
@@ -123,7 +130,7 @@ public:
            encoder.buffer_size(level_num_elems[level_idx])});
       SubArray<2, T_bitplane, DeviceType> encoded_bitplanes(
           encoded_bitplanes_array);
-      Array<1, T_error, DeviceType> level_errors_array({total_num_bitplanes + 1});
+      Array<1, T_error, DeviceType> level_errors_array({(SIZE)total_num_bitplanes + 1});
       SubArray<1, T_error, DeviceType> level_errors(level_errors_array);
       std::vector<SIZE> bitplane_sizes(total_num_bitplanes);
       encoder.encode(level_num_elems[level_idx], total_num_bitplanes, level_exp,
@@ -182,8 +189,8 @@ public:
   }
 
   void refactor(Array<D, T_data, DeviceType> &data_array, uint8_t total_num_bitplanes, 
-                MDRMetaData<D, T_data, DeviceType> &mdr_metadata,
-                MDRData<D, T_data, DeviceType> &mdr_data, int queue_idx) {
+                MDRMetaData &mdr_metadata,
+                MDRData<DeviceType> &mdr_data, int queue_idx) {
 
     mgard_x::Timer timer;
 
@@ -203,7 +210,7 @@ public:
     // }
   }
 
-  void write_metadata(MDRMetaData<D, T_data, DeviceType> &mdr_metadata) {
+  void write_metadata(MDRMetaData &mdr_metadata) {
     SIZE metadata_size =
         sizeof(uint8_t) + MDR::get_size(hierarchy.level_shape(hierarchy.l_target())) // dimensions
         + sizeof(uint8_t) + MDR::get_size(mdr_metadata.level_error_bounds) +
@@ -239,8 +246,8 @@ public:
 
 private:
   bool do_refactor(Array<D, T_data, DeviceType> &data_array, SIZE total_num_bitplanes, 
-                MDRMetaData<D, T_data, DeviceType> &mdr_metadata,
-                MDRData<D, T_data, DeviceType> &mdr_data, int queue_idx) {
+                MDRMetaData &mdr_metadata,
+                MDRData<DeviceType> &mdr_data, int queue_idx) {
     SIZE target_level = hierarchy.l_target();
     // printf("target_level = %u\n", target_level);
     // std::cout << "min: " << log2(*min_element(dimensions.begin(),
@@ -392,7 +399,7 @@ private:
   ErrorCollector collector;
   Writer writer;
 
-  int total_num_bitplanes;
+  SIZE total_num_bitplanes;
   // Array<D, T_data, DeviceType> data_array;
   // std::vector<T> data;
 

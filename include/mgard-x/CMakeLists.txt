@@ -4,6 +4,7 @@ add_subdirectory(CompressionHighLevel)
 add_subdirectory(Config)
 add_subdirectory(Hierarchy)
 add_subdirectory(Lossless)
+add_subdirectory(MDRHighLevel)
 add_subdirectory(Quantization)
 add_subdirectory(RuntimeX)
 

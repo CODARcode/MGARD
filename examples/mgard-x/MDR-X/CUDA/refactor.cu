@@ -73,8 +73,8 @@ void test(string filename, int num_bitplanes,
   // timer.start();
 
   mgard_x::Config config;
-  mgard_x::MDR::MDRData<D, T_data, DeviceType> mdr_data(hierarchy.l_target()+1, num_bitplanes);
-  mgard_x::MDR::MDRMetaData<D, T_data, DeviceType> mdr_metadata(hierarchy.l_target()+1, num_bitplanes);
+  mgard_x::MDR::MDRData<DeviceType> mdr_data;
+  mgard_x::MDR::MDRMetaData mdr_metadata;
   {
     auto refactor =
         mgard_x::MDR::ComposedRefactor<D, T_data, DeviceType>(
