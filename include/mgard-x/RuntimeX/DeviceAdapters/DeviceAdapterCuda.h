@@ -80,6 +80,17 @@ MGARDX_EXEC static uint64_t atomicAdd(uint64_t *address, uint64_t val) {
   return (uint64_t)old;
 }
 
+MGARDX_EXEC static uint64_t atomicAdd_block(uint64_t *address, uint64_t val) {
+  unsigned long long int *address_as_i = (unsigned long long int *)address;
+  unsigned long long int old = *address_as_i, assumed;
+  do {
+    assumed = old;
+    old = ::atomicCAS(address_as_i, assumed,
+                      (unsigned long long int)(val + (uint64_t)assumed));
+  } while (assumed != old);
+  return (uint64_t)old;
+}
+
 #if defined __CUDA_ARCH__ && __CUDA_ARCH__ < 600
 MGARDX_EXEC static double atomicAdd(double *address, double val) {
   unsigned long long int *address_as_ull = (unsigned long long int *)address;
