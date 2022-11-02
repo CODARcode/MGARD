@@ -14,7 +14,7 @@
 #include "../Retriever/Retriever.hpp"
 #include "../SizeInterpreter/SizeInterpreter.hpp"
 #include "ReconstructorInterface.hpp"
-#include "../DataStructures/MDRData.hpp"
+// #include "../DataStructures/MDRData.hpp"
 
 namespace mgard_x {
 namespace MDR {
@@ -44,7 +44,16 @@ public:
     partial_reconsctructed_data = Array<D, T_data, DeviceType>(hierarchy.level_shape(hierarchy.l_target()));
   }
 
-  void GenerateRequest(MDRMetaData<D, T_data, DeviceType> &mdr_metadata, double tolerance, double s) {
+  ComposedReconstructor(Hierarchy<D, T_data, DeviceType> hierarchy,
+                        Config config)
+      : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
+        encoder(hierarchy), compressor(hierarchy.total_num_elems()/8, config.huff_dict_size, config.huff_block_size, 1.0),
+        total_num_bitplanes(config.total_num_bitplanes), retriever(std::string(""), std::vector<std::string>()) {
+    prev_reconstructed = false;
+    partial_reconsctructed_data = Array<D, T_data, DeviceType>(hierarchy.level_shape(hierarchy.l_target()));
+  }
+
+  void GenerateRequest(MDRMetaData &mdr_metadata, double tolerance, double s) {
     mgard_x::Timer timer;
     timer.start();
     std::vector<std::vector<double>> level_abs_errors;
@@ -83,7 +92,7 @@ public:
     timer.print("Preprocessing");
   }
 
-  void ProgressiveReconstruct(MDRMetaData<D, T_data, DeviceType> &mdr_metadata, MDRData<D, T_data, DeviceType> &mdr_data, 
+  void ProgressiveReconstruct(MDRMetaData &mdr_metadata, MDRData<DeviceType> &mdr_data, 
                               Array<D, T_data, DeviceType> &reconstructed_data, int queue_idx) {
 
     mdr_data.VerifyLoadedBitplans(mdr_metadata);
@@ -523,7 +532,7 @@ private:
   // compressed_bitplanes;
 
   Array<D, T_data, DeviceType> partial_reconsctructed_data;
-  int total_num_bitplanes;
+  SIZE total_num_bitplanes;
 
   std::vector<Array<1, T_data, DeviceType>> levels_array;
   std::vector<SubArray<1, T_data, DeviceType>> levels_data;
