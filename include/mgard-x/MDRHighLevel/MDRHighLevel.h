@@ -55,13 +55,11 @@ void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *ori
           Config config, std::vector<const Byte *> coords, bool output_pre_allocated);
 
 template <typename DeviceType>
-void MDRequest(DIM D, data_type dtype, std::vector<SIZE> shape, 
-               AggregatedMDRMetaData &refactored_metadata, double tol, double s,
+void MDRequest(AggregatedMDRMetaData &refactored_metadata, double tol, double s,
                enum error_bound_type ebtype);
 
 template <typename DeviceType>
-void MDRconstruct(DIM D, data_type dtype, std::vector<SIZE> shape,
-                  AggregatedMDRMetaData &refactored_metadata,
+void MDRconstruct(AggregatedMDRMetaData &refactored_metadata,
                   AggregatedMDRData &refactored_data,
                   ReconstructuredData &reconstructed_data, Config config,
                   bool output_pre_allocated);

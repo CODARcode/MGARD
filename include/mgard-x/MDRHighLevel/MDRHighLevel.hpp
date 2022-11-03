@@ -562,34 +562,42 @@ void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *ori
 }
 
 template <typename DeviceType>
-void MDRequest(DIM D, data_type dtype, std::vector<SIZE> shape, 
-               AggregatedMDRMetaData &refactored_metadata, double tol, double s,
+void MDRequest(AggregatedMDRMetaData &refactored_metadata, double tol, double s,
                enum error_bound_type ebtype) {
+
+  Metadata<DeviceType> meta;
+  meta.Deserialize((SERIALIZED_TYPE *)refactored_metadata.header);
+
+  std::vector<SIZE> shape = std::vector<SIZE>(meta.total_dims);
+  for (DIM d = 0; d < shape.size(); d++)
+    shape[d] = (SIZE)meta.shape[d];
+  data_type dtype = meta.dtype;
+
   if (dtype == data_type::Float) {
-    if (D == 1) {
+    if (shape.size() == 1) {
       MDRequest<1, float, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
-    } else if (D == 2) {
+    } else if (shape.size() == 2) {
       MDRequest<2, float, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
-    } else if (D == 3) {
+    } else if (shape.size() == 3) {
       MDRequest<3, float, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
-    } else if (D == 4) {
+    } else if (shape.size() == 4) {
       MDRequest<4, float, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
-    } else if (D == 5) {
+    } else if (shape.size() == 5) {
       MDRequest<5, float, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
     } else {
       log::err("do not support higher than five dimentions");
       exit(-1);
     }
   } else if (dtype == data_type::Double) {
-    if (D == 1) {
+    if (shape.size() == 1) {
       MDRequest<1, double, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
-    } else if (D == 2) {
+    } else if (shape.size() == 2) {
       MDRequest<2, double, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
-    } else if (D == 3) {
+    } else if (shape.size() == 3) {
       MDRequest<3, double, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
-    } else if (D == 4) {
+    } else if (shape.size() == 4) {
       MDRequest<4, double, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
-    } else if (D == 5) {
+    } else if (shape.size() == 5) {
       MDRequest<5, double, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
     } else {
       log::err("do not support higher than five dimentions");
@@ -602,8 +610,7 @@ void MDRequest(DIM D, data_type dtype, std::vector<SIZE> shape,
 }
 
 template <typename DeviceType>
-void MDRconstruct(DIM D, data_type dtype, std::vector<SIZE> shape,
-                  AggregatedMDRMetaData &refactored_metadata,
+void MDRconstruct(AggregatedMDRMetaData &refactored_metadata,
                   AggregatedMDRData &refactored_data,
                   ReconstructuredData &reconstructed_data, Config config,
                   bool output_pre_allocated) {
@@ -611,10 +618,10 @@ void MDRconstruct(DIM D, data_type dtype, std::vector<SIZE> shape,
   Metadata<DeviceType> meta;
   meta.Deserialize((SERIALIZED_TYPE *)refactored_metadata.header);
 
-  shape = std::vector<SIZE>(meta.total_dims);
+  std::vector<SIZE> shape = std::vector<SIZE>(meta.total_dims);
   for (DIM d = 0; d < shape.size(); d++)
     shape[d] = (SIZE)meta.shape[d];
-  dtype = meta.dtype;
+  data_type dtype = meta.dtype;
 
   if (dtype == data_type::Float) {
     if (shape.size() == 1) {
