@@ -20,12 +20,10 @@ template void MDRefactor<@DEVICE_TYPE@>(DIM D, data_type dtype, std::vector<SIZE
           AggregatedMDRData &refactored_data,
           Config config, std::vector<const Byte *> coords, bool output_pre_allocated);
 
-template void MDRequest<@DEVICE_TYPE@>(DIM D, data_type dtype, std::vector<SIZE> shape, 
-               AggregatedMDRMetaData &refactored_metadata, double tol, double s,
+template void MDRequest<@DEVICE_TYPE@>(AggregatedMDRMetaData &refactored_metadata, double tol, double s,
                enum error_bound_type ebtype);
 
-template void MDRconstruct<@DEVICE_TYPE@>(DIM D, data_type dtype, std::vector<SIZE> shape,
-                  AggregatedMDRMetaData &refactored_metadata,
+template void MDRconstruct<@DEVICE_TYPE@>(AggregatedMDRMetaData &refactored_metadata,
                   AggregatedMDRData &refactored_data,
                   ReconstructuredData &reconstructed_data, Config config,
                   bool output_pre_allocated);
