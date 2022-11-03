@@ -28,14 +28,12 @@ public:
   std::vector<uint8_t> prev_used_level_num_bitplanes;
 
   void InitializeForReconstruction() {
-    SIZE num_levels = level_error_bounds.size();
     loaded_level_num_bitplanes = std::vector<uint8_t>(num_levels, 0);
     requested_level_num_bitplanes = std::vector<uint8_t>(num_levels, 0);
     prev_used_level_num_bitplanes = std::vector<uint8_t>(num_levels, 0);
   }
 
   void PrintStatus() {
-    SIZE num_levels = level_error_bounds.size();
     for (int level_idx = 0; level_idx < num_levels; level_idx++) {
       printf("Request %d (%d more) bitplans from level %d\n",
               requested_level_num_bitplanes[level_idx],
@@ -44,16 +42,14 @@ public:
     }
   }
 
-  void LoadBitplans() {
+  void DoneLoadingBitplans() {
     // TODO: load
-    SIZE num_levels = level_error_bounds.size();
     for (int level_idx = 0; level_idx < num_levels; level_idx++) {
       loaded_level_num_bitplanes[level_idx] = requested_level_num_bitplanes[level_idx];
     }
   }
 
   void DoneReconstruct() {
-    SIZE num_levels = level_error_bounds.size();
     for (int level_idx = 0; level_idx < num_levels; level_idx++) {
       prev_used_level_num_bitplanes[level_idx] = loaded_level_num_bitplanes[level_idx];
     }
