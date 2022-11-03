@@ -162,7 +162,7 @@ void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *ori
 }
 
 void MDRequest(DIM D, data_type dtype, std::vector<SIZE> shape, 
-               AggregatedMDRMetaData &aggregated_mdr_metadata, double tol, double s,
+               AggregatedMDRMetaData &refactored_metadata, double tol, double s,
                enum error_bound_type ebtype, Config config) {
 
   enum device_type dev_type = config.dev_type;
@@ -172,35 +172,35 @@ void MDRequest(DIM D, data_type dtype, std::vector<SIZE> shape,
 
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
-    MDRequest<SERIAL>(D, dtype, shape, aggregated_mdr_metadata, tol, s, ebtype);
+    MDRequest<SERIAL>(D, dtype, shape, refactored_metadata, tol, s, ebtype);
 #else
     log::err("MDR-X was not built with SERIAL backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
-    MDRequest<OPENMP>(D, dtype, shape, aggregated_mdr_metadata, tol, s, ebtype);
+    MDRequest<OPENMP>(D, dtype, shape, refactored_metadata, tol, s, ebtype);
 #else
     log::err("MDR-X was not built with OPENMP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    MDRequest<CUDA>(D, dtype, shape, aggregated_mdr_metadata, tol, s, ebtype);
+    MDRequest<CUDA>(D, dtype, shape, refactored_metadata, tol, s, ebtype);
 #else
     log::err("MDR-X was not built with CUDA backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    MDRequest<HIP>(D, dtype, shape, aggregated_mdr_metadata, tol, s, ebtype);
+    MDRequest<HIP>(D, dtype, shape, refactored_metadata, tol, s, ebtype);
 #else
     log::err("MDR-X was not built with HIP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    MDRequest<SYCL>(D, dtype, shape, aggregated_mdr_metadata, tol, s, ebtype);
+    MDRequest<SYCL>(D, dtype, shape, refactored_metadata, tol, s, ebtype);
 #else
     log::err("MDR-X was not built with SYCL backend.");
     exit(-1);
@@ -211,7 +211,8 @@ void MDRequest(DIM D, data_type dtype, std::vector<SIZE> shape,
 }
 
 void MDRconstruct(DIM D, data_type dtype, std::vector<SIZE> shape,
-                  AggregatedMDRMetaData &aggregated_mdr_metadata,
+                  AggregatedMDRMetaData &refactored_metadata,
+                  AggregatedMDRData &refactored_data,
                   ReconstructuredData &reconstructed_data, Config config,
                   bool output_pre_allocated) {
 
@@ -222,7 +223,7 @@ void MDRconstruct(DIM D, data_type dtype, std::vector<SIZE> shape,
 
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
-    MDRconstruct<SERIAL>(D, dtype, shape, aggregated_mdr_metadata, reconstructed_data,
+    MDRconstruct<SERIAL>(D, dtype, shape, refactored_metadata, refactored_data, reconstructed_data,
                                          config, output_pre_allocated);
 #else
     log::err("MDR-X was not built with SERIAL backend.");
@@ -230,7 +231,7 @@ void MDRconstruct(DIM D, data_type dtype, std::vector<SIZE> shape,
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
-    MDRconstruct<OPENMP>(D, dtype, shape, aggregated_mdr_metadata, reconstructed_data,
+    MDRconstruct<OPENMP>(D, dtype, shape, refactored_metadata, refactored_data, reconstructed_data,
                                          config, output_pre_allocated);
 #else
     log::err("MDR-X was not built with OPENMP backend.");
@@ -238,7 +239,7 @@ void MDRconstruct(DIM D, data_type dtype, std::vector<SIZE> shape,
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    MDRconstruct<CUDA>(D, dtype, shape, aggregated_mdr_metadata, reconstructed_data,
+    MDRconstruct<CUDA>(D, dtype, shape, refactored_metadata, refactored_data, reconstructed_data,
                                          config, output_pre_allocated);
 #else
     log::err("MDR-X was not built with CUDA backend.");
@@ -246,7 +247,7 @@ void MDRconstruct(DIM D, data_type dtype, std::vector<SIZE> shape,
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    MDRconstruct<HIP>(D, dtype, shape, aggregated_mdr_metadata, reconstructed_data,
+    MDRconstruct<HIP>(D, dtype, shape, refactored_metadata, refactored_data, reconstructed_data,
                                          config, output_pre_allocated);
 #else
     log::err("MDR-X was not built with HIP backend.");
@@ -254,7 +255,7 @@ void MDRconstruct(DIM D, data_type dtype, std::vector<SIZE> shape,
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    MDRconstruct<SYCL>(D, dtype, shape, aggregated_mdr_metadata, reconstructed_data,
+    MDRconstruct<SYCL>(D, dtype, shape, refactored_metadata, refactored_data, reconstructed_data,
                                          config, output_pre_allocated);
 #else
     log::err("MDR-X was not built with SYCL backend.");

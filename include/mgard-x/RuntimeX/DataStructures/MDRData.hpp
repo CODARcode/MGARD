@@ -26,7 +26,7 @@ public:
     for (int level_idx = 0; level_idx < mdr_metadata.num_levels; level_idx++) {
       compressed_bitplanes[level_idx].resize(mdr_metadata.num_bitplanes);
       for (int bitplane_idx = 0; bitplane_idx < mdr_metadata.num_bitplanes; bitplane_idx++) {
-        compressed_bitplanes[level_idx][bitplane_idx].resize(mdr_metadata.level_sizes[level_idx][bitplane_idx]);
+        compressed_bitplanes[level_idx][bitplane_idx].resize({mdr_metadata.level_sizes[level_idx][bitplane_idx]});
       }
     }
   }
