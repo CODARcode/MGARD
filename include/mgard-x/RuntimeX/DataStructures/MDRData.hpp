@@ -31,27 +31,29 @@ public:
     }
   }
 
-  void CopyFromAggregatedMDRData(MDRMetaData &mdr_metadata, std::vector<Byte*> &aggregated_mdr_data, int queue_idx) {
-    int linearized_idx = 0;
+  void CopyFromAggregatedMDRData(MDRMetaData &mdr_metadata, std::vector<std::vector<Byte*>> &refactored_data, int queue_idx) {
+    Resize(mdr_metadata);
     for (int level_idx = 0; level_idx < mdr_metadata.num_levels; level_idx++) {
       for (int bitplane_idx = mdr_metadata.loaded_level_num_bitplanes[level_idx]; 
                bitplane_idx < mdr_metadata.requested_level_num_bitplanes[level_idx]; bitplane_idx++) {
         MemoryManager<DeviceType>::Copy1D(compressed_bitplanes[level_idx][bitplane_idx].data(),
-                                          aggregated_mdr_data[linearized_idx],
+                                          refactored_data[level_idx][bitplane_idx],
                                           mdr_metadata.level_sizes[level_idx][bitplane_idx], queue_idx);
-        linearized_idx++;
       }
     }
+    mdr_metadata.DoneLoadingBitplans();
   }
 
-  void CopyToAggregatedMDRData(MDRMetaData &mdr_metadata, std::vector<Byte*> &aggregated_mdr_data, int queue_idx) {
-    int linearized_idx = 0;
+  void CopyToAggregatedMDRData(MDRMetaData &mdr_metadata, std::vector<std::vector<Byte*>> &refactored_data, int queue_idx) {
+    refactored_data.resize(mdr_metadata.num_levels);
     for (int level_idx = 0; level_idx < mdr_metadata.num_levels; level_idx++) {
+      refactored_data[level_idx].resize(mdr_metadata.num_bitplanes);
       for (int bitplane_idx = 0; bitplane_idx < mdr_metadata.num_bitplanes; bitplane_idx++) {
-        MemoryManager<DeviceType>::Copy1D(aggregated_mdr_data[linearized_idx],
+        MemoryManager<DeviceType>::MallocHost(refactored_data[level_idx][bitplane_idx], 
+                                              mdr_metadata.level_sizes[level_idx][bitplane_idx], queue_idx);
+        MemoryManager<DeviceType>::Copy1D(refactored_data[level_idx][bitplane_idx],
                                           compressed_bitplanes[level_idx][bitplane_idx].data(),
                                           mdr_metadata.level_sizes[level_idx][bitplane_idx], queue_idx);
-        linearized_idx++;
       }
     }
   }

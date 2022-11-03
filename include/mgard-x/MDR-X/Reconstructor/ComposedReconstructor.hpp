@@ -116,7 +116,7 @@ public:
     //     hierarchy.level_shape(target_level));
     reconstructed_data.resize(hierarchy.level_shape(target_level));
 
-    MDR::Timer timer;
+    Timer timer;
     timer.start();
     // Retrieve bitplanes of each level
     // std::vector<std::vector<Array<1, Byte, DeviceType>>> compressed_bitplanes;
@@ -416,7 +416,7 @@ private:
     //     hierarchy.level_shape(target_level));
     reconstructed_data.resize(hierarchy.level_shape(target_level));
 
-    MDR::Timer timer;
+    Timer timer;
     timer.start();
     // Retrieve bitplanes of each level
     // std::vector<std::vector<Array<1, Byte, DeviceType>>> compressed_bitplanes;
