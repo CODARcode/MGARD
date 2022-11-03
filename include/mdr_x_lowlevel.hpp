@@ -5,5 +5,7 @@
  * Date: March 17, 2022
  */
 
-#include "mgard-x/MDRHighLevel/MDRHighLevel.h"
-
+#include "mgard-x/Hierarchy/Hierarchy.hpp"
+#include "mgard-x/MDR-X/Reconstructor/Reconstructor.hpp"
+#include "mgard-x/MDR-X/Refactor/Refactor.hpp"
+#include "mgard-x/RuntimeX/RuntimeX.h"

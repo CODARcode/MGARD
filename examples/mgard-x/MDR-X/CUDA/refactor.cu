@@ -1,4 +1,4 @@
-#include "mgard/mdr_x.hpp"
+#include "mgard/mdr_x_lowlevel.hpp"
 #include "mgard/mgard-x/Utilities/ErrorCalculator.h"
 #include <bitset>
 #include <cmath>
