@@ -15,20 +15,20 @@ template void MDRefactor<@DEVICE_TYPE@>(DIM D, data_type dtype, std::vector<SIZE
           AggregatedMDRData &refactored_data,
           Config config, bool output_pre_allocated);
 
-// template void MDRefactor<@DEVICE_TYPE@>(DIM D, data_type dtype, std::vector<SIZE> shape, const void *original_data,
-//           AggregatedMDRMetaData &refactored_metadata,
-//           AggregatedMDRData &refactored_data,
-//           Config config, std::vector<const Byte *> coords, bool output_pre_allocated);
+template void MDRefactor<@DEVICE_TYPE@>(DIM D, data_type dtype, std::vector<SIZE> shape, const void *original_data,
+          AggregatedMDRMetaData &refactored_metadata,
+          AggregatedMDRData &refactored_data,
+          Config config, std::vector<const Byte *> coords, bool output_pre_allocated);
 
-// template void MDRequest<@DEVICE_TYPE@>(DIM D, data_type dtype, std::vector<SIZE> shape, 
-//                AggregatedMDRMetaData &refactored_metadata, double tol, double s,
-//                enum error_bound_type ebtype);
+template void MDRequest<@DEVICE_TYPE@>(DIM D, data_type dtype, std::vector<SIZE> shape, 
+               AggregatedMDRMetaData &refactored_metadata, double tol, double s,
+               enum error_bound_type ebtype);
 
-// template void MDRconstruct<@DEVICE_TYPE@>(DIM D, data_type dtype, std::vector<SIZE> shape,
-//                   AggregatedMDRMetaData &refactored_metadata,
-//                   AggregatedMDRData &refactored_data,
-//                   ReconstructuredData &reconstructed_data, Config config,
-//                   bool output_pre_allocated);
+template void MDRconstruct<@DEVICE_TYPE@>(DIM D, data_type dtype, std::vector<SIZE> shape,
+                  AggregatedMDRMetaData &refactored_metadata,
+                  AggregatedMDRData &refactored_data,
+                  ReconstructuredData &reconstructed_data, Config config,
+                  bool output_pre_allocated);
 
 }
 } // namespace mgard_x

@@ -25,7 +25,7 @@ namespace MDR {
 template <DIM D, typename T, typename DeviceType>
 void generate_request(DomainDecomposer<D, T, DeviceType> &domain_decomposer, Config config,
                       AggregatedMDRMetaData &aggregated_mdr_metadata,
-                      T tol, T s) {
+                      double tol, double s) {
   for (int subdomain_id = 0; subdomain_id < domain_decomposer.num_subdomains(); subdomain_id++) {
     Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
@@ -112,6 +112,14 @@ void reconstruct_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer
   DeviceRuntime<DeviceType>::SyncDevice();
 }
 
+template <typename DeviceType>
+void load(Config &config, Metadata<DeviceType> &metadata) {
+  config.decomposition = metadata.decomposition;
+  config.lossless = metadata.ltype;
+  config.huff_dict_size = metadata.huff_dict_size;
+  config.huff_block_size = metadata.huff_block_size;
+  config.reorder = metadata.reorder;
+}
 
 template <DIM D, typename T, typename DeviceType>
 void MDRefactor(std::vector<SIZE> shape, const void *original_data,
