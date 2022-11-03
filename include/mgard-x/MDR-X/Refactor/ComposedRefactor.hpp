@@ -48,6 +48,7 @@ public:
     SIZE target_level = hierarchy.l_target();
     mdr_metadata.num_levels = target_level+1;
     mdr_metadata.num_bitplanes = total_num_bitplanes;
+    mdr_metadata.InitializeForReconstruction();
     // printf("target_level = %u\n", target_level);
     // std::cout << "min: " << log2(*min_element(dimensions.begin(),
     // dimensions.end())) << std::endl; uint8_t max_level =
@@ -62,7 +63,7 @@ public:
 
     SubArray<D, T_data, DeviceType> data(data_array);
 
-    MDR::Timer timer;
+    Timer timer;
     // decompose data hierarchically
     timer.start();
     decomposer.decompose(data_array, queue_idx);
@@ -167,25 +168,25 @@ public:
       timer.print("Lossless");
     }
 
-    timer.start();
-    // write level components
-    for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
-      level_components.push_back(std::vector<uint8_t *>());
-      for (int bitplane_idx = 0; bitplane_idx < total_num_bitplanes; bitplane_idx++) {
+    // timer.start();
+    // // write level components
+    // for (int level_idx = 0; level_idx < target_level + 1; level_idx++) {
+    //   level_components.push_back(std::vector<uint8_t *>());
+    //   for (int bitplane_idx = 0; bitplane_idx < total_num_bitplanes; bitplane_idx++) {
 
-        Byte *bitplane;
-        MemoryManager<DeviceType>::MallocHost(
-            bitplane, mdr_data.compressed_bitplanes[level_idx][bitplane_idx].shape(0),
-            queue_idx);
-        MemoryManager<DeviceType>::Copy1D(
-            bitplane, mdr_data.compressed_bitplanes[level_idx][bitplane_idx].data(),
-            mdr_data.compressed_bitplanes[level_idx][bitplane_idx].shape(0), queue_idx);
-        level_components[level_idx].push_back(bitplane);
-      }
-    }
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    timer.end();
-    timer.print("Copy to CPU");
+    //     Byte *bitplane;
+    //     MemoryManager<DeviceType>::MallocHost(
+    //         bitplane, mdr_data.compressed_bitplanes[level_idx][bitplane_idx].shape(0),
+    //         queue_idx);
+    //     MemoryManager<DeviceType>::Copy1D(
+    //         bitplane, mdr_data.compressed_bitplanes[level_idx][bitplane_idx].data(),
+    //         mdr_data.compressed_bitplanes[level_idx][bitplane_idx].shape(0), queue_idx);
+    //     level_components[level_idx].push_back(bitplane);
+    //   }
+    // }
+    // DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+    // timer.end();
+    // timer.print("Copy to CPU");
   }
 
   void refactor(Array<D, T_data, DeviceType> &data_array, uint8_t total_num_bitplanes, 
@@ -263,7 +264,7 @@ private:
 
     SubArray<D, T_data, DeviceType> data(data_array);
 
-    MDR::Timer timer;
+    Timer timer;
     // decompose data hierarchically
     timer.start();
     decomposer.decompose(data_array, queue_idx);

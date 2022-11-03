@@ -787,6 +787,7 @@ public:
     const SIZE num_elems_per_TB = sizeof(T_bitplane) * 8 * num_batches_per_TB;
     const SIZE bitplane_max_length_per_TB = num_batches_per_TB * 2;
     SIZE num_blocks = (n - 1) / num_elems_per_TB + 1;
+    return num_blocks;
   }
 
   void print() const { std::cout << "Grouped bitplane encoder" << std::endl; }
