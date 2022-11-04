@@ -397,7 +397,7 @@ void compress_subdomain_series_w_prefetch(
   Compressor<D, T, DeviceType> compressor(hierarchy, config);
   // Two buffers one for current and one for next
   Array<D, T, DeviceType> device_subdomain_buffer[2];
-  Array<1, Byte, DeviceType> device_compressed_buffer;
+  Array<1, Byte, DeviceType> device_compressed_buffer[2];
   // Pre-allocate to the size of the first subdomain
   // Following subdomains should be no bigger than the first one
   // We shouldn't need to reallocate in the future
@@ -405,7 +405,9 @@ void compress_subdomain_series_w_prefetch(
       domain_decomposer.subdomain_shape(subdomain_ids[0]));
   device_subdomain_buffer[1].resize(
       domain_decomposer.subdomain_shape(subdomain_ids[0]));
-  device_compressed_buffer.resize(
+  device_compressed_buffer[0].resize(
+      {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
+  device_compressed_buffer[1].resize(
       {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
 
   // For serilization
@@ -443,23 +445,23 @@ void compress_subdomain_series_w_prefetch(
     compressor.Decompose(device_subdomain_buffer[current_buffer], 0);
     compressor.Quantize(device_subdomain_buffer[current_buffer], local_ebtype,
                         local_tol, s, norm, 0);
-    compressor.LosslessCompress(device_compressed_buffer, 0);
+    compressor.LosslessCompress(device_compressed_buffer[current_buffer], 0);
 
-    if (device_compressed_buffer.shape(0) >
+    if (device_compressed_buffer[current_buffer].shape(0) >
         hierarchy.total_num_elems() * sizeof(T)) {
       log::err("Compression failed. Output larger than input.");
       exit(-1);
     }
 
     Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
-                                &device_compressed_buffer.shape(0), 1,
+                                &device_compressed_buffer[current_buffer].shape(0), 1,
                                 byte_offset, 2);
     Serialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
-                                device_compressed_buffer.data(),
-                                device_compressed_buffer.shape(0), byte_offset,
+                                device_compressed_buffer[current_buffer].data(),
+                                device_compressed_buffer[current_buffer].shape(0), byte_offset,
                                 2);
     compressed_subdomain_size[dev_id] +=
-        device_compressed_buffer.shape(0) + sizeof(SIZE);
+        device_compressed_buffer[current_buffer].shape(0) + sizeof(SIZE);
 
     current_buffer = next_buffer;
     // Make sure prefetch is done
