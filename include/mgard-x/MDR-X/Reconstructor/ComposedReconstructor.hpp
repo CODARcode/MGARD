@@ -93,7 +93,8 @@ public:
     size_t partial_data_size = 1;
     for (DIM d = 0; d < D; d++) {
       if (d == D - 1) {
-        partial_data_size *= roundup((shape[d]) * sizeof(T_data), pitch_size);
+        partial_data_size *=
+            roundup((size_t)(shape[d]) * sizeof(T_data), pitch_size);
       } else {
         partial_data_size *= shape[d];
       }

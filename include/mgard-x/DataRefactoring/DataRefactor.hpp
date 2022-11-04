@@ -39,7 +39,8 @@ public:
     size_t workspace_size = 1;
     for (DIM d = 0; d < D; d++) {
       if (d == D - 1) {
-        workspace_size *= roundup((shape[d] + 2) * sizeof(T), pitch_size);
+        workspace_size *=
+            roundup((size_t)(shape[d] + 2) * sizeof(T), pitch_size);
       } else {
         workspace_size *= shape[d] + 2;
       }

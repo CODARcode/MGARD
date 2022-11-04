@@ -30,7 +30,7 @@ public:
     // log::info("hierarchy_space: " +
     //           std::to_string((double)hierarchy_space / 1e9));
 
-    size_t input_space = roundup(shape[D - 1] * sizeof(T), pitch_size);
+    size_t input_space = roundup((size_t)shape[D - 1] * sizeof(T), pitch_size);
     for (DIM d = 0; d < D - 1; d++) {
       input_space *= shape[d];
     }
