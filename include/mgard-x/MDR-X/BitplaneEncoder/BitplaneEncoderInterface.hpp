@@ -52,8 +52,6 @@ public:
       SubArray<2, T_bitplane, DeviceType> encoded_bitplanes, int level,
       SubArray<1, T_data, DeviceType> v, int queue_idx) = 0;
 
-  virtual SIZE buffer_size(SIZE n) const = 0;
-
   virtual void print() const = 0;
 };
 } // namespace concepts

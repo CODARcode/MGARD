@@ -45,14 +45,16 @@ void refactor_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
   if (log::level & log::TIME)
     timer_series.start();
   Array<D, T, DeviceType> device_subdomain_buffer;
-  MDRMetaData mdr_metadata;
-  MDRData<DeviceType> mdr_data;
-  domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
-                                   ORIGINAL_TO_SUBDOMAIN, 0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
   // Trigger the copy constructor to copy hierarchy to the current device
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
+  MDRMetaData mdr_metadata;
+  MDRData<DeviceType> mdr_data(hierarchy.l_target()+1, config.total_num_bitplanes);
+
+  domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
+                                   ORIGINAL_TO_SUBDOMAIN, 0);
+  DeviceRuntime<DeviceType>::SyncQueue(0);
+  
 
   ComposedRefactor<D, T, DeviceType> refactor(hierarchy, config);
   std::stringstream ss;
@@ -88,27 +90,12 @@ void reconstruct_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
 
-  std::cout << "refactored_metadata.metadata.size() " << refactored_metadata.metadata.size() << "\n";
   MDRMetaData mdr_metadata = refactored_metadata.metadata[subdomain_id];
   MDRData<DeviceType> mdr_data;
-  std::cout << "Resize\n";
   mdr_data.Resize(mdr_metadata);
 
-  std::cout << "CopyFromAggregatedMDRData " << refactored_data.data.size() << "\n";
-
   mdr_data.CopyFromAggregatedMDRData(mdr_metadata, refactored_data.data[subdomain_id], 0);
-  // int linearized_idx = 0;
-  // for (int level_idx = 0; level_idx < mdr_metadata.num_levels; level_idx++) {
-  //     for (int bitplane_idx = mdr_metadata.loaded_level_num_bitplanes[level_idx]; 
-  //              bitplane_idx < mdr_metadata.requested_level_num_bitplanes[level_idx]; bitplane_idx++) {
-  //       MemoryManager<DeviceType>::Copy1D(compressed_bitplanes[level_idx][bitplane_idx].data(),
-  //                                         refactored_data.data[linearized_idx],
-  //                                         mdr_metadata.level_sizes[level_idx][bitplane_idx], queue_idx);
-  //       linearized_idx++;
-  //     }
-  //   }
 
-  std::cout << "ComposedReconstructor\n";
   ComposedReconstructor<D, T, DeviceType> reconstructor(hierarchy, config);
 
   std::stringstream ss;
