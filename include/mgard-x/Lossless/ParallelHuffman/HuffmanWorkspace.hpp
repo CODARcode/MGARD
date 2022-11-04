@@ -152,7 +152,7 @@ public:
   }
 
   void reset(int queue_idx) {
-    outlier_count_array.memset(0);
+    outlier_count_array.memset(0, queue_idx);
     freq_array.memset(0, queue_idx);
     codebook_array.memset(0, queue_idx);
     decodebook_array.memset(0xff, queue_idx);

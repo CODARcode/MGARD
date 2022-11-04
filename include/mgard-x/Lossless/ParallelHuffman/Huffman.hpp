@@ -54,7 +54,7 @@ public:
       timer.start();
 
     SubArray primary_subarray(primary_data);
-    workspace.reset(0);
+    workspace.reset(queue_idx);
 
     size_t primary_count = primary_subarray.shape(0);
 
