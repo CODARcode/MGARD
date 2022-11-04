@@ -42,7 +42,7 @@ public:
     r_sm = FunctorBase<DeviceType>::GetThreadIdY();
     f_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
-    v.offset(r_gl, c_gl, 0);
+    v.offset_3d(r_gl, c_gl, 0);
     T *sm = (T *)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F + G;
     ldsm2 = C;
@@ -432,7 +432,7 @@ public:
     r_sm = FunctorBase<DeviceType>::GetThreadIdY();
     c_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
-    v.offset(r_gl, 0, f_gl);
+    v.offset_3d(r_gl, 0, f_gl);
     T *sm = (T *)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F;
     ldsm2 = C + G;
@@ -806,7 +806,7 @@ public:
     c_sm = FunctorBase<DeviceType>::GetThreadIdY();
     r_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
-    v.offset(0, c_gl, f_gl);
+    v.offset_3d(0, c_gl, f_gl);
     T *sm = (T *)FunctorBase<DeviceType>::GetSharedMemory();
     ldsm1 = F;
     ldsm2 = C;

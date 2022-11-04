@@ -70,7 +70,7 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<D, T, DeviceType> coarse = v;
       coarse.resize(coarse_shape);
       SubArray<D, T, DeviceType> coeff = v;
-      coeff.offset(curr_dim, hierarchy.level_shape(l - 1, curr_dim));
+      coeff.offset_dim(curr_dim, hierarchy.level_shape(l - 1, curr_dim));
       coeff.resize(coeff_shape);
       SubArray<D, T, DeviceType> correction = w;
       correction.resize(coarse_shape);
@@ -156,7 +156,7 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<D, T, DeviceType> coarse = v;
       coarse.resize(coarse_shape);
       SubArray<D, T, DeviceType> coeff = v;
-      coeff.offset(curr_dim, hierarchy.level_shape(l - 1, curr_dim));
+      coeff.offset_dim(curr_dim, hierarchy.level_shape(l - 1, curr_dim));
       coeff.resize(coeff_shape);
       SubArray<D, T, DeviceType> correction = w;
       correction.resize(coarse_shape);
