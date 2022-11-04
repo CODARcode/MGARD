@@ -392,6 +392,19 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     }
   }
 
+  {
+    _level_num_elems.resize(_l_target + 1);
+    SIZE prev_num_elems = 0;
+    for (int level_idx = 0; level_idx < _l_target + 1; level_idx++) {
+      SIZE curr_num_elems = 1;
+      for (DIM d = 0; d < D; d++) {
+        curr_num_elems *= level_shape(level_idx, d);
+      }
+      _level_num_elems[level_idx] = curr_num_elems - prev_num_elems;
+      prev_num_elems = curr_num_elems;
+    }
+  }
+
   dummy_array = Array<1, T, DeviceType>({1});
 
   initialized = true;
@@ -491,6 +504,15 @@ Hierarchy<D, T, DeviceType>::estimate_memory_usgae(std::vector<SIZE> shape) {
 template <DIM D, typename T, typename DeviceType>
 SIZE Hierarchy<D, T, DeviceType>::total_num_elems() {
   return _total_num_elems;
+}
+
+template <DIM D, typename T, typename DeviceType>
+SIZE Hierarchy<D, T, DeviceType>::level_num_elems(SIZE level) {
+  if (level > _l_target + 1) {
+    log::err("Hierarchy::level_num_elems level out of bound.");
+    exit(-1);
+  }
+  return _level_num_elems[level];
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -717,6 +739,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy(const Hierarchy &hierarchy) {
   _l_target = hierarchy._l_target;
   shape = hierarchy.shape;
   _total_num_elems = hierarchy._total_num_elems;
+  _level_num_elems = hierarchy._level_num_elems;
   _linearized_width = hierarchy._linearized_width;
   _coords_org = hierarchy._coords_org;
   _dist_array = hierarchy._dist_array;
