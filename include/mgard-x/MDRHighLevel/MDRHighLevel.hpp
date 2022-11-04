@@ -76,6 +76,125 @@ void refactor_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType
 }
 
 template <DIM D, typename T, typename DeviceType>
+void refactor_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
+                              std::vector<SIZE> &subdomain_ids, Config &config,
+                              AggregatedMDRMetaData &refactored_metadata,
+                              AggregatedMDRData &refactored_data,
+                              int dev_id) {
+  assert(subdomain_ids.size() > 0);
+  Timer timer_series;
+  if (log::level & log::TIME)
+    timer_series.start();
+  Array<D, T, DeviceType> device_subdomain_buffer;
+
+  for (SIZE i = 0; i < subdomain_ids.size(); i++) {
+    SIZE subdomain_id = subdomain_ids[i];
+    // Trigger the copy constructor to copy hierarchy to the current device
+    Hierarchy<D, T, DeviceType> hierarchy =
+      domain_decomposer.subdomain_hierarchy(subdomain_id);
+    domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
+                                     ORIGINAL_TO_SUBDOMAIN, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+    MDRMetaData mdr_metadata;
+    MDRData<DeviceType> mdr_data(hierarchy.l_target()+1, config.total_num_bitplanes);
+    ComposedRefactor<D, T, DeviceType> refactor(hierarchy, config);
+    std::stringstream ss;
+    for (DIM d = 0; d < D; d++) {
+      ss << hierarchy.level_shape(hierarchy.l_target(), d) << " ";
+    }
+    log::info("Refactoring subdomain " + std::to_string(subdomain_id) +
+              " with shape: " + ss.str());
+    refactor.Refactor(device_subdomain_buffer, mdr_metadata, mdr_data, 0);
+    mdr_data.CopyToAggregatedMDRData(mdr_metadata, refactored_data.data[subdomain_id], 0);
+    refactored_metadata.metadata[subdomain_id] = mdr_metadata;
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+  }
+  
+  if (log::level & log::TIME) {
+    timer_series.end();
+    timer_series.print("Refactor subdomain series");
+    timer_series.clear();
+  }
+  DeviceRuntime<DeviceType>::SyncDevice();
+}
+
+template <DIM D, typename T, typename DeviceType>
+void refactor_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
+                              std::vector<SIZE> &subdomain_ids, Config &config,
+                              AggregatedMDRMetaData &refactored_metadata,
+                              AggregatedMDRData &refactored_data,
+                              int dev_id) {
+  assert(subdomain_ids.size() > 0);
+  Timer timer_series;
+  if (log::level & log::TIME)
+    timer_series.start();
+  // Objects
+  Hierarchy<D, T, DeviceType> hierarchy =
+      domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
+  ComposedRefactor<D, T, DeviceType> refactor(hierarchy, config);
+  // Input
+  Array<D, T, DeviceType> device_subdomain_buffer[2];
+  // Pre-allocate to the size of the first subdomain
+  // Following subdomains should be no bigger than the first one
+  // We shouldn't need to reallocate in the future
+  device_subdomain_buffer[0].resize(
+      domain_decomposer.subdomain_shape(subdomain_ids[0]));
+  device_subdomain_buffer[1].resize(
+      domain_decomposer.subdomain_shape(subdomain_ids[0]));
+  // Output
+  MDRData<DeviceType> mdr_data[2];
+  mdr_data[0].Resize(hierarchy.l_target()+1, config.total_num_bitplanes);
+  mdr_data[1].Resize(hierarchy.l_target()+1, config.total_num_bitplanes);
+
+  // Prefetch the first subdomain to one buffer
+  int current_buffer = 0;
+  int current_queue = current_buffer;
+  domain_decomposer.copy_subdomain(device_subdomain_buffer[current_buffer],
+                                   subdomain_ids[0], ORIGINAL_TO_SUBDOMAIN, current_queue);
+
+  for (SIZE i = 0; i < subdomain_ids.size(); i++) {
+    SIZE curr_subdomain_id = subdomain_ids[i];
+    SIZE next_subdomain_id;
+    int next_buffer = (current_buffer + 1) % 2;
+    int next_queue = next_buffer;
+    // Prefetch the next subdomain
+    if (i + 1 < subdomain_ids.size()) {
+      next_subdomain_id = subdomain_ids[i + 1];
+      domain_decomposer.copy_subdomain(device_subdomain_buffer[next_buffer],
+                                       next_subdomain_id, ORIGINAL_TO_SUBDOMAIN,
+                                       next_queue);
+    }
+    // Check if we can reuse the existing objects
+    if (!hierarchy.can_reuse(domain_decomposer.subdomain_shape(curr_subdomain_id))) {
+      hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
+      refactor = ComposedRefactor<D, T, DeviceType>(hierarchy, config);
+    }
+
+    std::stringstream ss;
+    for (DIM d = 0; d < D; d++) {
+      ss << hierarchy.level_shape(hierarchy.l_target(), d) << " ";
+    }
+    log::info("Refactoring subdomain " + std::to_string(curr_subdomain_id) +
+              " with shape: " + ss.str());
+
+    refactor.Refactor(device_subdomain_buffer[current_buffer], 
+                      refactored_metadata.metadata[curr_subdomain_id], 
+                      mdr_data[current_buffer], current_queue);
+    mdr_data[current_buffer].CopyToAggregatedMDRData(refactored_metadata.metadata[curr_subdomain_id], 
+                                     refactored_data.data[curr_subdomain_id], current_queue);
+
+    current_buffer = next_buffer;
+    current_queue = next_queue;
+  }
+  DeviceRuntime<DeviceType>::SyncDevice();
+  if (log::level & log::TIME) {
+    timer_series.end();
+    timer_series.print("Refactor subdomain series with prefetch");
+    timer_series.clear();
+  }
+}
+
+template <DIM D, typename T, typename DeviceType>
 void reconstruct_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
                           SIZE subdomain_id, Config &config,
                           AggregatedMDRMetaData &refactored_metadata,
@@ -115,6 +234,124 @@ void reconstruct_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceT
     timer_series.clear();
   }
   DeviceRuntime<DeviceType>::SyncDevice();
+}
+
+template <DIM D, typename T, typename DeviceType>
+void reconstruct_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
+                          std::vector<SIZE> &subdomain_ids, Config &config,
+                          AggregatedMDRMetaData &refactored_metadata,
+                          AggregatedMDRData &refactored_data,
+                          ReconstructuredData &reconstructed_data, int dev_id) {
+  assert(subdomain_ids.size() > 0);
+  Timer timer_series;
+  if (log::level & log::TIME)
+    timer_series.start();
+  Array<D, T, DeviceType> device_subdomain_buffer;
+
+  for (SIZE i = 0; i < subdomain_ids.size(); i++) {
+    SIZE subdomain_id = subdomain_ids[i];
+    Hierarchy<D, T, DeviceType> hierarchy =
+        domain_decomposer.subdomain_hierarchy(subdomain_id);
+
+    MDRMetaData mdr_metadata = refactored_metadata.metadata[subdomain_id];
+    MDRData<DeviceType> mdr_data;
+    mdr_data.Resize(mdr_metadata);
+
+    mdr_data.CopyFromAggregatedMDRData(mdr_metadata, refactored_data.data[subdomain_id], 0);
+
+    ComposedReconstructor<D, T, DeviceType> reconstructor(hierarchy, config);
+
+    std::stringstream ss;
+    for (DIM d = 0; d < D; d++) {
+      ss << hierarchy.level_shape(hierarchy.l_target(), d) << " ";
+    }
+    log::info("Reconstruct subdomain " + std::to_string(subdomain_id) +
+              " with shape: " + ss.str());
+    reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data, device_subdomain_buffer, 0);
+
+    domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
+                                     SUBDOMAIN_TO_ORIGINAL, 0);
+  }
+  DeviceRuntime<DeviceType>::SyncQueue(0);
+  if (log::level & log::TIME) {
+    timer_series.end();
+    timer_series.print("Reconstruct subdomain series");
+    timer_series.clear();
+  }
+  DeviceRuntime<DeviceType>::SyncDevice();
+}
+
+template <DIM D, typename T, typename DeviceType>
+void reconstruct_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
+                          std::vector<SIZE> &subdomain_ids, Config &config,
+                          AggregatedMDRMetaData &refactored_metadata,
+                          AggregatedMDRData &refactored_data,
+                          ReconstructuredData &reconstructed_data, int dev_id) {
+  assert(subdomain_ids.size() > 0);
+  Timer timer_series;
+  if (log::level & log::TIME)
+    timer_series.start();
+
+  //Objects
+  Hierarchy<D, T, DeviceType> hierarchy =
+        domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
+  ComposedReconstructor<D, T, DeviceType> reconstructor(hierarchy, config);
+  // Input
+  MDRData<DeviceType> mdr_data[2];
+  mdr_data[0].Resize(refactored_metadata.metadata[subdomain_ids[0]]);
+  mdr_data[1].Resize(refactored_metadata.metadata[subdomain_ids[0]]);
+  //Output
+  Array<D, T, DeviceType> device_subdomain_buffer[2];
+  device_subdomain_buffer[0].resize(
+      domain_decomposer.subdomain_shape(subdomain_ids[0]));
+  device_subdomain_buffer[1].resize(
+      domain_decomposer.subdomain_shape(subdomain_ids[0]));
+
+
+  // Pre-fetch the first subdomain
+  int current_buffer = 0;
+  int current_queue = current_buffer;
+  mdr_data[current_buffer].CopyFromAggregatedMDRData(refactored_metadata.metadata[subdomain_ids[0]], 
+                                                     refactored_data.data[subdomain_ids[0]], current_queue);
+
+  for (SIZE i = 0; i < subdomain_ids.size(); i++) {
+    SIZE curr_subdomain_id = subdomain_ids[i];
+    SIZE next_subdomain_id;
+    int next_buffer = (current_buffer + 1) % 2;
+    int next_queue = next_buffer;
+    if (i + 1 < subdomain_ids.size()) {
+      // Prefetch the next subdomain
+      next_subdomain_id = subdomain_ids[i + 1];
+      mdr_data[next_buffer].CopyFromAggregatedMDRData(refactored_metadata.metadata[next_subdomain_id], 
+                                                      refactored_data.data[next_subdomain_id], current_queue);
+    }
+
+    // Check if we can reuse the existing objects
+    if (!hierarchy.can_reuse(domain_decomposer.subdomain_shape(curr_subdomain_id))) {
+      hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
+      reconstructor = ComposedReconstructor<D, T, DeviceType>(hierarchy, config);
+    }
+
+    std::stringstream ss;
+    for (DIM d = 0; d < D; d++) {
+      ss << hierarchy.level_shape(hierarchy.l_target(), d) << " ";
+    }
+    log::info("Reconstruct subdomain " + std::to_string(curr_subdomain_id) +
+              " with shape: " + ss.str());
+    reconstructor.ProgressiveReconstruct(refactored_metadata.metadata[next_subdomain_id], 
+                                         mdr_data[current_buffer], device_subdomain_buffer[current_buffer], current_queue);
+
+    domain_decomposer.copy_subdomain(device_subdomain_buffer[current_buffer], curr_subdomain_id,
+                                     SUBDOMAIN_TO_ORIGINAL, current_queue);
+    current_buffer = next_buffer;
+    current_queue = next_queue;
+  }
+  DeviceRuntime<DeviceType>::SyncDevice();
+  if (log::level & log::TIME) {
+    timer_series.end();
+    timer_series.print("Reconstruct subdomain series with prefetch");
+    timer_series.clear();
+  }
 }
 
 template <typename DeviceType>
@@ -214,9 +451,11 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
     } else {
       // Compress a series of subdomains according to the subdomain id list
       if (!config.prefetch) {
-        // TODO
+        refactor_subdomain_series(domain_decomposer, subdomain_ids, config,
+                        refactored_metadata, refactored_data, dev_id);
       } else {
-        // TODO
+        refactor_subdomain_series_w_prefetch(domain_decomposer, subdomain_ids, config,
+                        refactored_metadata, refactored_data, dev_id);
       }
     }
   }
@@ -435,9 +674,13 @@ void MDReconstruct(std::vector<SIZE> shape,
     } else {
       // Decompress a series of subdomains according to the subdomain id list
       if (!config.prefetch) {
-        //TODO
+        reconstruct_subdomain_series(domain_decomposer, subdomain_ids, config,
+                           refactored_metadata, refactored_data, 
+                           reconstructed_data, dev_id);
       } else {
-        //TODO
+        reconstruct_subdomain_series_w_prefetch(domain_decomposer, subdomain_ids, config,
+                           refactored_metadata, refactored_data, 
+                           reconstructed_data, dev_id);
       }
     }
   }
