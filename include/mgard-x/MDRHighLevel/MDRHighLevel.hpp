@@ -23,7 +23,7 @@ namespace mgard_x {
 namespace MDR {
 
 template <DIM D, typename T, typename DeviceType>
-void generate_request(DomainDecomposer<D, T, DeviceType> &domain_decomposer, Config config,
+void generate_request(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer, Config config,
                       AggregatedMDRMetaData &refactored_metadata,
                       double tol, double s) {
   for (int subdomain_id = 0; subdomain_id < domain_decomposer.num_subdomains(); subdomain_id++) {
@@ -35,7 +35,7 @@ void generate_request(DomainDecomposer<D, T, DeviceType> &domain_decomposer, Con
 } 
 
 template <DIM D, typename T, typename DeviceType>
-void refactor_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
+void refactor_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
                         SIZE subdomain_id, Config &config,
                         AggregatedMDRMetaData &refactored_metadata,
                         AggregatedMDRData &refactored_data,
@@ -76,7 +76,7 @@ void refactor_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
 }
 
 template <DIM D, typename T, typename DeviceType>
-void reconstruct_subdomain(DomainDecomposer<D, T, DeviceType> &domain_decomposer,
+void reconstruct_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
                           SIZE subdomain_id, Config &config,
                           AggregatedMDRMetaData &refactored_metadata,
                           AggregatedMDRData &refactored_data,
@@ -156,12 +156,12 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
   if (log::level & log::TIME)
     timer_total.start();
 
-  DomainDecomposer<D, T, DeviceType> domain_decomposer;
+  DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> domain_decomposer;
   if (uniform) {
-    domain_decomposer = DomainDecomposer<D, T, DeviceType>(
+    domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
         (T *)original_data, shape, adjusted_num_dev, config);
   } else {
-    domain_decomposer = DomainDecomposer<D, T, DeviceType>(
+    domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
         (T *)original_data, shape, adjusted_num_dev, config, coords);
   }
 
@@ -304,9 +304,9 @@ void MDRequest(std::vector<SIZE> shape,
   Metadata<DeviceType> m;
   m.Deserialize((SERIALIZED_TYPE *)refactored_metadata.header.data());
 
-  DomainDecomposer<D, T, DeviceType> domain_decomposer;
+  DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> domain_decomposer;
   int adjusted_num_dev = 1;
-  domain_decomposer = DomainDecomposer<D, T, DeviceType>(
+  domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
       (T *)NULL, shape, adjusted_num_dev, m.domain_decomposed,
       m.domain_decomposed_dim, m.domain_decomposed_size, config);  
   generate_request(domain_decomposer, config, refactored_metadata, tol, s);
@@ -393,14 +393,14 @@ void MDReconstruct(std::vector<SIZE> shape,
   }
 
   // Initialize DomainDecomposer
-  DomainDecomposer<D, T, DeviceType> domain_decomposer;
+  DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> domain_decomposer;
 
   if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
-    domain_decomposer = DomainDecomposer<D, T, DeviceType>(
+    domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
         (T *)reconstructed_data.data[0], shape, adjusted_num_dev, m.domain_decomposed,
         m.domain_decomposed_dim, m.domain_decomposed_size, config);
   } else {
-    domain_decomposer = domain_decomposer = DomainDecomposer<D, T, DeviceType>(
+    domain_decomposer = domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
         (T *)reconstructed_data.data[0], shape, adjusted_num_dev, m.domain_decomposed,
         m.domain_decomposed_dim, m.domain_decomposed_size, config, coords);
   }

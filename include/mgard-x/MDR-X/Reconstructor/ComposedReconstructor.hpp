@@ -69,7 +69,9 @@ public:
     delete [] levels_data;
   }
 
-  static size_t EstimatedMemoryFootprint(std::vector<SIZE> shape) {
+  static size_t EstimateMemoryFootprint(std::vector<SIZE> shape, SIZE l_target,
+                                        SIZE dict_size, SIZE chunk_size,
+                                        double estimated_outlier_ratio) {
     Hierarchy<D, T_data, DeviceType> hierarchy(shape, Config());
     Array<1, T_data, DeviceType> array_with_pitch({1});
     size_t pitch_size = array_with_pitch.ld(0) * sizeof(T_data);
@@ -92,7 +94,7 @@ public:
       size += max_num_bitplanes * Encoder::buffer_size(hierarchy.level_num_elems(level_idx)) * sizeof (T_bitplane);
     }
     size += (max_num_bitplanes + 1) * sizeof(T_error);
-    size += Encoder::EstimatedMemoryFootprint(shape);
+    size += Encoder::EstimateMemoryFootprint(shape);
     return size;
   }
 
