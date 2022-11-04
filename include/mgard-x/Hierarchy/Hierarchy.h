@@ -41,6 +41,7 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   Array<3, T, DeviceType> &level_volumes(bool reciprocal);
   data_structure_type data_structure();
   bool is_initialized();
+  bool can_reuse(std::vector<SIZE> shape);
   size_t estimate_memory_usgae(std::vector<SIZE> shape);
 
   ~Hierarchy();
