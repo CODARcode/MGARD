@@ -1,6 +1,8 @@
 add_subdirectory(DataRefactoring)
 add_subdirectory(CompressionLowLevel)
 add_subdirectory(CompressionHighLevel)
+add_subdirectory(DomainDecomposer)
+add_subdirectory(Metadata)
 add_subdirectory(Config)
 add_subdirectory(Hierarchy)
 add_subdirectory(Lossless)

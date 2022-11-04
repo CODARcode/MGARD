@@ -18,8 +18,8 @@
 #include "../CompressionLowLevel/Compressor.h"
 #include "../CompressionLowLevel/NormCalculator.hpp"
 
-#include "DomainDecomposer.hpp"
-#include "Metadata.hpp"
+#include "../DomainDecomposer/DomainDecomposer.hpp"
+#include "../Metadata/Metadata.hpp"
 #include "compress_x.hpp"
 
 #ifndef MGARD_X_COMPRESSION_HIGH_LEVEL_API_HPP
