@@ -10,12 +10,6 @@
 
 namespace mgard_x {
 
-MGARDX_CONT_EXEC LENGTH get_idx(const SIZE ld1, const SIZE ld2, const SIZE z,
-                                const SIZE y, const SIZE x) {
-  return ld2 * ld1 * z + ld1 * y + x;
-}
-
-// for 3D+
 MGARDX_CONT_EXEC LENGTH get_idx(const LENGTH ld1, const LENGTH ld2,
                                 const SIZE z, const SIZE y, const SIZE x) {
   return ld2 * ld1 * z + ld1 * y + x;
