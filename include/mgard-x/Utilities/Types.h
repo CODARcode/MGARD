@@ -48,6 +48,10 @@ enum class endiness_type : uint8_t { Little_Endian, Big_Endian };
 enum class coordinate_location : uint8_t { Embedded, External };
 
 enum class domain_decomposition_type : uint8_t { MaxDim, Linearize };
+
+enum class operation_type : uint8_t { Compression, MDR };
+
+enum class bitplane_encoding_type : uint8_t { GroupedBitplaneEncoding };
 } // namespace mgard_x
 
 #include <iostream>

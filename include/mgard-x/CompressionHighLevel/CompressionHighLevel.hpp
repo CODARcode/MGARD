@@ -837,13 +837,13 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   // Estimate metadata size
   Metadata<DeviceType> m;
   if (uniform) {
-    m.Fill(ebtype, tol, s, norm, config.decomposition, config.reorder,
+    m.FillForCompression(ebtype, tol, s, norm, config.decomposition, config.reorder,
            config.lossless, config.huff_dict_size, config.huff_block_size,
            shape, domain_decomposer.domain_decomposed(),
            domain_decomposer.domain_decomposed_dim(),
            domain_decomposer.domain_decomposed_size());
   } else {
-    m.Fill(ebtype, tol, s, norm, config.decomposition, config.reorder,
+    m.FillForCompression(ebtype, tol, s, norm, config.decomposition, config.reorder,
            config.lossless, config.huff_dict_size, config.huff_block_size,
            shape, domain_decomposer.domain_decomposed(),
            domain_decomposer.domain_decomposed_dim(),
@@ -925,13 +925,13 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   if (log::level & log::TIME)
     timer_each.start();
   if (uniform) {
-    m.Fill(ebtype, tol, s, norm, config.decomposition, config.reorder,
+    m.FillForCompression(ebtype, tol, s, norm, config.decomposition, config.reorder,
            config.lossless, config.huff_dict_size, config.huff_block_size,
            shape, domain_decomposer.domain_decomposed(),
            domain_decomposer.domain_decomposed_dim(),
            domain_decomposer.domain_decomposed_size());
   } else {
-    m.Fill(ebtype, tol, s, norm, config.decomposition, config.reorder,
+    m.FillForCompression(ebtype, tol, s, norm, config.decomposition, config.reorder,
            config.lossless, config.huff_dict_size, config.huff_block_size,
            shape, domain_decomposer.domain_decomposed(),
            domain_decomposer.domain_decomposed_dim(),

@@ -361,6 +361,7 @@ void load(Config &config, Metadata<DeviceType> &metadata) {
   config.huff_dict_size = metadata.huff_dict_size;
   config.huff_block_size = metadata.huff_block_size;
   config.reorder = metadata.reorder;
+  config.total_num_bitplanes = metadata.number_bitplanes;
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -474,17 +475,17 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
     timer_each.start();
   Metadata<DeviceType> m;
   if (uniform) {
-    m.Fill(error_bound_type::REL, (T)0.0, (T)0.0, (T)0.0, config.decomposition, config.reorder,
+    m.FillForMDR((T)0.0, config.decomposition, 
            config.lossless, config.huff_dict_size, config.huff_block_size,
            shape, domain_decomposer.domain_decomposed(),
            domain_decomposer.domain_decomposed_dim(),
-           domain_decomposer.domain_decomposed_size());
+           domain_decomposer.domain_decomposed_size(), config.total_num_bitplanes);
   } else {
-    m.Fill(error_bound_type::REL, (T)0.0, (T)0.0, (T)0.0, config.decomposition, config.reorder,
+    m.FillForMDR((T)0.0, config.decomposition, 
            config.lossless, config.huff_dict_size, config.huff_block_size,
            shape, domain_decomposer.domain_decomposed(),
            domain_decomposer.domain_decomposed_dim(),
-           domain_decomposer.domain_decomposed_size(), coords);
+           domain_decomposer.domain_decomposed_size(), config.total_num_bitplanes, coords);
   }
 
   uint32_t metadata_size;

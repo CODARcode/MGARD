@@ -92,7 +92,9 @@ message FunctionDecomposition {
 }
 
 message Quantization {
-  enum Method { COEFFICIENTWISE_LINEAR = 0; }
+  enum Method { NOOP_QUANTIZATION = 0;
+                COEFFICIENTWISE_LINEAR = 1;
+              }
   enum BinWidths {
     PER_COEFFICIENT = 0;
     PER_LEVEL = 1;
@@ -107,6 +109,22 @@ message Quantization {
   Method method = 1;
   BinWidths bin_widths = 2;
   Type type = 3;
+  bool big_endian = 4;
+}
+
+message BitplaneEncoding {
+  enum Method { NOOP_BITPLANE_ENCODING = 0;
+                GROUPED_BITPLANE_ENCODING = 1;
+              }
+  enum Type {
+    INT8_T = 0;
+    INT16_T = 1;
+    INT32_T = 2;
+    INT64_T = 3;
+  }
+  Method method = 1;
+  Type type = 2;
+  uint64 number_bitplanes = 3;
   bool big_endian = 4;
 }
 
@@ -159,6 +177,7 @@ message Header {
   DomainDecomposition domain_decomposition = 7;
   FunctionDecomposition function_decomposition = 8;
   Quantization quantization = 9;
-  Encoding encoding = 10;
-  Device device = 11;
+  BitplaneEncoding bitplane_encoding = 10;
+  Encoding encoding = 11;
+  Device device = 12;
 }
