@@ -13,7 +13,7 @@
 
 namespace mgard_x {
 
-template <DIM D, typename T, typename DeviceType> class DomainDecomposer {
+template <DIM D, typename T, typename OperationType, typename DeviceType> class DomainDecomposer {
 public:
   size_t estimate_memory_usgae(std::vector<SIZE> shape, double outlier_ratio,
                                double reduction_ratio, bool enable_prefetch) {
@@ -37,11 +37,10 @@ public:
     // log::info("input_space: " + std::to_string((double)input_space / 1e9));
 
     // CompressionLowLevelWorkspace<D, T, DeviceType> compression_workspace;
-
     estimate_memory_usgae =
-        hierarchy_space + input_space + output_space +
-        Compressor<D, T, DeviceType>::EstimateMemoryFootprint(
-            // compression_workspace.estimate_size(
+          hierarchy_space + input_space + output_space;
+    estimate_memory_usgae +=
+        OperationType::EstimateMemoryFootprint(
             shape, hierarchy.l_target(), config.huff_dict_size,
             config.huff_block_size, outlier_ratio);
 
