@@ -94,7 +94,7 @@ public:
   void resize(std::vector<SIZE> shape);
 
   MGARDX_CONT
-  void offset(DIM dim, SIZE offset_value);
+  void offset_dim(DIM dim, SIZE offset_value);
 
   MGARDX_CONT
   void resize(DIM dim, SIZE new_size);
@@ -138,15 +138,15 @@ public:
     dv += calc_offset(idx);
   }
 
-  MGARDX_EXEC void offset(IDX z, IDX y, IDX x) {
+  MGARDX_EXEC void offset_3d(IDX z, IDX y, IDX x) {
     ptr_offset += __lddv2 * __lddv1 * z + __lddv1 * y + x;
     dv += __lddv2 * __lddv1 * z + __lddv1 * y + x;
   }
-  MGARDX_EXEC void offset(IDX y, IDX x) {
+  MGARDX_EXEC void offset_2d(IDX y, IDX x) {
     ptr_offset += __lddv1 * y + x;
     dv += __lddv1 * y + x;
   }
-  MGARDX_EXEC void offset(IDX x) {
+  MGARDX_EXEC void offset_1d(IDX x) {
     ptr_offset += x;
     dv += x;
   }
@@ -335,8 +335,8 @@ MGARDX_CONT void SubArray<D, T, DeviceType>::resize(std::vector<SIZE> shape) {
 }
 
 template <DIM D, typename T, typename DeviceType>
-MGARDX_CONT void SubArray<D, T, DeviceType>::offset(DIM dim,
-                                                    SIZE offset_value) {
+MGARDX_CONT void SubArray<D, T, DeviceType>::offset_dim(DIM dim,
+                                                        SIZE offset_value) {
   if (dim >= D)
     return;
   SIZE idx[D];
