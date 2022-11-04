@@ -29,7 +29,8 @@ namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType>
 T calc_subdomain_norm_series_w_prefetch(
-    DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType> &domain_decomposer,
+    DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>
+        &domain_decomposer,
     std::vector<SIZE> &subdomain_ids, T s) {
   assert(subdomain_ids.size() > 0);
   Timer timer_series;
@@ -99,8 +100,10 @@ T calc_subdomain_norm_series_w_prefetch(
 
 template <DIM D, typename T, typename DeviceType>
 T calc_norm_decomposed_w_prefetch(
-    DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType> &domain_decomposer, T s,
-    bool normalize_coordinates, SIZE total_num_elem, int adjusted_num_dev) {
+    DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>
+        &domain_decomposer,
+    T s, bool normalize_coordinates, SIZE total_num_elem,
+    int adjusted_num_dev) {
 
   T norm = 0;
   // Set the number of threads equal to the number of devices
@@ -146,7 +149,8 @@ T calc_norm_decomposed_w_prefetch(
 }
 
 template <DIM D, typename T, typename DeviceType>
-T calc_norm_decomposed(DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType> &domain_decomposer,
+T calc_norm_decomposed(DomainDecomposer<D, T, Compressor<D, T, DeviceType>,
+                                        DeviceType> &domain_decomposer,
                        T s, bool normalize_coordinates, SIZE total_num_elem) {
   std::vector<Array<D, T, DeviceType>> device_input_buffer(
       domain_decomposer.num_devices());
@@ -252,22 +256,8 @@ bool is_same(Hierarchy<D, T, DeviceType> &hierarchy1,
 }
 
 template <DIM D, typename T, typename DeviceType>
-bool can_reuse(Hierarchy<D, T, DeviceType> &hierarchy,
-               std::vector<SIZE> shape) {
-  if (hierarchy.data_structure() ==
-      data_structure_type::Cartesian_Grid_Non_Uniform) {
-    return false;
-  }
-  for (DIM d = 0; d < D; d++) {
-    if (hierarchy.level_shape(hierarchy.l_target(), d) != shape[d]) {
-      return false;
-    }
-  }
-  return true;
-}
-
-template <DIM D, typename T, typename DeviceType>
-void compress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType> &domain_decomposer,
+void compress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>,
+                                         DeviceType> &domain_decomposer,
                         SIZE subdomain_id, T local_tol, T s, T &norm,
                         enum error_bound_type local_ebtype, Config &config,
                         std::vector<Byte *> &compressed_subdomain_data,
@@ -321,7 +311,8 @@ void compress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>, Dev
 
 template <DIM D, typename T, typename DeviceType>
 void compress_subdomain_series(
-    DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType> &domain_decomposer,
+    DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>
+        &domain_decomposer,
     std::vector<SIZE> &subdomain_ids, T local_tol, T s, T &norm,
     enum error_bound_type local_ebtype, Config &config,
     std::vector<Byte *> &compressed_subdomain_data,
@@ -381,7 +372,8 @@ void compress_subdomain_series(
 
 template <DIM D, typename T, typename DeviceType>
 void compress_subdomain_series_w_prefetch(
-    DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType> &domain_decomposer,
+    DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>
+        &domain_decomposer,
     std::vector<SIZE> &subdomain_ids, T local_tol, T s, T &norm,
     enum error_bound_type local_ebtype, Config &config,
     std::vector<Byte *> &compressed_subdomain_data,
@@ -431,8 +423,8 @@ void compress_subdomain_series_w_prefetch(
                                        1);
     }
     std::stringstream ss;
-    if (!can_reuse(hierarchy,
-                   domain_decomposer.subdomain_shape(curr_subdomain_id))) {
+    if (!hierarchy.can_reuse(
+            domain_decomposer.subdomain_shape(curr_subdomain_id))) {
       hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
       compressor = Compressor<D, T, DeviceType>(hierarchy, config);
     }
@@ -453,13 +445,13 @@ void compress_subdomain_series_w_prefetch(
       exit(-1);
     }
 
-    Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
-                                &device_compressed_buffer[current_buffer].shape(0), 1,
-                                byte_offset, 2);
-    Serialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
-                                device_compressed_buffer[current_buffer].data(),
-                                device_compressed_buffer[current_buffer].shape(0), byte_offset,
-                                2);
+    Serialize<SIZE, DeviceType>(
+        (Byte *)compressed_subdomain_data[dev_id],
+        &device_compressed_buffer[current_buffer].shape(0), 1, byte_offset, 2);
+    Serialize<Byte, DeviceType>(
+        (Byte *)compressed_subdomain_data[dev_id],
+        device_compressed_buffer[current_buffer].data(),
+        device_compressed_buffer[current_buffer].shape(0), byte_offset, 2);
     compressed_subdomain_size[dev_id] +=
         device_compressed_buffer[current_buffer].shape(0) + sizeof(SIZE);
 
@@ -477,7 +469,8 @@ void compress_subdomain_series_w_prefetch(
 }
 
 template <DIM D, typename T, typename DeviceType>
-void decompress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType> &domain_decomposer,
+void decompress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>,
+                                           DeviceType> &domain_decomposer,
                           SIZE subdomain_id, T local_tol, T s, T norm,
                           enum error_bound_type local_ebtype, Config &config,
                           std::vector<Byte *> &compressed_subdomain_data,
@@ -533,7 +526,8 @@ void decompress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>, D
 
 template <DIM D, typename T, typename DeviceType>
 void decompress_subdomain_series(
-    DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType> &domain_decomposer,
+    DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>
+        &domain_decomposer,
     std::vector<SIZE> &subdomain_ids, T local_tol, T s, T norm,
     enum error_bound_type local_ebtype, Config &config,
     std::vector<Byte *> &compressed_subdomain_data,
@@ -596,7 +590,8 @@ void decompress_subdomain_series(
 
 template <DIM D, typename T, typename DeviceType>
 void decompress_subdomain_series_w_prefetch(
-    DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType> &domain_decomposer,
+    DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>
+        &domain_decomposer,
     std::vector<SIZE> &subdomain_ids, T local_tol, T s, T norm,
     enum error_bound_type local_ebtype, Config &config,
     std::vector<Byte *> &compressed_subdomain_data,
@@ -673,8 +668,8 @@ void decompress_subdomain_series_w_prefetch(
           compressed_size, 1);
     }
 
-    if (!can_reuse(hierarchy,
-                   domain_decomposer.subdomain_shape(curr_subdomain_id))) {
+    if (!hierarchy.can_reuse(
+            domain_decomposer.subdomain_shape(curr_subdomain_id))) {
       hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
       compressor = Compressor<D, T, DeviceType>(hierarchy, config);
     }
@@ -750,13 +745,16 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   if (log::level & log::TIME)
     timer_total.start();
 
-  DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType> domain_decomposer;
+  DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>
+      domain_decomposer;
   if (uniform) {
-    domain_decomposer = DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>(
-        (T *)original_data, shape, adjusted_num_dev, config);
+    domain_decomposer =
+        DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>(
+            (T *)original_data, shape, adjusted_num_dev, config);
   } else {
-    domain_decomposer = DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>(
-        (T *)original_data, shape, adjusted_num_dev, config, coords);
+    domain_decomposer =
+        DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>(
+            (T *)original_data, shape, adjusted_num_dev, config, coords);
   }
 
   T norm = 1;
@@ -1120,16 +1118,21 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   }
 
   // Initialize DomainDecomposer
-  DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType> domain_decomposer;
+  DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>
+      domain_decomposer;
 
   if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
-    domain_decomposer = DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>(
-        (T *)decompressed_data, shape, adjusted_num_dev, m.domain_decomposed,
-        m.domain_decomposed_dim, m.domain_decomposed_size, config);
+    domain_decomposer =
+        DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>(
+            (T *)decompressed_data, shape, adjusted_num_dev,
+            m.domain_decomposed, m.domain_decomposed_dim,
+            m.domain_decomposed_size, config);
   } else {
-    domain_decomposer = domain_decomposer = DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>(
-        (T *)decompressed_data, shape, adjusted_num_dev, m.domain_decomposed,
-        m.domain_decomposed_dim, m.domain_decomposed_size, config, coords);
+    domain_decomposer = domain_decomposer =
+        DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>(
+            (T *)decompressed_data, shape, adjusted_num_dev,
+            m.domain_decomposed, m.domain_decomposed_dim,
+            m.domain_decomposed_size, config, coords);
   }
 
   // Deserialize compressed data
