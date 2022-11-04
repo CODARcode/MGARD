@@ -53,7 +53,7 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
   curr_dim_f = D - 1, curr_dim_c = D - 2, curr_dim_r = D - 3;
 
   dw_in1.resize(curr_dim_f, hierarchy.level_shape(l - 1, curr_dim_f));
-  dw_in2.offset(curr_dim_f, hierarchy.level_shape(l - 1, curr_dim_f));
+  dw_in2.offset_dim(curr_dim_f, hierarchy.level_shape(l - 1, curr_dim_f));
   dw_in2.resize(curr_dim_f, hierarchy.level_shape(l, curr_dim_f) -
                                 hierarchy.level_shape(l - 1, curr_dim_f));
   dw_out.resize(curr_dim_f, hierarchy.level_shape(l - 1, curr_dim_f));
@@ -86,10 +86,10 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
 
   curr_dim_f = D - 1, curr_dim_c = D - 2, curr_dim_r = D - 3;
   dw_in1.resize(curr_dim_c, hierarchy.level_shape(l - 1, curr_dim_c));
-  dw_in2.offset(curr_dim_c, hierarchy.level_shape(l - 1, curr_dim_c));
+  dw_in2.offset_dim(curr_dim_c, hierarchy.level_shape(l - 1, curr_dim_c));
   dw_in2.resize(curr_dim_c, hierarchy.level_shape(l, curr_dim_c) -
                                 hierarchy.level_shape(l - 1, curr_dim_c));
-  dw_out.offset(prev_dim_f, hierarchy.level_shape(l - 1, curr_dim_f));
+  dw_out.offset_dim(prev_dim_f, hierarchy.level_shape(l - 1, curr_dim_f));
   dw_out.resize(curr_dim_c, hierarchy.level_shape(l - 1, curr_dim_c));
   prev_dim_f = curr_dim_f;
   prev_dim_c = curr_dim_c;
@@ -120,10 +120,10 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
 
   curr_dim_f = D - 1, curr_dim_c = D - 2, curr_dim_r = D - 3;
   dw_in1.resize(curr_dim_r, hierarchy.level_shape(l - 1, curr_dim_r));
-  dw_in2.offset(curr_dim_r, hierarchy.level_shape(l - 1, curr_dim_r));
+  dw_in2.offset_dim(curr_dim_r, hierarchy.level_shape(l - 1, curr_dim_r));
   dw_in2.resize(curr_dim_r, hierarchy.level_shape(l, curr_dim_r) -
                                 hierarchy.level_shape(l - 1, curr_dim_r));
-  dw_out.offset(prev_dim_c, hierarchy.level_shape(l - 1, curr_dim_c));
+  dw_out.offset_dim(prev_dim_c, hierarchy.level_shape(l - 1, curr_dim_c));
   dw_out.resize(curr_dim_r, hierarchy.level_shape(l - 1, curr_dim_r));
   prev_dim_f = curr_dim_f;
   prev_dim_c = curr_dim_c;
@@ -155,10 +155,10 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
 
     curr_dim_f = D - 1, curr_dim_c = D - 2, curr_dim_r = D - (i + 1);
     dw_in1.resize(curr_dim_r, hierarchy.level_shape(l - 1, curr_dim_r));
-    dw_in2.offset(curr_dim_r, hierarchy.level_shape(l - 1, curr_dim_r));
+    dw_in2.offset_dim(curr_dim_r, hierarchy.level_shape(l - 1, curr_dim_r));
     dw_in2.resize(curr_dim_r, hierarchy.level_shape(l, curr_dim_r) -
                                   hierarchy.level_shape(l - 1, curr_dim_r));
-    dw_out.offset(prev_dim_r, hierarchy.level_shape(l - 1, prev_dim_r));
+    dw_out.offset_dim(prev_dim_r, hierarchy.level_shape(l - 1, prev_dim_r));
     dw_out.resize(curr_dim_r, hierarchy.level_shape(l - 1, curr_dim_r));
     prev_dim_f = curr_dim_f;
     prev_dim_c = curr_dim_c;

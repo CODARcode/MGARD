@@ -280,8 +280,8 @@ void CompareSubarray4D(SubArrayType subArray1, SubArrayType subArray2) {
     SubArrayType temp1 = subArray1;
     SubArrayType temp2 = subArray2;
     // Adding offset to the 4th dim. (slowest)
-    temp1.offset(0, i);
-    temp2.offset(0, i);
+    temp1.offset_dim(0, i);
+    temp2.offset_dim(0, i);
     // Make 3D slice on the other three dims
     CompareSubarray("4D = " + std::to_string(i), temp1.Slice3D(1, 2, 3),
                     temp2.Slice3D(1, 2, 3));
@@ -303,7 +303,7 @@ void PrintSubarray4D(std::string name, SubArrayType subArray1) {
   for (SIZE i = 0; i < subArray1.shape(D - 4); i++) {
     idx[3] = i;
     SubArrayType temp1 = subArray1;
-    temp1.offset(3, i);
+    temp1.offset_dim(3, i);
     PrintSubarray("i = " + std::to_string(i), temp1.Slice3D(0, 1, 2));
   }
 }

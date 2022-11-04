@@ -36,48 +36,48 @@ void CalcCoefficientsPointers(
   dcoarse.resize(curr_dims[2], nn[2]);
 
   dcoeff_r = doutput;
-  dcoeff_r.offset(curr_dims[0], nn[0]);
+  dcoeff_r.offset_dim(curr_dims[0], nn[0]);
   dcoeff_r.resize(curr_dims[0], n[0] - nn[0]);
   dcoeff_r.resize(curr_dims[1], nn[1]);
   dcoeff_r.resize(curr_dims[2], nn[2]);
 
   dcoeff_c = doutput;
-  dcoeff_c.offset(curr_dims[1], nn[1]);
+  dcoeff_c.offset_dim(curr_dims[1], nn[1]);
   dcoeff_c.resize(curr_dims[0], nn[0]);
   dcoeff_c.resize(curr_dims[1], n[1] - nn[1]);
   dcoeff_c.resize(curr_dims[2], nn[2]);
 
   dcoeff_f = doutput;
-  dcoeff_f.offset(curr_dims[2], nn[2]);
+  dcoeff_f.offset_dim(curr_dims[2], nn[2]);
   dcoeff_f.resize(curr_dims[0], nn[0]);
   dcoeff_f.resize(curr_dims[1], nn[1]);
   dcoeff_f.resize(curr_dims[2], n[2] - nn[2]);
 
   dcoeff_rc = doutput;
-  dcoeff_rc.offset(curr_dims[0], nn[0]);
-  dcoeff_rc.offset(curr_dims[1], nn[1]);
+  dcoeff_rc.offset_dim(curr_dims[0], nn[0]);
+  dcoeff_rc.offset_dim(curr_dims[1], nn[1]);
   dcoeff_rc.resize(curr_dims[0], n[0] - nn[0]);
   dcoeff_rc.resize(curr_dims[1], n[1] - nn[1]);
   dcoeff_rc.resize(curr_dims[2], nn[2]);
 
   dcoeff_rf = doutput;
-  dcoeff_rf.offset(curr_dims[0], nn[0]);
-  dcoeff_rf.offset(curr_dims[2], nn[2]);
+  dcoeff_rf.offset_dim(curr_dims[0], nn[0]);
+  dcoeff_rf.offset_dim(curr_dims[2], nn[2]);
   dcoeff_rf.resize(curr_dims[0], n[0] - nn[0]);
   dcoeff_rf.resize(curr_dims[1], nn[1]);
   dcoeff_rf.resize(curr_dims[2], n[2] - nn[2]);
 
   dcoeff_cf = doutput;
-  dcoeff_cf.offset(curr_dims[1], nn[1]);
-  dcoeff_cf.offset(curr_dims[2], nn[2]);
+  dcoeff_cf.offset_dim(curr_dims[1], nn[1]);
+  dcoeff_cf.offset_dim(curr_dims[2], nn[2]);
   dcoeff_cf.resize(curr_dims[0], nn[0]);
   dcoeff_cf.resize(curr_dims[1], n[1] - nn[1]);
   dcoeff_cf.resize(curr_dims[2], n[2] - nn[2]);
 
   dcoeff_rcf = doutput;
-  dcoeff_rcf.offset(curr_dims[0], nn[0]);
-  dcoeff_rcf.offset(curr_dims[1], nn[1]);
-  dcoeff_rcf.offset(curr_dims[2], nn[2]);
+  dcoeff_rcf.offset_dim(curr_dims[0], nn[0]);
+  dcoeff_rcf.offset_dim(curr_dims[1], nn[1]);
+  dcoeff_rcf.offset_dim(curr_dims[2], nn[2]);
   dcoeff_rcf.resize(curr_dims[0], n[0] - nn[0]);
   dcoeff_rcf.resize(curr_dims[1], n[1] - nn[1]);
   dcoeff_rcf.resize(curr_dims[2], n[2] - nn[2]);

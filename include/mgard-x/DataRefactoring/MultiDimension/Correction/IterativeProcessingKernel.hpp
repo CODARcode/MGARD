@@ -127,7 +127,7 @@ public:
 
     // T *vec = v + get_idx(ldv1, ldv2, r_gl, c_gl, 0);
 
-    v.offset(r_gl, c_gl, 0);
+    v.offset_3d(r_gl, c_gl, 0);
 
     prev_vec_sm = 0.0;
 
@@ -697,7 +697,7 @@ public:
     r_sm = FunctorBase<DeviceType>::GetThreadIdY();
     c_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
-    v.offset(r_gl, 0, f_gl);
+    v.offset_3d(r_gl, 0, f_gl);
     // T *vec = v + get_idx(ldv1, ldv2, r_gl, 0, f_gl);
 
     prev_vec_sm = 0.0;
@@ -1360,7 +1360,7 @@ public:
     c_sm = FunctorBase<DeviceType>::GetThreadIdY();
     r_sm = FunctorBase<DeviceType>::GetThreadIdX();
 
-    v.offset(0, c_gl, f_gl);
+    v.offset_3d(0, c_gl, f_gl);
     // T *vec = v + get_idx(ldv1, ldv2, 0, c_gl, f_gl);
 
     prev_vec_sm = 0.0;
