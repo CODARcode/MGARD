@@ -828,7 +828,7 @@ public:
     }
   }
 
-  static size_t EstimatedMemoryFootprint(std::vector<SIZE> shape) {
+  static size_t EstimateMemoryFootprint(std::vector<SIZE> shape) {
     Hierarchy<D, T_data, DeviceType> hierarchy(shape, Config());
     SIZE max_bitplane = 64;
     size_t size = 0;
