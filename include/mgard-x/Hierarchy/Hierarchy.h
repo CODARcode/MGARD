@@ -25,6 +25,7 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   Hierarchy(const Hierarchy &hierarchy);
 
   SIZE total_num_elems();
+  SIZE level_num_elems(SIZE level);
   SIZE linearized_width();
   SIZE l_target();
   std::vector<SIZE> level_shape(SIZE level);
@@ -49,6 +50,7 @@ private:
   std::vector<SIZE> shape;
   // Pre-computed varaibles
   SIZE _total_num_elems;
+  std::vector<SIZE> _level_num_elems;
   SIZE _linearized_width;
   // For out-of-bound returns
   Array<1, T, DeviceType> dummy_array;

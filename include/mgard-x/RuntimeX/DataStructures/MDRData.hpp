@@ -21,6 +21,24 @@ public:
   // Data
   std::vector<std::vector<Array<1, Byte, DeviceType>>> compressed_bitplanes;
 
+  MDRData(SIZE num_levels, SIZE num_bitplanes) {
+    compressed_bitplanes.resize(num_levels);
+    for (int level_idx = 0; level_idx < num_levels; level_idx++) {
+      compressed_bitplanes[level_idx].resize(num_bitplanes);
+    }
+  }
+
+  void Resize(SIZE num_levels, SIZE num_bitplanes) {
+    if (compressed_bitplanes.size() != num_levels) {
+      compressed_bitplanes.resize(num_levels);
+    }
+    for (int level_idx = 0; level_idx < num_levels; level_idx++) {
+      if (compressed_bitplanes[level_idx].size() != num_bitplanes) {
+        compressed_bitplanes[level_idx].resize(num_bitplanes);
+      }
+    }
+  }
+
   void Resize(MDRMetaData &mdr_metadata) {
     compressed_bitplanes.resize(mdr_metadata.num_levels);
     for (int level_idx = 0; level_idx < mdr_metadata.num_levels; level_idx++) {

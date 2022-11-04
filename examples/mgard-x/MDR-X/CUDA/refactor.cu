@@ -78,13 +78,13 @@ void test(string filename, int num_bitplanes,
   {
     auto refactor =
         mgard_x::MDR::ComposedRefactor<D, T_data, DeviceType>(
-            hierarchy, config, metadata_file, files);
+            hierarchy, config);
     refactor.Refactor(input_array, mdr_metadata, mdr_data, 0);
   }
 
   {
     auto reconstructor = mgard_x::MDR::ComposedReconstructor<
-        D, T_data, DeviceType>(hierarchy, config, metadata_file, files);
+        D, T_data, DeviceType>(hierarchy, config);
 
     
 
@@ -99,7 +99,7 @@ void test(string filename, int num_bitplanes,
       // timer.start();
       reconstructor.GenerateRequest(mdr_metadata, tolerance[i], s);
       mdr_metadata.PrintStatus();
-      mdr_metadata.LoadBitplans();
+      mdr_metadata.DoneLoadingBitplans();
       // reconstructor.progressive_reconstruct(tolerance[i], s, reconstructed_data);
       reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data, reconstructed_data, 0);
       // timer.end();

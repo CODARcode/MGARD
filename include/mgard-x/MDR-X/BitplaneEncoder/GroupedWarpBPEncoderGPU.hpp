@@ -812,17 +812,7 @@ public:
                   "GroupedBPBlockEncoder: streams must be unsigned integers.");
     static_assert(std::is_integral<T_bitplane>::value,
                   "GroupedBPBlockEncoder: streams must be unsigned integers.");
-    std::vector<SIZE> level_num_elems(hierarchy.l_target() + 1);
-    SIZE prev_num_elems = 0;
-    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
-      SIZE curr_num_elems = 1;
-      for (DIM d = 0; d < D; d++) {
-        curr_num_elems *= hierarchy.level_shape(level_idx, d);
-      }
-      level_num_elems[level_idx] = curr_num_elems - prev_num_elems;
-      prev_num_elems = curr_num_elems;
-      // printf("%u ", level_num_elems[level_idx]);
-    }
+
     SIZE max_bitplane = 64;
     level_errors_work_array =
         Array<2, T_error, DeviceType>({max_bitplane + 1, MGARDX_NUM_SMs});
@@ -834,8 +824,20 @@ public:
         std::vector<Array<1, bool, DeviceType>>(hierarchy.l_target() + 1);
     for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
       level_signs[level_idx] =
-          Array<1, bool, DeviceType>({level_num_elems[level_idx]});
+          Array<1, bool, DeviceType>({hierarchy.level_num_elems(level_idx)});
     }
+  }
+
+  static size_t EstimatedMemoryFootprint(std::vector<SIZE> shape) {
+    Hierarchy<D, T_data, DeviceType> hierarchy(shape, Config());
+    SIZE max_bitplane = 64;
+    size_t size = 0;
+    size += hierarchy.estimate_memory_usgae(shape);
+    size += (max_bitplane + 1) * MGARDX_NUM_SMs * sizeof(T_error);
+    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
+      size += hierarchy.level_num_elems(level_idx) * sizeof(bool);
+    }
+    return size;
   }
 
   void encode(SIZE n, SIZE num_bitplanes, int32_t exp,
@@ -1034,7 +1036,7 @@ public:
     }
   }
 
-  SIZE buffer_size(SIZE n) const {
+  static SIZE buffer_size(SIZE n) {
     SIZE NumElemPerGroup = sizeof(T_bitplane) * 8;
     SIZE NumElemPerTBPerIter =
         NumElemPerGroup * NUM_GROUPS_PER_WARP_PER_ITER * NUM_WARP_PER_TB;
