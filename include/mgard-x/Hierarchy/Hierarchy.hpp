@@ -684,6 +684,20 @@ bool Hierarchy<D, T, DeviceType>::is_initialized() {
   return initialized;
 }
 
+template <DIM D, typename T, typename DeviceType>
+bool Hierarchy<D, T, DeviceType>::can_reuse(std::vector<SIZE> shape) {
+  if (data_structure() ==
+      data_structure_type::Cartesian_Grid_Non_Uniform) {
+    return false;
+  }
+  for (DIM d = 0; d < D; d++) {
+    if (level_shape(l_target(), d) != shape[d]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // This constructor is for internal use only
 template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy() {}
