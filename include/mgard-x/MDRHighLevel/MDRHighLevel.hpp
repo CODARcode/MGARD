@@ -16,8 +16,8 @@
 #include "mdr_x_lowlevel.hpp"
 #include "MDRHighLevel.h"
 #include "../CompressionLowLevel/Compressor.hpp"
-#include "../CompressionHighLevel/Metadata.hpp"
-#include "../CompressionHighLevel/DomainDecomposer.hpp"
+#include "../Metadata/Metadata.hpp"
+#include "../DomainDecomposer/DomainDecomposer.hpp"
 
 namespace mgard_x {
 namespace MDR {
