@@ -52,7 +52,7 @@ void refactor_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType
   MDRData<DeviceType> mdr_data(hierarchy.l_target()+1, config.total_num_bitplanes);
 
   domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
-                                   ORIGINAL_TO_SUBDOMAIN, 0);
+                                   subdomain_copy_direction::OriginalToSubdomain, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   
 
@@ -93,7 +93,7 @@ void refactor_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, Dev
     Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
     domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
-                                     ORIGINAL_TO_SUBDOMAIN, 0);
+                                     subdomain_copy_direction::OriginalToSubdomain, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
     MDRMetaData mdr_metadata;
     MDRData<DeviceType> mdr_data(hierarchy.l_target()+1, config.total_num_bitplanes);
@@ -150,7 +150,7 @@ void refactor_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefacto
   int current_buffer = 0;
   int current_queue = current_buffer;
   domain_decomposer.copy_subdomain(device_subdomain_buffer[current_buffer],
-                                   subdomain_ids[0], ORIGINAL_TO_SUBDOMAIN, current_queue);
+                                   subdomain_ids[0], subdomain_copy_direction::OriginalToSubdomain, current_queue);
 
   for (SIZE i = 0; i < subdomain_ids.size(); i++) {
     SIZE curr_subdomain_id = subdomain_ids[i];
@@ -161,7 +161,7 @@ void refactor_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefacto
     if (i + 1 < subdomain_ids.size()) {
       next_subdomain_id = subdomain_ids[i + 1];
       domain_decomposer.copy_subdomain(device_subdomain_buffer[next_buffer],
-                                       next_subdomain_id, ORIGINAL_TO_SUBDOMAIN,
+                                       next_subdomain_id, subdomain_copy_direction::OriginalToSubdomain,
                                        next_queue);
     }
     // Check if we can reuse the existing objects
@@ -226,7 +226,7 @@ void reconstruct_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceT
   reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data, device_subdomain_buffer, 0);
 
   domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
-                                   SUBDOMAIN_TO_ORIGINAL, 0);
+                                   subdomain_copy_direction::SubdomainToOriginal, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (log::level & log::TIME) {
     timer_series.end();
@@ -270,7 +270,7 @@ void reconstruct_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, 
     reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data, device_subdomain_buffer, 0);
 
     domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
-                                     SUBDOMAIN_TO_ORIGINAL, 0);
+                                     subdomain_copy_direction::SubdomainToOriginal, 0);
   }
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (log::level & log::TIME) {
@@ -342,7 +342,7 @@ void reconstruct_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefa
                                          mdr_data[current_buffer], device_subdomain_buffer[current_buffer], current_queue);
 
     domain_decomposer.copy_subdomain(device_subdomain_buffer[current_buffer], curr_subdomain_id,
-                                     SUBDOMAIN_TO_ORIGINAL, current_queue);
+                                     subdomain_copy_direction::SubdomainToOriginal, current_queue);
     current_buffer = next_buffer;
     current_queue = next_queue;
   }
@@ -356,6 +356,7 @@ void reconstruct_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefa
 
 template <typename DeviceType>
 void load(Config &config, Metadata<DeviceType> &metadata) {
+  config.domain_decomposition = metadata.ddtype;
   config.decomposition = metadata.decomposition;
   config.lossless = metadata.ltype;
   config.huff_dict_size = metadata.huff_dict_size;
@@ -477,13 +478,13 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
   if (uniform) {
     m.FillForMDR((T)0.0, config.decomposition, 
            config.lossless, config.huff_dict_size, config.huff_block_size,
-           shape, domain_decomposer.domain_decomposed(),
+           shape, domain_decomposer.domain_decomposed(), config.domain_decomposition,
            domain_decomposer.domain_decomposed_dim(),
            domain_decomposer.domain_decomposed_size(), config.total_num_bitplanes);
   } else {
     m.FillForMDR((T)0.0, config.decomposition, 
            config.lossless, config.huff_dict_size, config.huff_block_size,
-           shape, domain_decomposer.domain_decomposed(),
+           shape, domain_decomposer.domain_decomposed(), config.domain_decomposition,
            domain_decomposer.domain_decomposed_dim(),
            domain_decomposer.domain_decomposed_size(), config.total_num_bitplanes, coords);
   }

@@ -68,8 +68,8 @@ message ErrorControl {
 message DomainDecomposition {
   enum Method {
     NOOP_METHOD = 0;
-    LARGEST_DIMENSION = 1;
-    LINEARIZATION = 2;
+    MAX_DIMENSION = 1;
+    BLOCK = 2;
   }
 
   Method method = 1;
