@@ -84,7 +84,7 @@ public:
     }
   }
 
-  bool generate_domain_decomposition_strategy(std::vector<SIZE> shape,
+  bool generate_max_dim_domain_decomposition_strategy(std::vector<SIZE> shape,
                                               DIM &_domain_decomposed_dim,
                                               SIZE &_domain_decomposed_size,
                                               SIZE num_dev) {
@@ -125,6 +125,46 @@ public:
     log::info(
         "Domain decomposed dim: " + std::to_string(_domain_decomposed_dim) +
         ", Domain decomposed size: " + std::to_string(_domain_decomposed_size));
+    return true;
+  }
+
+  bool generate_block_domain_decomposition_strategy(std::vector<SIZE> shape,
+                                              SIZE &_domain_decomposed_size,
+                                              SIZE num_dev) {
+    // determine max dimension
+    SIZE max_dim = 0;
+    for (DIM d = 0; d < D; d++) {
+      if (shape[d] > max_dim) {
+        max_dim = shape[d];
+        _domain_decomposed_dim = d;
+      }
+    }
+
+    // domain decomposition strategy
+    std::vector<SIZE> chunck_shape(_domain_decomposed_size, D);
+
+    int curr_num_subdomains = 1;
+    for (DIM d = 0; d < D; d++){
+      curr_num_subdomains *= (shape[d] - 1) / _domain_decomposed_size + 1;
+    }
+
+    // Need prefetch if there are more subdomains than devices
+    bool need_prefetch = curr_num_subdomains > num_dev;
+    // Then check if each chunk can fit into device memory
+    while (need_domain_decomposition(chunck_shape, need_prefetch)) {
+      // Divide by 2 and round up
+      chunck_shape[_domain_decomposed_dim] =
+          (chunck_shape[_domain_decomposed_dim] - 1) / 2 + 1;
+
+      curr_num_subdomains = 1;
+      for (DIM d = 0; d < D; d++){
+        curr_num_subdomains *= (shape[d] - 1) / _domain_decomposed_size + 1;
+      }
+
+      need_prefetch = curr_num_subdomains > num_dev;
+    }
+    _domain_decomposed_size = chunck_shape[_domain_decomposed_dim];
+    log::info("Domain decomposed size: " + std::to_string(_domain_decomposed_size));
     return true;
   }
 
@@ -179,7 +219,8 @@ public:
                    Config config)
       : original_data(original_data), shape(shape), _num_devices(_num_devices),
         config(config) {
-    if (!need_domain_decomposition(shape, false) && this->_num_devices == 1) {
+    if (!need_domain_decomposition(shape, false) && this->_num_devices == 1 &&
+        config.domain_decomposition != domain_decomposition_type::Block) {
       this->_domain_decomposed = false;
       this->_domain_decomposed_dim = 0;
       this->_domain_decomposed_size = this->shape[0];
@@ -188,7 +229,7 @@ public:
     } else {
       this->_domain_decomposed = true;
       if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
-        generate_domain_decomposition_strategy(
+        generate_max_dim_domain_decomposition_strategy(
             shape, this->_domain_decomposed_dim, this->_domain_decomposed_size,
             this->_num_devices);
         this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
@@ -197,6 +238,9 @@ public:
         log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using MaxDim method");
       } else if (config.domain_decomposition == domain_decomposition_type::Block) {
         this->_domain_decomposed_size = config.block_size;
+        generate_block_domain_decomposition_strategy( shape,
+                                              this->_domain_decomposed_size,
+                                              this->_num_devices);
         this->_num_subdomains = 1;
         for (DIM d = 0; d < D; d++){
           this->_num_subdomains *= (shape[d] - 1) / config.block_size + 1;
@@ -216,7 +260,8 @@ public:
                    Config config, std::vector<T *> coords)
       : original_data(original_data), shape(shape), _num_devices(_num_devices),
         config(config), coords(coords) {
-    if (!need_domain_decomposition(shape, false) && this->_num_devices == 1) {
+    if (!need_domain_decomposition(shape, false) && this->_num_devices == 1 && 
+        config.domain_decomposition != domain_decomposition_type::Block) {
       this->_domain_decomposed = false;
       this->_domain_decomposed_dim = 0;
       this->_domain_decomposed_size = this->shape[0];
@@ -225,7 +270,7 @@ public:
     } else {
       this->_domain_decomposed = true;
       if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
-        generate_domain_decomposition_strategy(
+        generate_max_dim_domain_decomposition_strategy(
             shape, this->_domain_decomposed_dim, this->_domain_decomposed_size,
             this->_num_devices);
         this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
@@ -234,6 +279,9 @@ public:
         log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using MaxDim method");
       } else if (config.domain_decomposition == domain_decomposition_type::Block) {
         this->_domain_decomposed_size = config.block_size;
+        generate_block_domain_decomposition_strategy( shape,
+                                              this->_domain_decomposed_size,
+                                              this->_num_devices);
         this->_num_subdomains = 1;
         for (DIM d = 0; d < D; d++){
           this->_num_subdomains *= (shape[d] - 1) / config.block_size + 1;
