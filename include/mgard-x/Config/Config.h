@@ -11,6 +11,7 @@ struct Config {
   device_type dev_type;
   int dev_id;
   int num_dev;
+  enum domain_decomposition_type domain_decomposition;
   enum decomposition_type decomposition;
   SIZE huff_dict_size;
   SIZE huff_block_size;
