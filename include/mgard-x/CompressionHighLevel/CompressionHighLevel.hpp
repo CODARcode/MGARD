@@ -770,10 +770,6 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
     local_tol = tol;
     local_ebtype = ebtype;
   } else {
-    log::info("Orignial domain is decomposed into " +
-              std::to_string(domain_decomposer.num_subdomains()) +
-              " sub-domains");
-
     if (log::level & log::TIME)
       timer_each.start();
     if (ebtype == error_bound_type::REL) {
@@ -1110,9 +1106,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     local_tol = m.tol;
     local_ebtype = m.ebtype;
   } else {
-    log::info("Orignial domain was decomposed into " +
-              std::to_string(num_subdomains) +
-              " subdomains during compression");
     local_tol =
         calc_local_abs_tol(m.ebtype, m.norm, m.tol, m.s, num_subdomains);
     // Force to use ABS mode when do domain decomposition

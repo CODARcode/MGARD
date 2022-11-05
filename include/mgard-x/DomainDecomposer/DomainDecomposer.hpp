@@ -183,15 +183,31 @@ public:
       this->_domain_decomposed = false;
       this->_domain_decomposed_dim = 0;
       this->_domain_decomposed_size = this->shape[0];
+      this->_num_subdomains = 1;
+      log::info("DomainDecomposer: no decomposition used");
     } else {
       this->_domain_decomposed = true;
-      generate_domain_decomposition_strategy(
-          shape, this->_domain_decomposed_dim, this->_domain_decomposed_size,
-          this->_num_devices);
-    }
-    this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
+      if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+        generate_domain_decomposition_strategy(
+            shape, this->_domain_decomposed_dim, this->_domain_decomposed_size,
+            this->_num_devices);
+        this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
                                 this->_domain_decomposed_size +
                             1;
+        log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using MaxDim method");
+      } else if (config.domain_decomposition == domain_decomposition_type::Block) {
+        this->_domain_decomposed_size = config.block_size;
+        this->_num_subdomains = 1;
+        for (DIM d = 0; d < D; d++){
+          this->_num_subdomains *= (shape[d] - 1) / config.block_size + 1;
+        }
+        log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using Block method");
+      } else {
+        log::err ("Wrong domain decomposition type.");
+        exit(-1);
+      }
+    }
+    
     uniform = true;
   }
 
@@ -204,15 +220,31 @@ public:
       this->_domain_decomposed = false;
       this->_domain_decomposed_dim = 0;
       this->_domain_decomposed_size = this->shape[0];
+      this->_num_subdomains = 1;
+      log::info("DomainDecomposer: no decomposition used");
     } else {
       this->_domain_decomposed = true;
-      generate_domain_decomposition_strategy(
-          shape, this->_domain_decomposed_dim, this->_domain_decomposed_size,
-          this->_num_devices);
+      if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+        generate_domain_decomposition_strategy(
+            shape, this->_domain_decomposed_dim, this->_domain_decomposed_size,
+            this->_num_devices);
+        this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
+                                  this->_domain_decomposed_size +
+                              1;
+        log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using MaxDim method");
+      } else if (config.domain_decomposition == domain_decomposition_type::Block) {
+        this->_domain_decomposed_size = config.block_size;
+        this->_num_subdomains = 1;
+        for (DIM d = 0; d < D; d++){
+          this->_num_subdomains *= (shape[d] - 1) / config.block_size + 1;
+        }
+        log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using Block method");
+      } else {
+        log::err ("Wrong domain decomposition type.");
+        exit(-1);
+      }
     }
-    this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
-                                this->_domain_decomposed_size +
-                            1;
+    
     uniform = false;
   }
 
@@ -227,10 +259,27 @@ public:
     if (!this->_domain_decomposed) {
       this->_domain_decomposed_dim = 0;
       this->_domain_decomposed_size = this->shape[0];
+      this->_num_subdomains = 1;
+      log::info("DomainDecomposer: no decomposition used");
+    } else {
+      if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+        this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
+                                  this->_domain_decomposed_size +
+                              1;
+        log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using MaxDim method");
+      } else if (config.domain_decomposition == domain_decomposition_type::Block) {
+        this->_domain_decomposed_size = config.block_size;
+        this->_num_subdomains = 1;
+        for (DIM d = 0; d < D; d++){
+          this->_num_subdomains *= (shape[d] - 1) / config.block_size + 1;
+        }
+        log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using Block method");
+      } else {
+        log::err ("Wrong domain decomposition type.");
+        exit(-1);
+      }
     }
-    this->_num_subdomains = (this->shape[this->_domain_decomposed_dim] - 1) /
-                                this->_domain_decomposed_size +
-                            1;
+
     uniform = true;
   }
 
@@ -246,10 +295,27 @@ public:
     if (!this->_domain_decomposed) {
       this->_domain_decomposed_dim = 0;
       this->_domain_decomposed_size = this->shape[0];
+      this->_num_subdomains = 1;
+      log::info("DomainDecomposer: no decomposition used");
+    } else {
+      if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+        this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
+                                  this->_domain_decomposed_size +
+                              1;
+        log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using MaxDim method");
+      } else if (config.domain_decomposition == domain_decomposition_type::Block) {
+        this->_domain_decomposed_size = config.block_size;
+        this->_num_subdomains = 1;
+        for (DIM d = 0; d < D; d++){
+          this->_num_subdomains *= (shape[d] - 1) / config.block_size + 1;
+        }
+        log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using Block method");
+      } else {
+        log::err ("Wrong domain decomposition type.");
+        exit(-1);
+      }
     }
-    this->_num_subdomains = (this->shape[this->_domain_decomposed_dim] - 1) /
-                                this->_domain_decomposed_size +
-                            1;
+
     uniform = false;
   }
 

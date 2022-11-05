@@ -25,6 +25,7 @@ struct Config {
   bool prefetch;
   SIZE max_memory_footprint;
   SIZE total_num_bitplanes;
+  SIZE block_size;
 
   Config();
   void apply();
