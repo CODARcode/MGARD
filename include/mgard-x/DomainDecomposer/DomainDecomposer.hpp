@@ -8,10 +8,9 @@
 #ifndef MGARD_X_DOMAIN_DECOMPOSER_HPP
 #define MGARD_X_DOMAIN_DECOMPOSER_HPP
 
-#define ORIGINAL_TO_SUBDOMAIN 0
-#define SUBDOMAIN_TO_ORIGINAL 1
-
 namespace mgard_x {
+
+enum class subdomain_copy_direction : uint8_t { OriginalToSubdomain, SubdomainToOriginal };
 
 template <DIM D, typename T, typename OperationType, typename DeviceType> class DomainDecomposer {
 public:
@@ -295,7 +294,7 @@ public:
   }
 
   void copy_subdomain(Array<D, T, DeviceType> &subdomain_data, int subdomain_id,
-                      int option, int queue_idx) {
+                      enum subdomain_copy_direction direction, int queue_idx) {
     if (subdomain_id >= _num_subdomains) {
       log::err("DomainDecomposer::copy_subdomain wrong subdomain_id.");
       exit(-1);
@@ -310,7 +309,7 @@ public:
       SIZE linearized_width = 1;
       for (DIM d = 0; d < D - 1; d++)
         linearized_width *= shape[d];
-      if (option == ORIGINAL_TO_SUBDOMAIN) {
+      if (direction == subdomain_copy_direction::OriginalToSubdomain) {
         subdomain_data = Array<D, T, DeviceType>(shape);
         // subdomain_data.load(original_data);
         MemoryManager<DeviceType>::CopyND(
@@ -335,7 +334,7 @@ public:
       T *data = original_data + n1 * subdomain_id;
       if (subdomain_id <
           shape[_domain_decomposed_dim] / _domain_decomposed_size) {
-        if (option == ORIGINAL_TO_SUBDOMAIN) {
+        if (direction == subdomain_copy_direction::OriginalToSubdomain) {
           subdomain_data.resize(subdomain_shape(subdomain_id), pitched);
         }
       } else {
@@ -344,20 +343,17 @@ public:
         calc_domain_decompose_parameter(shape, _domain_decomposed_dim,
                                         leftover_dim_size, dst_ld, src_ld, n1,
                                         n2);
-        if (option == ORIGINAL_TO_SUBDOMAIN) {
+        if (direction == subdomain_copy_direction::OriginalToSubdomain) {
           subdomain_data.resize(subdomain_shape(subdomain_id), pitched);
         }
       }
 
-      if (option == ORIGINAL_TO_SUBDOMAIN) {
+      if (direction == subdomain_copy_direction::OriginalToSubdomain) {
         MemoryManager<DeviceType>::CopyND(subdomain_data.data(), dst_ld, data,
                                           src_ld, n1, n2, queue_idx);
-      } else if (option == SUBDOMAIN_TO_ORIGINAL) {
+      } else {
         MemoryManager<DeviceType>::CopyND(data, src_ld, subdomain_data.data(),
                                           dst_ld, n1, n2, queue_idx);
-      } else {
-        log::err("copy_subdomain: wrong option.");
-        exit(-1);
       }
     }
     // if (log::level & log::TIME) {

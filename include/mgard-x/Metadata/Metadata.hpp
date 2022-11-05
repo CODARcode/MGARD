@@ -72,8 +72,8 @@ public:
             enum decomposition_type decomposition, uint32_t reorder,
             enum lossless_type ltype, uint32_t huff_dict_size,
             uint32_t huff_block_size, std::vector<SIZE> shape,
-            bool domain_decomposed, uint8_t domain_decomposed_dim,
-            uint64_t domain_decomposed_size) {
+            bool domain_decomposed, domain_decomposition_type ddtype, 
+            uint8_t domain_decomposed_dim, uint64_t domain_decomposed_size) {
 
     otype = operation_type::Compression;
     if (std::is_same<DeviceType, SERIAL>::value) {
@@ -111,7 +111,7 @@ public:
       this->shape[d] = (uint64_t)shape[d];
     }
     this->domain_decomposed = domain_decomposed;
-    this->ddtype = domain_decomposition_type::MaxDim;
+    this->ddtype = ddtype;
     this->domain_decomposed_dim = domain_decomposed_dim;
     this->domain_decomposed_size = domain_decomposed_size;
   }
@@ -121,10 +121,11 @@ public:
             enum decomposition_type decomposition, uint32_t reorder,
             enum lossless_type ltype, uint32_t huff_dict_size,
             uint32_t huff_block_size, std::vector<SIZE> shape,
-            bool domain_decomposed, uint8_t domain_decomposed_dim,
-            uint64_t domain_decomposed_size, std::vector<T *> coords) {
+            bool domain_decomposed, domain_decomposition_type ddtype, 
+            uint8_t domain_decomposed_dim, uint64_t domain_decomposed_size,
+            std::vector<T *> coords) {
     FillForCompression(ebtype, tol, s, norm, decomposition, reorder, ltype, huff_dict_size,
-         huff_block_size, shape, domain_decomposed, domain_decomposed_dim,
+         huff_block_size, shape, domain_decomposed, ddtype, domain_decomposed_dim,
          domain_decomposed_size);
     for (int d = 0; d < this->total_dims; d++) {
       std::vector<double> coord(shape[d]);
@@ -143,8 +144,9 @@ public:
   void FillForMDR(T norm, enum decomposition_type decomposition,
             enum lossless_type ltype, uint32_t huff_dict_size,
             uint32_t huff_block_size, std::vector<SIZE> shape,
-            bool domain_decomposed, uint8_t domain_decomposed_dim,
-            uint64_t domain_decomposed_size, uint64_t number_bitplanes) {
+            bool domain_decomposed, domain_decomposition_type ddtype, 
+            uint8_t domain_decomposed_dim, uint64_t domain_decomposed_size,
+            uint64_t number_bitplanes) {
     otype = operation_type::MDR;
     if (std::is_same<DeviceType, SERIAL>::value) {
       this->ptype = processor_type::X_SERIAL;
@@ -171,7 +173,7 @@ public:
       this->shape[d] = (uint64_t)shape[d];
     }
     this->domain_decomposed = domain_decomposed;
-    this->ddtype = domain_decomposition_type::MaxDim;
+    this->ddtype = ddtype;
     this->domain_decomposed_dim = domain_decomposed_dim;
     this->domain_decomposed_size = domain_decomposed_size;
     this->betype = bitplane_encoding_type::GroupedBitplaneEncoding;
@@ -182,11 +184,11 @@ public:
   void FillForMDR(T norm, enum decomposition_type decomposition,
             enum lossless_type ltype, uint32_t huff_dict_size,
             uint32_t huff_block_size, std::vector<SIZE> shape,
-            bool domain_decomposed, uint8_t domain_decomposed_dim,
-            uint64_t domain_decomposed_size, uint64_t number_bitplanes, 
-            std::vector<T *> coords) {
+            bool domain_decomposed, domain_decomposition_type ddtype, 
+            uint8_t domain_decomposed_dim, uint64_t domain_decomposed_size,
+            uint64_t number_bitplanes, std::vector<T *> coords) {
     FillForMDR(norm, decomposition, ltype, huff_dict_size,
-         huff_block_size, shape, domain_decomposed, domain_decomposed_dim,
+         huff_block_size, shape, domain_decomposed, ddtype, domain_decomposed_dim,
          domain_decomposed_size, number_bitplanes);
     for (int d = 0; d < this->total_dims; d++) {
       std::vector<double> coord(shape[d]);
@@ -579,10 +581,10 @@ private:
       if (domain_decomposed) {
         if (ddtype == domain_decomposition_type::MaxDim) {
           domainDecomposition.set_method(
-              mgard::pb::DomainDecomposition::LARGEST_DIMENSION);
-        } else if (ddtype == domain_decomposition_type::Linearize) {
+              mgard::pb::DomainDecomposition::MAX_DIMENSION);
+        } else if (ddtype == domain_decomposition_type::Block) {
           domainDecomposition.set_method(
-              mgard::pb::DomainDecomposition::LINEARIZATION);
+              mgard::pb::DomainDecomposition::BLOCK);
         }
       } else {
         domainDecomposition.set_method(
@@ -830,11 +832,11 @@ private:
           mgard::pb::DomainDecomposition::NOOP_METHOD) {
         domain_decomposed = true;
         if (domainDecomposition.method() ==
-            mgard::pb::DomainDecomposition::LARGEST_DIMENSION) {
+            mgard::pb::DomainDecomposition::MAX_DIMENSION) {
           ddtype = domain_decomposition_type::MaxDim;
         } else if (domainDecomposition.method() ==
-                   mgard::pb::DomainDecomposition::LINEARIZATION) {
-          ddtype = domain_decomposition_type::Linearize;
+                   mgard::pb::DomainDecomposition::BLOCK) {
+          ddtype = domain_decomposition_type::Block;
         }
 
         domain_decomposed_dim = domainDecomposition.decomposition_dimension();
