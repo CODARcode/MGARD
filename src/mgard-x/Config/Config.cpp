@@ -31,7 +31,7 @@ Config::Config() {
   prefetch = true;
   max_memory_footprint = std::numeric_limits<SIZE>::max(); // no limit
   total_num_bitplanes = 32;
-  block_size = 64;
+  block_size = 512;
 }
 
 void Config::apply() { log::level = log_level; }
