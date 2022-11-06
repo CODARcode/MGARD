@@ -448,6 +448,17 @@ Hierarchy<D, T, DeviceType>::estimate_memory_usgae(std::vector<SIZE> shape) {
     _level_shape.push_back(curr_level_shape);
   }
 
+  {
+    _total_num_elems = 1;
+    for (int d = D - 1; d >= 0; d--) {
+      _total_num_elems *= _level_shape[_l_target][d];
+    }
+    _linearized_width = 1;
+    for (int d = D - 2; d >= 0; d--) {
+      _linearized_width *= _level_shape[_l_target][d];
+    }
+  }
+
   { // Ranges
     estimate_memory_usgae += (_l_target + 2) * D * sizeof(SIZE);
   }
@@ -498,6 +509,19 @@ Hierarchy<D, T, DeviceType>::estimate_memory_usgae(std::vector<SIZE> shape) {
     }
   }
 
+  {
+    _level_num_elems.resize(_l_target + 1);
+    SIZE prev_num_elems = 0;
+    for (int level_idx = 0; level_idx < _l_target + 1; level_idx++) {
+      SIZE curr_num_elems = 1;
+      for (DIM d = 0; d < D; d++) {
+        curr_num_elems *= level_shape(level_idx, d);
+      }
+      _level_num_elems[level_idx] = curr_num_elems - prev_num_elems;
+      prev_num_elems = curr_num_elems;
+    }
+  }
+  
   return estimate_memory_usgae;
 }
 

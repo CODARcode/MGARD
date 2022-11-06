@@ -13,6 +13,7 @@ struct Config {
   int num_dev;
   enum domain_decomposition_type domain_decomposition;
   enum decomposition_type decomposition;
+  double estimate_outlier_ratio;
   SIZE huff_dict_size;
   SIZE huff_block_size;
   SIZE lz4_block_size;

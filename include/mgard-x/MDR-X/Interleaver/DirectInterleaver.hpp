@@ -74,6 +74,14 @@ public:
                                         hierarchy.l_target() + 1);
   }
 
+  static size_t EstimateMemoryFootprint(std::vector<SIZE> shape) {
+    size_t size = 0;
+    Hierarchy<D, T, DeviceType> hierarchy;
+    size += hierarchy.estimate_memory_usgae(shape);
+    size += sizeof(SubArray<1, T, DeviceType>) * (hierarchy.l_target() + 1);
+    return size;
+  }
+
   void interleave(SubArray<D, T, DeviceType> decomposed_data,
                   SubArray<1, T, DeviceType> *levels_decomposed_data,
                   SIZE target_level, int queue_idx) {

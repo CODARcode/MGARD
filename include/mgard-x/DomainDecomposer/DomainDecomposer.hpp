@@ -14,8 +14,7 @@ enum class subdomain_copy_direction : uint8_t { OriginalToSubdomain, SubdomainTo
 
 template <DIM D, typename T, typename OperationType, typename DeviceType> class DomainDecomposer {
 public:
-  size_t estimate_memory_usgae(std::vector<SIZE> shape, double outlier_ratio,
-                               double reduction_ratio, bool enable_prefetch) {
+  size_t estimate_memory_usgae(std::vector<SIZE> shape, double reduction_ratio, bool enable_prefetch) {
     size_t estimate_memory_usgae = 0;
 
     Array<1, T, DeviceType> array_with_pitch({1});
@@ -39,9 +38,7 @@ public:
     estimate_memory_usgae =
           hierarchy_space + input_space + output_space;
     estimate_memory_usgae +=
-        OperationType::EstimateMemoryFootprint(
-            shape, hierarchy.l_target(), config.huff_dict_size,
-            config.huff_block_size, outlier_ratio);
+        OperationType::EstimateMemoryFootprint(shape, config);
 
     // For prefetching
     if (enable_prefetch) {
@@ -53,7 +50,7 @@ public:
 
   bool need_domain_decomposition(std::vector<SIZE> shape,
                                  bool enable_prefetch) {
-    size_t estm = estimate_memory_usgae(shape, 1, 1, enable_prefetch);
+    size_t estm = estimate_memory_usgae(shape, 1.0, enable_prefetch);
     size_t aval = std::min(DeviceRuntime<DeviceType>::GetAvailableMemory(),
                            config.max_memory_footprint);
     log::info("Estimated memory usage: " + std::to_string((double)estm / 1e9) +

@@ -34,12 +34,12 @@ public:
                    std::string metadata_file, std::vector<std::string> files
                    )
       : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
-        encoder(hierarchy), compressor(hierarchy.total_num_elems()/8, config.huff_dict_size, config.huff_block_size, 1.0),
+        encoder(hierarchy), compressor(Encoder::buffer_size(hierarchy.level_num_elems(hierarchy.l_target())), config),
         collector(), total_num_bitplanes(config.total_num_bitplanes), writer(metadata_file, files) {}
 
   ComposedRefactor(Hierarchy<D, T_data, DeviceType> hierarchy, Config config)
       : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
-        encoder(hierarchy), compressor(hierarchy.total_num_elems()/8, config.huff_dict_size, config.huff_block_size, 1.0),
+        encoder(hierarchy), compressor(Encoder::buffer_size(hierarchy.level_num_elems(hierarchy.l_target())), config),
         collector(), total_num_bitplanes(config.total_num_bitplanes), writer(std::string(""), std::vector<std::string>()) {
     levels_array = new Array<1, T_data, DeviceType>[hierarchy.l_target() + 1];
     levels_data = new SubArray<1, T_data, DeviceType>[hierarchy.l_target() + 1];
@@ -64,10 +64,8 @@ public:
     delete [] levels_data;
   }
 
-  static size_t EstimateMemoryFootprint(std::vector<SIZE> shape, SIZE l_target,
-                                        SIZE dict_size, SIZE chunk_size,
-                                        double estimated_outlier_ratio) {
-    Hierarchy<D, T_data, DeviceType> hierarchy(shape, Config());
+  static size_t EstimateMemoryFootprint(std::vector<SIZE> shape, Config config) {
+    Hierarchy<D, T_data, DeviceType> hierarchy;
     size_t size = 0;
     size += hierarchy.estimate_memory_usgae(shape);
     for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
@@ -79,12 +77,17 @@ public:
                                          SubArray<1, T_data, DeviceType>(), SubArray<1, T_data, DeviceType>(),
                                            tmp, 0);
     size += tmp.shape(0);
-    SIZE max_num_bitplanes = 64;
     for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) { 
-      size += max_num_bitplanes * Encoder::buffer_size(hierarchy.level_num_elems(level_idx)) * sizeof (T_bitplane);
+      size += config.total_num_bitplanes * Encoder::buffer_size(hierarchy.level_num_elems(level_idx)) * sizeof (T_bitplane);
     }
-    size += (max_num_bitplanes + 1) * sizeof(T_error);
+
+    SIZE max_n = Encoder::buffer_size(hierarchy.level_num_elems(hierarchy.l_target()));
+
+    size += (config.total_num_bitplanes + 1) * sizeof(T_error);
+    size += Decomposer::EstimateMemoryFootprint(shape);
+    size += Interleaver::EstimateMemoryFootprint(shape);
     size += Encoder::EstimateMemoryFootprint(shape);
+    size += Compressor::EstimateMemoryFootprint(max_n, config);
     return size;
   }
 

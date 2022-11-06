@@ -38,7 +38,7 @@ public:
                         std::string metadata_file, std::vector<std::string> files
                         )
       : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
-        encoder(hierarchy), compressor(hierarchy.total_num_elems()/8, config.huff_dict_size, config.huff_block_size, 1.0),
+        encoder(hierarchy), compressor(Encoder::buffer_size(hierarchy.level_num_elems(hierarchy.l_target())), config),
         total_num_bitplanes(config.total_num_bitplanes), retriever(metadata_file, files) {
     prev_reconstructed = false;
     partial_reconsctructed_data = Array<D, T_data, DeviceType>(hierarchy.level_shape(hierarchy.l_target()));
@@ -47,7 +47,7 @@ public:
   ComposedReconstructor(Hierarchy<D, T_data, DeviceType> hierarchy,
                         Config config)
       : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
-        encoder(hierarchy), compressor(hierarchy.total_num_elems()/8, config.huff_dict_size, config.huff_block_size, 1.0),
+        encoder(hierarchy), compressor(Encoder::buffer_size(hierarchy.level_num_elems(hierarchy.l_target())), config),
         total_num_bitplanes(config.total_num_bitplanes), retriever(std::string(""), std::vector<std::string>()) {
     prev_reconstructed = false;
     partial_reconsctructed_data = Array<D, T_data, DeviceType>(hierarchy.level_shape(hierarchy.l_target()));
@@ -69,10 +69,8 @@ public:
     delete [] levels_data;
   }
 
-  static size_t EstimateMemoryFootprint(std::vector<SIZE> shape, SIZE l_target,
-                                        SIZE dict_size, SIZE chunk_size,
-                                        double estimated_outlier_ratio) {
-    Hierarchy<D, T_data, DeviceType> hierarchy(shape, Config());
+  static size_t EstimateMemoryFootprint(std::vector<SIZE> shape, Config config) {
+    Hierarchy<D, T_data, DeviceType> hierarchy;
     Array<1, T_data, DeviceType> array_with_pitch({1});
     size_t pitch_size = array_with_pitch.ld(0) * sizeof(T_data);
     size_t size = 0;
@@ -89,12 +87,18 @@ public:
     for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
       size += hierarchy.level_num_elems(level_idx) * sizeof(T_data);
     }
-    SIZE max_num_bitplanes = 64;
+
     for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) { 
-      size += max_num_bitplanes * Encoder::buffer_size(hierarchy.level_num_elems(level_idx)) * sizeof (T_bitplane);
+      size += config.total_num_bitplanes * Encoder::buffer_size(hierarchy.level_num_elems(level_idx)) * sizeof (T_bitplane);
     }
-    size += (max_num_bitplanes + 1) * sizeof(T_error);
+
+    SIZE max_n = Encoder::buffer_size(hierarchy.level_num_elems(hierarchy.l_target()));
+
+    size += (config.total_num_bitplanes + 1) * sizeof(T_error);
+    size += Decomposer::EstimateMemoryFootprint(shape);
+    size += Interleaver::EstimateMemoryFootprint(shape);
     size += Encoder::EstimateMemoryFootprint(shape);
+    size += Compressor::EstimateMemoryFootprint(max_n, config);
     return size;
   }
 
