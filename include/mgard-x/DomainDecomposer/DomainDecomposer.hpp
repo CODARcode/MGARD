@@ -61,6 +61,24 @@ public:
     return estm >= aval;
   }
 
+  std::vector<SIZE> dim_num_subdomain() {
+    std::vector<SIZE> _dim_num_subdomain(D);
+    for (int d = D-1; d >= 0; d--) {
+      _dim_num_subdomain[d] = (shape[d]-1)/_domain_decomposed_size+1;
+    }
+    return _dim_num_subdomain;
+  }
+
+  std::vector<SIZE> dim_subdomain_id(int subdomain_id) {
+    std::vector<SIZE> _dim_num_subdomain = dim_num_subdomain();
+    std::vector<SIZE> _dim_subdomain_id(D);
+    for (int d = D-1; d >= 0; d--) {
+          _dim_subdomain_id[d] = subdomain_id % _dim_num_subdomain[d];
+          subdomain_id /= _dim_num_subdomain[d];
+        }
+    return _dim_subdomain_id;
+  }
+
   std::vector<SIZE> subdomain_shape(int subdomain_id) {
     if (subdomain_id >= _num_subdomains) {
       log::err("DomainDecomposer::subdomain_shape wrong subdomain_id.");
@@ -69,19 +87,36 @@ public:
     if (!_domain_decomposed) {
       return shape;
     } else {
-      if (subdomain_id <
-          shape[_domain_decomposed_dim] / _domain_decomposed_size) {
-        std::vector<SIZE> chunck_shape = shape;
-        chunck_shape[_domain_decomposed_dim] = _domain_decomposed_size;
+      if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+        if (subdomain_id <
+            shape[_domain_decomposed_dim] / _domain_decomposed_size) {
+          std::vector<SIZE> chunck_shape = shape;
+          chunck_shape[_domain_decomposed_dim] = _domain_decomposed_size;
+          return chunck_shape;
+        } else {
+          SIZE leftover_dim_size =
+              shape[_domain_decomposed_dim] % _domain_decomposed_size;
+          std::vector<SIZE> leftover_shape = shape;
+          leftover_shape[_domain_decomposed_dim] = leftover_dim_size;
+          return leftover_shape;
+        }
+      } else if (config.domain_decomposition == domain_decomposition_type::Block) {
+        std::vector<SIZE> chunck_shape(D);
+        std::vector<SIZE> _dim_num_subdomain = dim_num_subdomain();
+        std::vector<SIZE> _dim_subdomain_id = dim_subdomain_id(subdomain_id);
+        for (int d = D-1; d >= 0; d--) {
+          if (_dim_subdomain_id[d] < shape[d] / _domain_decomposed_size) {
+            chunck_shape[d] = _domain_decomposed_size;
+          } else {
+            chunck_shape[d] = shape[d] % _domain_decomposed_size;
+          }
+        }
         return chunck_shape;
       } else {
-        SIZE leftover_dim_size =
-            shape[_domain_decomposed_dim] % _domain_decomposed_size;
-        std::vector<SIZE> leftover_shape = shape;
-        leftover_shape[_domain_decomposed_dim] = leftover_dim_size;
-        return leftover_shape;
+        log::err ("Wrong domain decomposition type.");
+        exit(-1);
       }
-    }
+    } 
   }
 
   bool generate_max_dim_domain_decomposition_strategy(std::vector<SIZE> shape,
@@ -122,26 +157,13 @@ public:
       need_prefetch = curr_num_subdomains > num_dev;
     }
     _domain_decomposed_size = chunck_shape[_domain_decomposed_dim];
-    log::info(
-        "Domain decomposed dim: " + std::to_string(_domain_decomposed_dim) +
-        ", Domain decomposed size: " + std::to_string(_domain_decomposed_size));
     return true;
   }
 
   bool generate_block_domain_decomposition_strategy(std::vector<SIZE> shape,
                                               SIZE &_domain_decomposed_size,
                                               SIZE num_dev) {
-    // determine max dimension
-    SIZE max_dim = 0;
-    for (DIM d = 0; d < D; d++) {
-      if (shape[d] > max_dim) {
-        max_dim = shape[d];
-        _domain_decomposed_dim = d;
-      }
-    }
-
-    // domain decomposition strategy
-    std::vector<SIZE> chunck_shape(_domain_decomposed_size, D);
+    std::vector<SIZE> chunck_shape(D, _domain_decomposed_size);
 
     int curr_num_subdomains = 1;
     for (DIM d = 0; d < D; d++){
@@ -153,8 +175,9 @@ public:
     // Then check if each chunk can fit into device memory
     while (need_domain_decomposition(chunck_shape, need_prefetch)) {
       // Divide by 2 and round up
-      chunck_shape[_domain_decomposed_dim] =
-          (chunck_shape[_domain_decomposed_dim] - 1) / 2 + 1;
+      _domain_decomposed_size =
+          (_domain_decomposed_size - 1) / 2 + 1;
+      chunck_shape = std::vector<SIZE>(D, _domain_decomposed_size);
 
       curr_num_subdomains = 1;
       for (DIM d = 0; d < D; d++){
@@ -163,8 +186,6 @@ public:
 
       need_prefetch = curr_num_subdomains > num_dev;
     }
-    _domain_decomposed_size = chunck_shape[_domain_decomposed_dim];
-    log::info("Domain decomposed size: " + std::to_string(_domain_decomposed_size));
     return true;
   }
 
@@ -172,18 +193,38 @@ public:
     if (uniform) {
       return Hierarchy<D, T, DeviceType>(subdomain_shape(subdomain_id), config);
     } else {
-      std::vector<T *> chunck_coords = coords;
-      std::vector<SIZE> shape = subdomain_shape(subdomain_id);
-      T *decompose_dim_coord = new T[shape[_domain_decomposed_dim]];
-      MemoryManager<DeviceType>::Copy1D(decompose_dim_coord,
-                                        coords[_domain_decomposed_dim] +
-                                            subdomain_id *
-                                                _domain_decomposed_size,
-                                        shape[_domain_decomposed_dim], 0);
-      DeviceRuntime<DeviceType>::SyncQueue(0);
-      chunck_coords[_domain_decomposed_dim] = decompose_dim_coord;
-      delete[] decompose_dim_coord;
-      return Hierarchy<D, T, DeviceType>(shape, chunck_coords, config);
+      if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+        std::vector<T *> chunck_coords = coords;
+        std::vector<SIZE> chunck_shape = subdomain_shape(subdomain_id);
+        T *decompose_dim_coord = new T[chunck_shape[_domain_decomposed_dim]];
+        MemoryManager<DeviceType>::Copy1D(decompose_dim_coord,
+                                          coords[_domain_decomposed_dim] +
+                                              subdomain_id *
+                                                  _domain_decomposed_size,
+                                          chunck_shape[_domain_decomposed_dim], 0);
+        DeviceRuntime<DeviceType>::SyncQueue(0);
+        chunck_coords[_domain_decomposed_dim] = decompose_dim_coord;
+        Hierarchy<D, T, DeviceType> hierarchy(chunck_shape, chunck_coords, config);
+        delete[] decompose_dim_coord;
+        return hierarchy;
+      } else if (config.domain_decomposition == domain_decomposition_type::Block) {
+        std::vector<T *> chunck_coords(D);
+        std::vector<SIZE> chunck_shape = subdomain_shape(subdomain_id);
+        std::vector<SIZE> _dim_subdomain_id = dim_subdomain_id(subdomain_id);
+        for (int d = D-1; d >= 0; d--) {
+          chunck_coords[d] = new T[chunck_shape[d]];
+          MemoryManager<DeviceType>::Copy1D(chunck_coords[d],
+                                            coords[d] + _dim_subdomain_id[d] * _domain_decomposed_size,
+                                            chunck_shape[d], 0);
+          DeviceRuntime<DeviceType>::SyncQueue(0);
+        }
+        Hierarchy<D, T, DeviceType> hierarchy(chunck_shape, chunck_coords, config);
+        for (int d = D-1; d >= 0; d--) delete [] chunck_coords[d];
+        return hierarchy;
+      } else {
+        log::err ("Wrong domain decomposition type.");
+        exit(-1);
+      }
     }
   }
 
@@ -235,6 +276,9 @@ public:
         this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
                                 this->_domain_decomposed_size +
                             1;
+        log::info(
+        "Domain decomposed dim: " + std::to_string(_domain_decomposed_dim) +
+        ", Domain decomposed size: " + std::to_string(_domain_decomposed_size));
         log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using MaxDim method");
       } else if (config.domain_decomposition == domain_decomposition_type::Block) {
         this->_domain_decomposed_size = config.block_size;
@@ -243,8 +287,9 @@ public:
                                               this->_num_devices);
         this->_num_subdomains = 1;
         for (DIM d = 0; d < D; d++){
-          this->_num_subdomains *= (shape[d] - 1) / config.block_size + 1;
+          this->_num_subdomains *= (shape[d] - 1) / this->_domain_decomposed_size + 1;
         }
+        log::info("Domain decomposed size: " + std::to_string(_domain_decomposed_size));
         log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using Block method");
       } else {
         log::err ("Wrong domain decomposition type.");
@@ -276,6 +321,9 @@ public:
         this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
                                   this->_domain_decomposed_size +
                               1;
+        log::info(
+        "Domain decomposed dim: " + std::to_string(_domain_decomposed_dim) +
+        ", Domain decomposed size: " + std::to_string(_domain_decomposed_size));
         log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using MaxDim method");
       } else if (config.domain_decomposition == domain_decomposition_type::Block) {
         this->_domain_decomposed_size = config.block_size;
@@ -284,8 +332,9 @@ public:
                                               this->_num_devices);
         this->_num_subdomains = 1;
         for (DIM d = 0; d < D; d++){
-          this->_num_subdomains *= (shape[d] - 1) / config.block_size + 1;
+          this->_num_subdomains *= (shape[d] - 1) / this->_domain_decomposed_size + 1;
         }
+        log::info("Domain decomposed size: " + std::to_string(_domain_decomposed_size));
         log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using Block method");
       } else {
         log::err ("Wrong domain decomposition type.");
@@ -314,13 +363,16 @@ public:
         this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
                                   this->_domain_decomposed_size +
                               1;
+        log::info(
+        "Domain decomposed dim: " + std::to_string(_domain_decomposed_dim) +
+        ", Domain decomposed size: " + std::to_string(_domain_decomposed_size));
         log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using MaxDim method");
       } else if (config.domain_decomposition == domain_decomposition_type::Block) {
-        this->_domain_decomposed_size = config.block_size;
         this->_num_subdomains = 1;
         for (DIM d = 0; d < D; d++){
-          this->_num_subdomains *= (shape[d] - 1) / config.block_size + 1;
+          this->_num_subdomains *= (shape[d] - 1) / this->_domain_decomposed_size + 1;
         }
+        log::info("Domain decomposed size: " + std::to_string(_domain_decomposed_size));
         log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using Block method");
       } else {
         log::err ("Wrong domain decomposition type.");
@@ -350,13 +402,16 @@ public:
         this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
                                   this->_domain_decomposed_size +
                               1;
+        log::info(
+        "Domain decomposed dim: " + std::to_string(_domain_decomposed_dim) +
+        ", Domain decomposed size: " + std::to_string(_domain_decomposed_size));
         log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using MaxDim method");
       } else if (config.domain_decomposition == domain_decomposition_type::Block) {
-        this->_domain_decomposed_size = config.block_size;
         this->_num_subdomains = 1;
         for (DIM d = 0; d < D; d++){
-          this->_num_subdomains *= (shape[d] - 1) / config.block_size + 1;
+          this->_num_subdomains *= (shape[d] - 1) / this->_domain_decomposed_size + 1;
         }
+        log::info("Domain decomposed size: " + std::to_string(_domain_decomposed_size));
         log::info("DomainDecomposer: decomposed into " + std::to_string(this->_num_subdomains) + " subdomains using Block method");
       } else {
         log::err ("Wrong domain decomposition type.");
@@ -392,6 +447,16 @@ public:
       n2 *= shape[d];
     }
     // std::cout << "n2: " << n2 << "\n";
+  }
+
+  SIZE calc_offset(std::vector<SIZE> shape, std::vector<SIZE> dim_subdomain_offset) {
+    SIZE curr_stride = 1;
+    SIZE ret_idx = 0;
+    for (int d = D - 1; d >= 0; d--) {
+      ret_idx += dim_subdomain_offset[d] * curr_stride;
+      curr_stride *= shape[d];
+    }
+    return ret_idx;
   }
 
   bool check_shape(Array<D, T, DeviceType> &subdomain_data,
@@ -441,33 +506,127 @@ public:
       assert(MemoryManager<DeviceType>::ReduceMemoryFootprint == true);
       bool pitched = false;
 
-      SIZE dst_ld, src_ld, n1, n2;
-      calc_domain_decompose_parameter(shape, _domain_decomposed_dim,
-                                      _domain_decomposed_size, dst_ld, src_ld,
-                                      n1, n2);
-      T *data = original_data + n1 * subdomain_id;
-      if (subdomain_id <
-          shape[_domain_decomposed_dim] / _domain_decomposed_size) {
-        if (direction == subdomain_copy_direction::OriginalToSubdomain) {
-          subdomain_data.resize(subdomain_shape(subdomain_id), pitched);
-        }
-      } else {
-        SIZE leftover_dim_size =
-            shape[_domain_decomposed_dim] % _domain_decomposed_size;
+      if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+        SIZE dst_ld, src_ld, n1, n2;
         calc_domain_decompose_parameter(shape, _domain_decomposed_dim,
-                                        leftover_dim_size, dst_ld, src_ld, n1,
-                                        n2);
-        if (direction == subdomain_copy_direction::OriginalToSubdomain) {
-          subdomain_data.resize(subdomain_shape(subdomain_id), pitched);
+                                        _domain_decomposed_size, dst_ld, src_ld,
+                                        n1, n2);
+        T *data = original_data + n1 * subdomain_id;
+        if (subdomain_id <
+            shape[_domain_decomposed_dim] / _domain_decomposed_size) {
+          if (direction == subdomain_copy_direction::OriginalToSubdomain) {
+            subdomain_data.resize(subdomain_shape(subdomain_id), pitched);
+          }
+        } else {
+          SIZE leftover_dim_size =
+              shape[_domain_decomposed_dim] % _domain_decomposed_size;
+          calc_domain_decompose_parameter(shape, _domain_decomposed_dim,
+                                          leftover_dim_size, dst_ld, src_ld, n1,
+                                          n2);
+          if (direction == subdomain_copy_direction::OriginalToSubdomain) {
+            subdomain_data.resize(subdomain_shape(subdomain_id), pitched);
+          }
         }
-      }
 
-      if (direction == subdomain_copy_direction::OriginalToSubdomain) {
-        MemoryManager<DeviceType>::CopyND(subdomain_data.data(), dst_ld, data,
-                                          src_ld, n1, n2, queue_idx);
+        if (direction == subdomain_copy_direction::OriginalToSubdomain) {
+          MemoryManager<DeviceType>::CopyND(subdomain_data.data(), dst_ld, data,
+                                            src_ld, n1, n2, queue_idx);
+        } else {
+          MemoryManager<DeviceType>::CopyND(data, src_ld, subdomain_data.data(),
+                                            dst_ld, n1, n2, queue_idx);
+        }
+      } else if (config.domain_decomposition == domain_decomposition_type::Block) {
+        std::vector<SIZE> _dim_num_subdomain = dim_num_subdomain();
+        std::vector<SIZE> _dim_subdomain_id = dim_subdomain_id(subdomain_id);
+        std::vector<SIZE> _dim_subdomain_offset(D);
+        for (int d = D-1; d >= 0; d--) _dim_subdomain_offset[d] = _dim_subdomain_id[d] * _domain_decomposed_size;
+        std::vector<SIZE> chunck_shape = subdomain_shape(subdomain_id);
+        if (direction == subdomain_copy_direction::OriginalToSubdomain) {
+          subdomain_data.resize(chunck_shape, pitched);
+        }
+        if (D == 1) {
+          T * data = original_data + calc_offset(shape, _dim_subdomain_offset);
+          if (direction == subdomain_copy_direction::OriginalToSubdomain) {
+            MemoryManager<DeviceType>::CopyND(subdomain_data.data(), chunck_shape[D-1],
+                                              data, shape[D-1],
+                                              chunck_shape[D-1], 1, queue_idx);
+          } else {
+            MemoryManager<DeviceType>::CopyND(data, shape[D-1],
+                                              subdomain_data.data(), chunck_shape[D-1],
+                                              chunck_shape[D-1], 1, queue_idx);
+          }
+        } else if (D == 2) {
+          T * data = original_data + calc_offset(shape, _dim_subdomain_offset);
+          if (direction == subdomain_copy_direction::OriginalToSubdomain) {
+            MemoryManager<DeviceType>::CopyND(subdomain_data.data(), chunck_shape[D-1],
+                                              data, shape[D-1],
+                                              chunck_shape[D-1], chunck_shape[D-2], queue_idx);
+          } else {
+            MemoryManager<DeviceType>::CopyND(data, shape[D-1],
+                                              subdomain_data.data(), chunck_shape[D-1],
+                                              chunck_shape[D-1], chunck_shape[D-2], queue_idx);
+          }
+        } else if (D == 3) {
+          for (SIZE i = 0; i < chunck_shape[D-3]; i++) {
+            std::vector<SIZE> local_dim_subdomain_offset = _dim_subdomain_offset;
+            local_dim_subdomain_offset[D-3] += i;
+            T * data = original_data + calc_offset(shape, local_dim_subdomain_offset);
+            if (direction == subdomain_copy_direction::OriginalToSubdomain) {
+              MemoryManager<DeviceType>::CopyND(subdomain_data.data() + calc_offset(chunck_shape, {i, 0, 0}), chunck_shape[D-1],
+                                                data, shape[D-1],
+                                                chunck_shape[D-1], chunck_shape[D-2], queue_idx);
+            } else {
+              MemoryManager<DeviceType>::CopyND(data, shape[D-1],
+                                                subdomain_data.data() + calc_offset(chunck_shape, {i, 0, 0}), chunck_shape[D-1],
+                                                chunck_shape[D-1], chunck_shape[D-2], queue_idx);
+            }
+          }
+        } else if (D == 4) {
+          for (SIZE j = 0; j < chunck_shape[D-4]; j++) {
+            for (SIZE i = 0; i < chunck_shape[D-3]; i++) {
+              std::vector<SIZE> local_dim_subdomain_offset = _dim_subdomain_offset;
+              local_dim_subdomain_offset[D-3] += i;
+              local_dim_subdomain_offset[D-4] += j;
+              T * data = original_data + calc_offset(shape, local_dim_subdomain_offset);
+              if (direction == subdomain_copy_direction::OriginalToSubdomain) {
+                MemoryManager<DeviceType>::CopyND(subdomain_data.data() + calc_offset(chunck_shape, {j, i, 0, 0}), chunck_shape[D-1],
+                                                  data, shape[D-1],
+                                                  chunck_shape[D-1], chunck_shape[D-2], queue_idx);
+              } else {
+                MemoryManager<DeviceType>::CopyND(data, shape[D-1],
+                                                  subdomain_data.data() + calc_offset(chunck_shape, {j, i, 0, 0}), chunck_shape[D-1],
+                                                  chunck_shape[D-1], chunck_shape[D-2], queue_idx);
+              }
+            }
+          }
+        } else if (D == 5) {
+          for (SIZE k = 0; k < chunck_shape[D-5]; k++) {
+            for (SIZE j = 0; j < chunck_shape[D-4]; j++) {
+              for (SIZE i = 0; i < chunck_shape[D-3]; i++) {
+                std::vector<SIZE> local_dim_subdomain_offset = _dim_subdomain_offset;
+                local_dim_subdomain_offset[D-3] += i;
+                local_dim_subdomain_offset[D-4] += j;
+                local_dim_subdomain_offset[D-5] += k;
+                T * data = original_data + calc_offset(shape, local_dim_subdomain_offset);
+                if (direction == subdomain_copy_direction::OriginalToSubdomain) {
+                  MemoryManager<DeviceType>::CopyND(subdomain_data.data() + calc_offset(chunck_shape, {k, j, i, 0, 0}), chunck_shape[D-1],
+                                                    data, shape[D-1],
+                                                    chunck_shape[D-1], chunck_shape[D-2], queue_idx);
+                } else {
+                  MemoryManager<DeviceType>::CopyND(data, shape[D-1],
+                                                    subdomain_data.data() + calc_offset(chunck_shape, {k, j, i, 0, 0}), chunck_shape[D-1],
+                                                    chunck_shape[D-1], chunck_shape[D-2], queue_idx);
+                }
+              }
+            }
+          }
+        } else {
+          log::err ("Copy subdomain does not support higher than 5D data.");
+          exit(-1);
+        }
       } else {
-        MemoryManager<DeviceType>::CopyND(data, src_ld, subdomain_data.data(),
-                                          dst_ld, n1, n2, queue_idx);
+        log::err ("Wrong domain decomposition type.");
+        exit(-1);
       }
     }
     // if (log::level & log::TIME) {
