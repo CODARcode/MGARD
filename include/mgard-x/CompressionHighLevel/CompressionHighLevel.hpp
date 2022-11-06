@@ -1087,34 +1087,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     }
   }
 
-  SIZE num_subdomains;
-  if (!m.domain_decomposed) {
-    num_subdomains = 1;
-  } else {
-    num_subdomains =
-        (shape[m.domain_decomposed_dim] - 1) / m.domain_decomposed_size + 1;
-  }
-
-  // Preparing decompression parameters
-  T local_tol;
-  enum error_bound_type local_ebtype;
-
-  if (log::level & log::TIME)
-    timer_each.start();
-
-  if (!m.domain_decomposed) {
-    local_tol = m.tol;
-    local_ebtype = m.ebtype;
-  } else {
-    local_tol =
-        calc_local_abs_tol(m.ebtype, m.norm, m.tol, m.s, num_subdomains);
-    // Force to use ABS mode when do domain decomposition
-    local_ebtype = error_bound_type::ABS;
-    // Fast copy for domain decomposition need we disable pitched memory
-    // allocation
-    MemoryManager<DeviceType>::ReduceMemoryFootprint = true;
-  }
-
   // Initialize DomainDecomposer
   DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>
       domain_decomposer;
@@ -1131,6 +1103,26 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
             (T *)decompressed_data, shape, adjusted_num_dev,
             m.domain_decomposed, m.domain_decomposed_dim,
             m.domain_decomposed_size, config, coords);
+  }
+
+  // Preparing decompression parameters
+  T local_tol;
+  enum error_bound_type local_ebtype;
+
+  if (log::level & log::TIME)
+    timer_each.start();
+
+  if (!m.domain_decomposed) {
+    local_tol = m.tol;
+    local_ebtype = m.ebtype;
+  } else {
+    local_tol =
+        calc_local_abs_tol(m.ebtype, m.norm, m.tol, m.s, domain_decomposer.num_subdomains());
+    // Force to use ABS mode when do domain decomposition
+    local_ebtype = error_bound_type::ABS;
+    // Fast copy for domain decomposition need we disable pitched memory
+    // allocation
+    MemoryManager<DeviceType>::ReduceMemoryFootprint = true;
   }
 
   // Deserialize compressed data
@@ -1211,11 +1203,6 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   }
   if (!output_previously_pinned) {
     MemoryManager<DeviceType>::HostUnregister((void *)decompressed_data);
-  }
-
-  for (SIZE i = 0; i < num_subdomains; i++) {
-    // MemoryManager<DeviceType>::FreeHost(
-    //     compressed_subdomain_data[i]);
   }
 
   if (m.dstype == data_structure_type::Cartesian_Grid_Non_Uniform) {
