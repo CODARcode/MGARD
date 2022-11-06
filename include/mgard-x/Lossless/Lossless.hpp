@@ -24,20 +24,17 @@ public:
   using S = typename std::make_signed<T>::type;
   using Q = typename std::make_unsigned<T>::type;
 
-  ComposedLosslessCompressor(SIZE n, Config config,
-                             double estimated_outlier_ratio = 1.0)
+  ComposedLosslessCompressor(SIZE n, Config config)
       : n(n), config(config),
         huffman(n, config.huff_dict_size, config.huff_block_size,
-                estimated_outlier_ratio) {
+                config.estimate_outlier_ratio) {
     static_assert(!std::is_floating_point<T>::value,
                   "ComposedLosslessCompressor: Type of T must be integer.");
   }
 
-  static size_t EstimateMemoryFootprint(SIZE primary_count, SIZE dict_size,
-                                        SIZE chunk_size,
-                                        double estimated_outlier_ratio = 1) {
+  static size_t EstimateMemoryFootprint(SIZE primary_count, Config config) {
     return Huffman<Q, S, H, DeviceType>::EstimateMemoryFootprint(
-        primary_count, dict_size, chunk_size, estimated_outlier_ratio);
+        primary_count, config.huff_dict_size, config.huff_block_size, config.estimate_outlier_ratio);
   }
 
   void Compress(Array<1, T, DeviceType> &original_data,

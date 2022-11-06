@@ -58,11 +58,15 @@ template <typename T, typename DeviceType>
 class DefaultLevelCompressor
     : public concepts::LevelCompressorInterface<T, DeviceType> {
 public:
-  DefaultLevelCompressor(SIZE max_n, int dict_size, int chunk_size,
-          double estimated_outlier_ratio = 1.0): huffman(max_n, dict_size, chunk_size, estimated_outlier_ratio) {
+  DefaultLevelCompressor(SIZE max_n, Config config): huffman(max_n, config.huff_dict_size, config.huff_block_size, config.estimate_outlier_ratio) {
   }
   ~DefaultLevelCompressor(){};
 
+  static size_t EstimateMemoryFootprint(SIZE max_n, Config config) {
+    size_t size = 0;
+    size += Huffman<T, T, HUFFMAN_CODE, DeviceType>::EstimateMemoryFootprint(max_n, config.huff_dict_size, config.huff_block_size, config.estimate_outlier_ratio);
+    return size;
+  }
   // compress level, overwrite and free original streams; rewrite streams sizes
   void compress_level(
       std::vector<SIZE> &bitplane_sizes,

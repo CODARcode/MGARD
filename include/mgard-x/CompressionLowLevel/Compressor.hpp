@@ -46,21 +46,16 @@ Compressor<D, T, DeviceType>::Compressor(Hierarchy<D, T, DeviceType> hierarchy, 
 }
 
 template <DIM D, typename T, typename DeviceType>
-size_t Compressor<D, T, DeviceType>::EstimateMemoryFootprint(std::vector<SIZE> shape, SIZE l_target,
-                                        SIZE dict_size, SIZE chunk_size,
-                                        double estimated_outlier_ratio) {
-  SIZE total_num_elems = 1;
-  for (DIM d = 0; d < D; d++)
-    total_num_elems *= shape[d];
-  size_t size = 0;
+size_t Compressor<D, T, DeviceType>::EstimateMemoryFootprint(std::vector<SIZE> shape, Config config) {
+  Hierarchy<D, T, DeviceType> hierarchy;
+  size_t size = hierarchy.estimate_memory_usgae(shape);
   size += DataRefactorType::EstimateMemoryFootprint(shape);
-  size += LinearQuantizerType::EstimateMemoryFootprint(l_target);
-  size += LosslessCompressorType::EstimateMemoryFootprint(
-      total_num_elems, dict_size, chunk_size, estimated_outlier_ratio);
+  size += LinearQuantizerType::EstimateMemoryFootprint(shape);
+  size += LosslessCompressorType::EstimateMemoryFootprint(hierarchy.total_num_elems(), config);
   size += sizeof(T);
   if (sizeof(QUANTIZED_INT) > sizeof(T)) {
-    size += sizeof(T) * total_num_elems;
-    size += sizeof(QUANTIZED_INT) * total_num_elems;
+    size += sizeof(T) * hierarchy.total_num_elems();
+    size += sizeof(QUANTIZED_INT) * hierarchy.total_num_elems();
   }
   return size;
 }

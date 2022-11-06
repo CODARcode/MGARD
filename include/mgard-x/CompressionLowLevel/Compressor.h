@@ -36,9 +36,7 @@ class Compressor : public LossyCompressorInterface<D, T, DeviceType> {
 public:
   Compressor(Hierarchy<D, T, DeviceType> hierarchy, Config config);
 
-  static size_t EstimateMemoryFootprint(std::vector<SIZE> shape, SIZE l_target,
-                                        SIZE dict_size, SIZE chunk_size,
-                                        double estimated_outlier_ratio = 1.0);
+  static size_t EstimateMemoryFootprint(std::vector<SIZE> shape, Config config);
 
   void CalculateNorm(Array<D, T, DeviceType> &original_data,
                      enum error_bound_type ebtype, T s, T &norm,

@@ -73,6 +73,13 @@ public:
   MGARDOrthoganalDecomposer(Hierarchy<D, T, DeviceType> hierarchy)
       : hierarchy(hierarchy), refactor(hierarchy, Config()) {
   }
+  static size_t EstimateMemoryFootprint(std::vector<SIZE> shape) {
+    size_t size = 0;
+    Hierarchy<D, T, DeviceType> hierarchy;
+    size += hierarchy.estimate_memory_usgae(shape);
+    size += DataRefactor<D, T, DeviceType>::EstimateMemoryFootprint(shape);
+    return size;
+  }
   void decompose(Array<D, T, DeviceType> &v, int queue_idx) {
     refactor.Decompose(v, queue_idx);
   }
