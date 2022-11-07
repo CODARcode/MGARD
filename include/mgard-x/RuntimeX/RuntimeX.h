@@ -62,6 +62,6 @@
 
 #include "Utilities/Serializer.hpp"
 
-#include "DataStructures/MDRMetaData.hpp"
+#include "DataStructures/MDRMetadata.hpp"
 #include "DataStructures/MDRData.hpp"
 
