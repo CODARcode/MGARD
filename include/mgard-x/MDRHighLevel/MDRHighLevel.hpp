@@ -24,7 +24,7 @@ namespace MDR {
 
 template <DIM D, typename T, typename DeviceType>
 void generate_request(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer, Config config,
-                      AggregatedMDRMetaData &refactored_metadata,
+                      RefactoredMetadata &refactored_metadata,
                       double tol, double s) {
   for (int subdomain_id = 0; subdomain_id < domain_decomposer.num_subdomains(); subdomain_id++) {
     Hierarchy<D, T, DeviceType> hierarchy =
@@ -37,8 +37,8 @@ void generate_request(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>,
 template <DIM D, typename T, typename DeviceType>
 void refactor_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
                         SIZE subdomain_id, Config &config,
-                        AggregatedMDRMetaData &refactored_metadata,
-                        AggregatedMDRData &refactored_data,
+                        RefactoredMetadata &refactored_metadata,
+                        RefactoredData &refactored_data,
                         int dev_id) {
 
   Timer timer_series;
@@ -48,7 +48,7 @@ void refactor_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType
   // Trigger the copy constructor to copy hierarchy to the current device
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
-  MDRMetaData mdr_metadata;
+  MDRMetadata mdr_metadata;
   MDRData<DeviceType> mdr_data(hierarchy.l_target()+1, config.total_num_bitplanes);
 
   domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
@@ -64,7 +64,7 @@ void refactor_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType
   log::info("Refactoring subdomain " + std::to_string(subdomain_id) +
             " with shape: " + ss.str());
   refactor.Refactor(device_subdomain_buffer, mdr_metadata, mdr_data, 0);
-  mdr_data.CopyToAggregatedMDRData(mdr_metadata, refactored_data.data[subdomain_id], 0);
+  mdr_data.CopyToRefactoredData(mdr_metadata, refactored_data.data[subdomain_id], 0);
   refactored_metadata.metadata[subdomain_id] = mdr_metadata;
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (log::level & log::TIME) {
@@ -78,8 +78,8 @@ void refactor_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType
 template <DIM D, typename T, typename DeviceType>
 void refactor_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
                               std::vector<SIZE> &subdomain_ids, Config &config,
-                              AggregatedMDRMetaData &refactored_metadata,
-                              AggregatedMDRData &refactored_data,
+                              RefactoredMetadata &refactored_metadata,
+                              RefactoredData &refactored_data,
                               int dev_id) {
   assert(subdomain_ids.size() > 0);
   Timer timer_series;
@@ -95,7 +95,7 @@ void refactor_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, Dev
     domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
                                      subdomain_copy_direction::OriginalToSubdomain, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
-    MDRMetaData mdr_metadata;
+    MDRMetadata mdr_metadata;
     MDRData<DeviceType> mdr_data(hierarchy.l_target()+1, config.total_num_bitplanes);
     ComposedRefactor<D, T, DeviceType> refactor(hierarchy, config);
     std::stringstream ss;
@@ -105,7 +105,7 @@ void refactor_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, Dev
     log::info("Refactoring subdomain " + std::to_string(subdomain_id) +
               " with shape: " + ss.str());
     refactor.Refactor(device_subdomain_buffer, mdr_metadata, mdr_data, 0);
-    mdr_data.CopyToAggregatedMDRData(mdr_metadata, refactored_data.data[subdomain_id], 0);
+    mdr_data.CopyToRefactoredData(mdr_metadata, refactored_data.data[subdomain_id], 0);
     refactored_metadata.metadata[subdomain_id] = mdr_metadata;
     DeviceRuntime<DeviceType>::SyncQueue(0);
   }
@@ -121,8 +121,8 @@ void refactor_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, Dev
 template <DIM D, typename T, typename DeviceType>
 void refactor_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
                               std::vector<SIZE> &subdomain_ids, Config &config,
-                              AggregatedMDRMetaData &refactored_metadata,
-                              AggregatedMDRData &refactored_data,
+                              RefactoredMetadata &refactored_metadata,
+                              RefactoredData &refactored_data,
                               int dev_id) {
   assert(subdomain_ids.size() > 0);
   Timer timer_series;
@@ -180,7 +180,7 @@ void refactor_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefacto
     refactor.Refactor(device_subdomain_buffer[current_buffer], 
                       refactored_metadata.metadata[curr_subdomain_id], 
                       mdr_data[current_buffer], current_queue);
-    mdr_data[current_buffer].CopyToAggregatedMDRData(refactored_metadata.metadata[curr_subdomain_id], 
+    mdr_data[current_buffer].CopyToRefactoredData(refactored_metadata.metadata[curr_subdomain_id], 
                                      refactored_data.data[curr_subdomain_id], current_queue);
 
     current_buffer = next_buffer;
@@ -197,9 +197,9 @@ void refactor_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefacto
 template <DIM D, typename T, typename DeviceType>
 void reconstruct_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
                           SIZE subdomain_id, Config &config,
-                          AggregatedMDRMetaData &refactored_metadata,
-                          AggregatedMDRData &refactored_data,
-                          ReconstructuredData &reconstructed_data, int dev_id) {
+                          RefactoredMetadata &refactored_metadata,
+                          RefactoredData &refactored_data,
+                          ReconstructedData &reconstructed_data, int dev_id) {
 
   Timer timer_series;
   if (log::level & log::TIME)
@@ -209,11 +209,11 @@ void reconstruct_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceT
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
 
-  MDRMetaData mdr_metadata = refactored_metadata.metadata[subdomain_id];
+  MDRMetadata mdr_metadata = refactored_metadata.metadata[subdomain_id];
   MDRData<DeviceType> mdr_data;
   mdr_data.Resize(mdr_metadata);
 
-  mdr_data.CopyFromAggregatedMDRData(mdr_metadata, refactored_data.data[subdomain_id], 0);
+  mdr_data.CopyFromRefactoredData(mdr_metadata, refactored_data.data[subdomain_id], 0);
 
   ComposedReconstructor<D, T, DeviceType> reconstructor(hierarchy, config);
 
@@ -239,9 +239,9 @@ void reconstruct_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceT
 template <DIM D, typename T, typename DeviceType>
 void reconstruct_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
                           std::vector<SIZE> &subdomain_ids, Config &config,
-                          AggregatedMDRMetaData &refactored_metadata,
-                          AggregatedMDRData &refactored_data,
-                          ReconstructuredData &reconstructed_data, int dev_id) {
+                          RefactoredMetadata &refactored_metadata,
+                          RefactoredData &refactored_data,
+                          ReconstructedData &reconstructed_data, int dev_id) {
   assert(subdomain_ids.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME)
@@ -253,11 +253,11 @@ void reconstruct_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, 
     Hierarchy<D, T, DeviceType> hierarchy =
         domain_decomposer.subdomain_hierarchy(subdomain_id);
 
-    MDRMetaData mdr_metadata = refactored_metadata.metadata[subdomain_id];
+    MDRMetadata mdr_metadata = refactored_metadata.metadata[subdomain_id];
     MDRData<DeviceType> mdr_data;
     mdr_data.Resize(mdr_metadata);
 
-    mdr_data.CopyFromAggregatedMDRData(mdr_metadata, refactored_data.data[subdomain_id], 0);
+    mdr_data.CopyFromRefactoredData(mdr_metadata, refactored_data.data[subdomain_id], 0);
 
     ComposedReconstructor<D, T, DeviceType> reconstructor(hierarchy, config);
 
@@ -284,9 +284,9 @@ void reconstruct_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, 
 template <DIM D, typename T, typename DeviceType>
 void reconstruct_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
                           std::vector<SIZE> &subdomain_ids, Config &config,
-                          AggregatedMDRMetaData &refactored_metadata,
-                          AggregatedMDRData &refactored_data,
-                          ReconstructuredData &reconstructed_data, int dev_id) {
+                          RefactoredMetadata &refactored_metadata,
+                          RefactoredData &refactored_data,
+                          ReconstructedData &reconstructed_data, int dev_id) {
   assert(subdomain_ids.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME)
@@ -311,7 +311,7 @@ void reconstruct_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefa
   // Pre-fetch the first subdomain
   int current_buffer = 0;
   int current_queue = current_buffer;
-  mdr_data[current_buffer].CopyFromAggregatedMDRData(refactored_metadata.metadata[subdomain_ids[0]], 
+  mdr_data[current_buffer].CopyFromRefactoredData(refactored_metadata.metadata[subdomain_ids[0]], 
                                                      refactored_data.data[subdomain_ids[0]], current_queue);
 
   for (SIZE i = 0; i < subdomain_ids.size(); i++) {
@@ -322,7 +322,7 @@ void reconstruct_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefa
     if (i + 1 < subdomain_ids.size()) {
       // Prefetch the next subdomain
       next_subdomain_id = subdomain_ids[i + 1];
-      mdr_data[next_buffer].CopyFromAggregatedMDRData(refactored_metadata.metadata[next_subdomain_id], 
+      mdr_data[next_buffer].CopyFromRefactoredData(refactored_metadata.metadata[next_subdomain_id], 
                                                       refactored_data.data[next_subdomain_id], current_queue);
     }
 
@@ -368,8 +368,8 @@ void load(Config &config, Metadata<DeviceType> &metadata) {
 template <DIM D, typename T, typename DeviceType>
 void MDRefactor(std::vector<SIZE> shape, const void *original_data,
                 bool uniform, std::vector<T *> coords, 
-                AggregatedMDRMetaData &refactored_metadata,
-                AggregatedMDRData &refactored_data, Config config, 
+                RefactoredMetadata &refactored_metadata,
+                RefactoredData &refactored_data, Config config, 
                 bool output_pre_allocated) {
   size_t total_num_elem = 1;
   for (int i = 0; i < D; i++)
@@ -516,8 +516,8 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
 
 template <DIM D, typename T, typename DeviceType>
 void MDRefactor(std::vector<SIZE> shape, const void *original_data,
-                AggregatedMDRMetaData &refactored_metadata,
-                AggregatedMDRData &refactored_data,
+                RefactoredMetadata &refactored_metadata,
+                RefactoredData &refactored_data,
                 Config config, bool output_pre_allocated) {
 
   MDRefactor<D, T, DeviceType>(shape, original_data, true, std::vector<T *>(0), refactored_metadata,
@@ -528,8 +528,8 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
 template <DIM D, typename T, typename DeviceType>
 void MDRefactor(std::vector<SIZE> shape, const void *original_data,
                 std::vector<T *> coords, 
-                AggregatedMDRMetaData &refactored_metadata,
-                AggregatedMDRData &refactored_data,
+                RefactoredMetadata &refactored_metadata,
+                RefactoredData &refactored_data,
                 Config config, bool output_pre_allocated) {
 
   MDRefactor<D, T, DeviceType>(shape, original_data, false, coords, refactored_metadata,
@@ -539,7 +539,7 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
 
 template <DIM D, typename T, typename DeviceType>
 void MDRequest(std::vector<SIZE> shape, 
-               AggregatedMDRMetaData &refactored_metadata, double tol, double s,
+               RefactoredMetadata &refactored_metadata, double tol, double s,
                enum error_bound_type ebtype) {
   Config config;
   Metadata<DeviceType> m;
@@ -555,9 +555,9 @@ void MDRequest(std::vector<SIZE> shape,
 
 template <DIM D, typename T, typename DeviceType>
 void MDReconstruct(std::vector<SIZE> shape,
-                  AggregatedMDRMetaData &refactored_metadata,
-                  AggregatedMDRData &refactored_data,
-                  ReconstructuredData &reconstructed_data, Config config,
+                  RefactoredMetadata &refactored_metadata,
+                  RefactoredData &refactored_data,
+                  ReconstructedData &reconstructed_data, Config config,
                   bool output_pre_allocated) {
   size_t total_num_elem = 1;
   for (int i = 0; i < D; i++)
@@ -716,8 +716,8 @@ void MDReconstruct(std::vector<SIZE> shape,
 
 template <typename DeviceType>
 void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *original_data,
-          AggregatedMDRMetaData &refactored_metadata,
-          AggregatedMDRData &refactored_data,
+          RefactoredMetadata &refactored_metadata,
+          RefactoredData &refactored_data,
           Config config, bool output_pre_allocated) {
   if (dtype == data_type::Float) {
     if (D == 1) {
@@ -767,8 +767,8 @@ void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *ori
 
 template <typename DeviceType>
 void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *original_data,
-          std::vector<const Byte *> coords, AggregatedMDRMetaData &refactored_metadata,
-          AggregatedMDRData &refactored_data,
+          std::vector<const Byte *> coords, RefactoredMetadata &refactored_metadata,
+          RefactoredData &refactored_data,
           Config config, bool output_pre_allocated) {
   if (dtype == data_type::Float) {
     std::vector<float *> float_coords;
@@ -823,7 +823,7 @@ void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *ori
 }
 
 template <typename DeviceType>
-void MDRequest(AggregatedMDRMetaData &refactored_metadata, double tol, double s,
+void MDRequest(RefactoredMetadata &refactored_metadata, double tol, double s,
                enum error_bound_type ebtype) {
   Metadata<DeviceType> meta;
   meta.Deserialize((SERIALIZED_TYPE *)refactored_metadata.header.data());
@@ -870,9 +870,9 @@ void MDRequest(AggregatedMDRMetaData &refactored_metadata, double tol, double s,
 }
 
 template <typename DeviceType>
-void MDReconstruct(AggregatedMDRMetaData &refactored_metadata,
-                  AggregatedMDRData &refactored_data,
-                  ReconstructuredData &reconstructed_data, Config config,
+void MDReconstruct(RefactoredMetadata &refactored_metadata,
+                  RefactoredData &refactored_data,
+                  ReconstructedData &reconstructed_data, Config config,
                   bool output_pre_allocated) {
 
   Metadata<DeviceType> meta;

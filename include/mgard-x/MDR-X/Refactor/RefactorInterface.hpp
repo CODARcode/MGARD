@@ -33,10 +33,10 @@ public:
   virtual ~RefactorInterface() = default;
 
   virtual void refactor(Array<D, T_data, DeviceType> &data_array, uint8_t num_bitplanes,
-                        MDRMetaData &mdr_metadata,
+                        MDRMetadata &mdr_metadata,
                         MDRData<DeviceType> &mdr_data, int queue_idx) = 0;
 
-  virtual void write_metadata(MDRMetaData &mdr_metadata) = 0;
+  virtual void write_metadata(MDRMetadata &mdr_metadata) = 0;
 
   virtual void print() const = 0;
 };

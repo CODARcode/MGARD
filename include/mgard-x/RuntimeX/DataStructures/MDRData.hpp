@@ -11,7 +11,7 @@
 namespace mgard_x {
 namespace MDR {
 
-#include "MDRMetaData.hpp"
+#include "MDRMetadata.hpp"
 
 template <typename DeviceType>
 class MDRData {
@@ -39,7 +39,7 @@ public:
     }
   }
 
-  void Resize(MDRMetaData &mdr_metadata) {
+  void Resize(MDRMetadata &mdr_metadata) {
     compressed_bitplanes.resize(mdr_metadata.num_levels);
     for (int level_idx = 0; level_idx < mdr_metadata.num_levels; level_idx++) {
       compressed_bitplanes[level_idx].resize(mdr_metadata.num_bitplanes);
@@ -49,7 +49,7 @@ public:
     }
   }
 
-  void CopyFromAggregatedMDRData(MDRMetaData &mdr_metadata, std::vector<std::vector<Byte*>> &refactored_data, int queue_idx) {
+  void CopyFromRefactoredData(MDRMetadata &mdr_metadata, std::vector<std::vector<Byte*>> &refactored_data, int queue_idx) {
     Resize(mdr_metadata);
     for (int level_idx = 0; level_idx < mdr_metadata.num_levels; level_idx++) {
       for (int bitplane_idx = mdr_metadata.loaded_level_num_bitplanes[level_idx]; 
@@ -62,7 +62,7 @@ public:
     mdr_metadata.DoneLoadingBitplans();
   }
 
-  void CopyToAggregatedMDRData(MDRMetaData &mdr_metadata, std::vector<std::vector<Byte*>> &refactored_data, int queue_idx) {
+  void CopyToRefactoredData(MDRMetadata &mdr_metadata, std::vector<std::vector<Byte*>> &refactored_data, int queue_idx) {
     refactored_data.resize(mdr_metadata.num_levels);
     for (int level_idx = 0; level_idx < mdr_metadata.num_levels; level_idx++) {
       refactored_data[level_idx].resize(mdr_metadata.num_bitplanes);
@@ -76,7 +76,7 @@ public:
     }
   }
 
-  void VerifyLoadedBitplans(MDRMetaData &mdr_metadata) {
+  void VerifyLoadedBitplans(MDRMetadata &mdr_metadata) {
     // TODO: load
     for (int level_idx = 0; level_idx < mdr_metadata.num_levels; level_idx++) {
       for (int bitplane_idx = mdr_metadata.prev_used_level_num_bitplanes[level_idx];

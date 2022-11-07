@@ -52,8 +52,8 @@ enum device_type auto_detect_device() {
 }
 
 void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *original_data,
-                AggregatedMDRMetaData &refactored_metadata,
-                AggregatedMDRData &refactored_data,
+                RefactoredMetadata &refactored_metadata,
+                RefactoredData &refactored_data,
                 Config config, bool output_pre_allocated) {
 
   enum device_type dev_type = config.dev_type;
@@ -108,8 +108,8 @@ void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *ori
 
 void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *original_data,
                 std::vector<const Byte *> coords, 
-                AggregatedMDRMetaData &refactored_metadata,
-                AggregatedMDRData &refactored_data,
+                RefactoredMetadata &refactored_metadata,
+                RefactoredData &refactored_data,
                 Config config, bool output_pre_allocated) {
 
   enum device_type dev_type = config.dev_type;
@@ -162,7 +162,7 @@ void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *ori
   }
 }
 
-void MDRequest(AggregatedMDRMetaData &refactored_metadata, double tol, double s,
+void MDRequest(RefactoredMetadata &refactored_metadata, double tol, double s,
                enum error_bound_type ebtype, Config config) {
 
   enum device_type dev_type = config.dev_type;
@@ -210,9 +210,9 @@ void MDRequest(AggregatedMDRMetaData &refactored_metadata, double tol, double s,
   }
 }
 
-void MDReconstruct(AggregatedMDRMetaData &refactored_metadata,
-                  AggregatedMDRData &refactored_data,
-                  ReconstructuredData &reconstructed_data, Config config,
+void MDReconstruct(RefactoredMetadata &refactored_metadata,
+                  RefactoredData &refactored_data,
+                  ReconstructedData &reconstructed_data, Config config,
                   bool output_pre_allocated) {
 
   enum device_type dev_type = config.dev_type;

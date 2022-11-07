@@ -11,10 +11,10 @@
 namespace mgard_x {
 namespace MDR {
 
-class MDRMetaData {
+class MDRMetadata {
 public:
-  MDRMetaData(): num_levels(0), num_bitplanes(0) {}
-  MDRMetaData(SIZE num_levels, SIZE num_bitplanes): num_levels(num_levels), num_bitplanes(num_bitplanes) {}
+  MDRMetadata(): num_levels(0), num_bitplanes(0) {}
+  MDRMetadata(SIZE num_levels, SIZE num_bitplanes): num_levels(num_levels), num_bitplanes(num_bitplanes) {}
 
   using T_error = double;
   // Metadata

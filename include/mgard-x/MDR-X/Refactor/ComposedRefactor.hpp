@@ -92,7 +92,7 @@ public:
   }
 
   void Refactor(Array<D, T_data, DeviceType> &data_array,
-                MDRMetaData &mdr_metadata,
+                MDRMetadata &mdr_metadata,
                 MDRData<DeviceType> &mdr_data, int queue_idx) {
     SIZE target_level = hierarchy.l_target();
     mdr_metadata.num_levels = hierarchy.l_target()+1;
@@ -160,7 +160,7 @@ public:
   }
 
   void refactor(Array<D, T_data, DeviceType> &data_array, uint8_t total_num_bitplanes, 
-                MDRMetaData &mdr_metadata,
+                MDRMetadata &mdr_metadata,
                 MDRData<DeviceType> &mdr_data, int queue_idx) {
 
     mgard_x::Timer timer;
@@ -181,7 +181,7 @@ public:
     // }
   }
 
-  void write_metadata(MDRMetaData &mdr_metadata) {
+  void write_metadata(MDRMetadata &mdr_metadata) {
     SIZE metadata_size =
         sizeof(uint8_t) + MDR::get_size(hierarchy.level_shape(hierarchy.l_target())) // dimensions
         + sizeof(uint8_t) + MDR::get_size(mdr_metadata.level_error_bounds) +
@@ -215,7 +215,7 @@ public:
 
 private:
   bool do_refactor(Array<D, T_data, DeviceType> &data_array, SIZE total_num_bitplanes, 
-                MDRMetaData &mdr_metadata,
+                MDRMetadata &mdr_metadata,
                 MDRData<DeviceType> &mdr_data, int queue_idx) {
     SIZE target_level = hierarchy.l_target();
     // printf("target_level = %u\n", target_level);
