@@ -95,11 +95,7 @@ public:
                 MDRMetadata &mdr_metadata,
                 MDRData<DeviceType> &mdr_data, int queue_idx) {
     SIZE target_level = hierarchy.l_target();
-    mdr_metadata.num_levels = hierarchy.l_target()+1;
-    mdr_metadata.num_bitplanes = total_num_bitplanes;
-    mdr_metadata.InitializeForReconstruction();
-    mdr_metadata.level_error_bounds.resize(hierarchy.l_target() + 1);
-    mdr_metadata.level_squared_errors.resize(hierarchy.l_target() + 1);
+    mdr_metadata.Initialize(hierarchy.l_target()+1, total_num_bitplanes);
     mdr_data.Resize(hierarchy.l_target() + 1, total_num_bitplanes);
 
     SubArray<D, T_data, DeviceType> data(data_array);
@@ -152,7 +148,7 @@ public:
       timer.start();
       compressor.compress_level(bitplane_sizes, encoded_bitplanes_array[level_idx],
                                 mdr_data.compressed_bitplanes[level_idx], queue_idx);
-      mdr_metadata.level_sizes.push_back(bitplane_sizes);
+      mdr_metadata.level_sizes[level_idx] = bitplane_sizes;
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.end();
       timer.print("Lossless");
