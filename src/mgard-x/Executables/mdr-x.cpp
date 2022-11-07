@@ -367,6 +367,7 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
   }
 
   // create_dir(output_file);
+  refactored_metadata.InitializeForReconstruction();
   mgard_x::MDR::MDRequest(refactored_metadata, 201667.424, std::numeric_limits<double>::infinity(),
             mgard_x::error_bound_type::ABS, config);
   for (auto metadata : refactored_metadata.metadata) {

@@ -74,7 +74,7 @@ void test(string filename, int num_bitplanes,
 
   mgard_x::Config config;
   mgard_x::MDR::MDRData<DeviceType> mdr_data;
-  mgard_x::MDR::MDRMetaData mdr_metadata;
+  mgard_x::MDR::MDRMetadata mdr_metadata;
   {
     auto refactor =
         mgard_x::MDR::ComposedRefactor<D, T_data, DeviceType>(
@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
   //         hierarchy);
 
   auto compressor =
-      mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>(hierarchy.total_num_elems(), 8192, 20480, 1.0);
+      mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>(hierarchy.total_num_elems(), config);
   // auto compressor = mgard_x::MDR::AdaptiveLevelCompressor(32);
   // auto compressor = mgard_x::MDR::NullLevelCompressor();
 
