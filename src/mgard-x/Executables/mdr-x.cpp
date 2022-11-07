@@ -285,12 +285,6 @@ void create_dir(std::string name) {
   }
 }
 
-void write_refactored_metadata (mgard_x::MDR::AggregatedMDRMetaData &refactored_metadata,
-                                std::string name) {
-
-  // writefile(name + "/header.bin", refactored_metadata.header.data(), refactored_metadata.header.size());
-  // TODO
-}
 
 int verbose_to_log_level(int verbose) {
   if (verbose == 0) {
@@ -352,8 +346,8 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
               << in_size << " vs. " << original_size * sizeof(T) << "!\n";
   }
 
-  mgard_x::MDR::AggregatedMDRMetaData refactored_metadata;
-  mgard_x::MDR::AggregatedMDRData refactored_data;
+  mgard_x::MDR::RefactoredMetadata refactored_metadata;
+  mgard_x::MDR::RefactoredData refactored_data;
   mgard_x::pin_memory(original_data, original_size * sizeof(T), config);
   std::vector<const mgard_x::Byte *> coords_byte;
   if (!non_uniform) {
@@ -379,7 +373,7 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
     metadata.PrintStatus();
   }
 
-  mgard_x::MDR::ReconstructuredData reconstructed_data;
+  mgard_x::MDR::ReconstructedData reconstructed_data;
 
   mgard_x::MDR::MDReconstruct(refactored_metadata,refactored_data,
                               reconstructed_data, config, false);

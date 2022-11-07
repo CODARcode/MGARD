@@ -8,12 +8,12 @@
 #ifndef MGARD_X_MDR_HIGH_LEVEL_DATA_HPP
 #define MGARD_X_MDR_HIGH_LEVEL_DATA_HPP
 
-#include "../RuntimeX/DataStructures/MDRMetaData.hpp"
+#include "../RuntimeX/DataStructures/MDRMetadata.hpp"
 
 namespace mgard_x {
 namespace MDR {
 
-class AggregatedMDRData {
+class RefactoredData {
 public:
   void Initialize(SIZE num_subdomains) {
     this->num_subdomains = num_subdomains;
@@ -23,18 +23,18 @@ public:
   SIZE num_subdomains;
 };
 
-class AggregatedMDRMetaData {
+class RefactoredMetadata {
 public:
   void Initialize(SIZE num_subdomains) {
     this->num_subdomains = num_subdomains;
     metadata.resize(num_subdomains);
   }
   std::vector<Byte> header;
-  std::vector<MDRMetaData> metadata;
+  std::vector<MDRMetadata> metadata;
   SIZE num_subdomains;
 };
 
-class ReconstructuredData {
+class ReconstructedData {
 public:
   std::vector<Byte *> data;
 };

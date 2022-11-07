@@ -102,7 +102,7 @@ public:
     return size;
   }
 
-  void GenerateRequest(MDRMetaData &mdr_metadata, double tolerance, double s) {
+  void GenerateRequest(MDRMetadata &mdr_metadata, double tolerance, double s) {
     mgard_x::Timer timer;
     timer.start();
     std::vector<std::vector<double>> level_abs_errors;
@@ -141,7 +141,7 @@ public:
     timer.print("Preprocessing");
   }
 
-  void ProgressiveReconstruct(MDRMetaData &mdr_metadata, MDRData<DeviceType> &mdr_data, 
+  void ProgressiveReconstruct(MDRMetadata &mdr_metadata, MDRData<DeviceType> &mdr_data, 
                               Array<D, T_data, DeviceType> &reconstructed_data, int queue_idx) {
 
     mdr_data.VerifyLoadedBitplans(mdr_metadata);

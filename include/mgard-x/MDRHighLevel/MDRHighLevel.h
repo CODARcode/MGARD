@@ -28,25 +28,25 @@ namespace MDR {
 
 template <typename DeviceType>
 void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *original_data,
-          AggregatedMDRMetaData &refactored_metadata,
-          AggregatedMDRData &refactored_data,
+          RefactoredMetadata &refactored_metadata,
+          RefactoredData &refactored_data,
           Config config, bool output_pre_allocated);
 
 template <typename DeviceType>
 void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *original_data,
             std::vector<const Byte *> coords, 
-          AggregatedMDRMetaData &refactored_metadata,
-          AggregatedMDRData &refactored_data,
+          RefactoredMetadata &refactored_metadata,
+          RefactoredData &refactored_data,
           Config config, bool output_pre_allocated);
 
 template <typename DeviceType>
-void MDRequest(AggregatedMDRMetaData &refactored_metadata, double tol, double s,
+void MDRequest(RefactoredMetadata &refactored_metadata, double tol, double s,
                enum error_bound_type ebtype);
 
 template <typename DeviceType>
-void MDReconstruct(AggregatedMDRMetaData &refactored_metadata,
-                  AggregatedMDRData &refactored_data,
-                  ReconstructuredData &reconstructed_data, Config config,
+void MDReconstruct(RefactoredMetadata &refactored_metadata,
+                  RefactoredData &refactored_data,
+                  ReconstructedData &reconstructed_data, Config config,
                   bool output_pre_allocated);
 }
 }

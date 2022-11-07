@@ -11,21 +11,21 @@ namespace mgard_x {
 namespace MDR {
 
 template void MDRefactor<@DEVICE_TYPE@>(DIM D, data_type dtype, std::vector<SIZE> shape, const void *original_data,
-          AggregatedMDRMetaData &refactored_metadata,
-          AggregatedMDRData &refactored_data,
+          RefactoredMetadata &refactored_metadata,
+          RefactoredData &refactored_data,
           Config config, bool output_pre_allocated);
 
 template void MDRefactor<@DEVICE_TYPE@>(DIM D, data_type dtype, std::vector<SIZE> shape, const void *original_data,
-          std::vector<const Byte *> coords, AggregatedMDRMetaData &refactored_metadata,
-          AggregatedMDRData &refactored_data,
+          std::vector<const Byte *> coords, RefactoredMetadata &refactored_metadata,
+          RefactoredData &refactored_data,
           Config config, bool output_pre_allocated);
 
-template void MDRequest<@DEVICE_TYPE@>(AggregatedMDRMetaData &refactored_metadata, double tol, double s,
+template void MDRequest<@DEVICE_TYPE@>(RefactoredMetadata &refactored_metadata, double tol, double s,
                enum error_bound_type ebtype);
 
-template void MDReconstruct<@DEVICE_TYPE@>(AggregatedMDRMetaData &refactored_metadata,
-                  AggregatedMDRData &refactored_data,
-                  ReconstructuredData &reconstructed_data, Config config,
+template void MDReconstruct<@DEVICE_TYPE@>(RefactoredMetadata &refactored_metadata,
+                  RefactoredData &refactored_data,
+                  ReconstructedData &reconstructed_data, Config config,
                   bool output_pre_allocated);
 
 }
