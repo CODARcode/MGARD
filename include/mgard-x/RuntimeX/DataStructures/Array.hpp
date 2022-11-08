@@ -234,6 +234,20 @@ SIZE &Array<D, T, DeviceType>::shape(DIM d) {
 }
 
 template <DIM D, typename T, typename DeviceType>
+std::vector<SIZE> &Array<D, T, DeviceType>::shape() {
+  return __shape;
+}
+
+template <DIM D, typename T, typename DeviceType>
+SIZE Array<D, T, DeviceType>::totalNumElems() {
+  SIZE total_num_elems = 1;
+  for (DIM d = 0; d < D; d++) {
+    total_num_elems *= __shape[d];
+  }
+  return total_num_elems;
+}
+
+template <DIM D, typename T, typename DeviceType>
 T *Array<D, T, DeviceType>::data() {
   if (!device_allocated) {
     std::cout << log::log_err << "device buffer not initialized.\n";
