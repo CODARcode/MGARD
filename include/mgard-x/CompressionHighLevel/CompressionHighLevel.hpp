@@ -755,12 +755,13 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   if (uniform) {
     domain_decomposer =
         DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>(
-            (T *)original_data, shape, adjusted_num_dev, config);
+            shape, adjusted_num_dev, config);
   } else {
     domain_decomposer =
         DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>(
-            (T *)original_data, shape, adjusted_num_dev, config, coords);
+            shape, adjusted_num_dev, config, coords);
   }
+  domain_decomposer.set_original_data((T *)original_data);
 
   T norm = 1;
   T local_tol = tol;
@@ -1094,16 +1095,17 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
     domain_decomposer =
         DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>(
-            (T *)decompressed_data, shape, adjusted_num_dev,
+            shape, adjusted_num_dev,
             m.domain_decomposed, m.domain_decomposed_dim,
             m.domain_decomposed_size, config);
   } else {
-    domain_decomposer = domain_decomposer =
+    domain_decomposer = 
         DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>(
-            (T *)decompressed_data, shape, adjusted_num_dev,
+            shape, adjusted_num_dev,
             m.domain_decomposed, m.domain_decomposed_dim,
             m.domain_decomposed_size, config, coords);
   }
+  domain_decomposer.set_original_data((T *)decompressed_data);
 
   // Preparing decompression parameters
   T local_tol;

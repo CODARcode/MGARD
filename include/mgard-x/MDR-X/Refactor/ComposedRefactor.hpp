@@ -102,7 +102,7 @@ public:
 
     Timer timer;
     timer.start();
-    decomposer.decompose(data_array, queue_idx);
+    decomposer.decompose(data_array, 0, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Decompose");
@@ -231,7 +231,7 @@ private:
     Timer timer;
     // decompose data hierarchically
     timer.start();
-    decomposer.decompose(data_array, queue_idx);
+    decomposer.decompose(data_array, 0, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Decompose");
