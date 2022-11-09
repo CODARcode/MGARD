@@ -223,10 +223,16 @@ void reconstruct_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceT
   }
   log::info("Reconstruct subdomain " + std::to_string(subdomain_id) +
             " with shape: " + ss.str());
+  device_subdomain_buffer.resize(hierarchy.level_shape(hierarchy.l_target()));
+  device_subdomain_buffer.memset(0, 0);
   reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data, device_subdomain_buffer, 0);
 
   domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
                                    subdomain_copy_direction::SubdomainToOriginal, 0);
+  if (config.mdr_adaptive_resolution) {
+    reconstructed_data.shape[subdomain_id] = device_subdomain_buffer.shape();
+    reconstructed_data.offset[subdomain_id] = domain_decomposer.dim_subdomain_offset(subdomain_id);
+  }
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (log::level & log::TIME) {
     timer_series.end();
@@ -267,10 +273,16 @@ void reconstruct_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, 
     }
     log::info("Reconstruct subdomain " + std::to_string(subdomain_id) +
               " with shape: " + ss.str());
+    device_subdomain_buffer.resize(hierarchy.level_shape(hierarchy.l_target()));
+    device_subdomain_buffer.memset(0, 0);
     reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data, device_subdomain_buffer, 0);
 
     domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
                                      subdomain_copy_direction::SubdomainToOriginal, 0);
+    if (config.mdr_adaptive_resolution) {
+      reconstructed_data.shape[subdomain_id] = device_subdomain_buffer.shape();
+      reconstructed_data.offset[subdomain_id] = domain_decomposer.dim_subdomain_offset(subdomain_id);
+    }
   }
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (log::level & log::TIME) {
@@ -308,7 +320,7 @@ void reconstruct_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefa
       domain_decomposer.subdomain_shape(subdomain_ids[0]));
 
 
-  // Pre-fetch the first subdomain
+  // Prefetch the first subdomain
   int current_buffer = 0;
   int current_queue = current_buffer;
   mdr_data[current_buffer].CopyFromRefactoredData(refactored_metadata.metadata[subdomain_ids[0]], 
@@ -338,11 +350,17 @@ void reconstruct_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefa
     }
     log::info("Reconstruct subdomain " + std::to_string(curr_subdomain_id) +
               " with shape: " + ss.str());
-    reconstructor.ProgressiveReconstruct(refactored_metadata.metadata[next_subdomain_id], 
+    device_subdomain_buffer[current_buffer].resize(hierarchy.level_shape(hierarchy.l_target()));
+    device_subdomain_buffer[current_buffer].memset(0, current_queue);
+    reconstructor.ProgressiveReconstruct(refactored_metadata.metadata[curr_subdomain_id], 
                                          mdr_data[current_buffer], device_subdomain_buffer[current_buffer], current_queue);
 
     domain_decomposer.copy_subdomain(device_subdomain_buffer[current_buffer], curr_subdomain_id,
                                      subdomain_copy_direction::SubdomainToOriginal, current_queue);
+    if (config.mdr_adaptive_resolution) {
+      reconstructed_data.shape[curr_subdomain_id] = device_subdomain_buffer[current_buffer].shape();
+      reconstructed_data.offset[curr_subdomain_id] = domain_decomposer.dim_subdomain_offset(curr_subdomain_id);
+    }
     current_buffer = next_buffer;
     current_queue = next_queue;
   }
@@ -363,6 +381,14 @@ void load(Config &config, Metadata<DeviceType> &metadata) {
   config.huff_block_size = metadata.huff_block_size;
   config.reorder = metadata.reorder;
   config.total_num_bitplanes = metadata.number_bitplanes;
+}
+
+SIZE linearize(std::vector<SIZE> shape) {
+  SIZE n = 1;
+  for (int i = 0; i < shape.size(); i++) {
+    n *= shape[i];
+  }
+  return n;
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -398,11 +424,12 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
   DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> domain_decomposer;
   if (uniform) {
     domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
-        (T *)original_data, shape, adjusted_num_dev, config);
+        shape, adjusted_num_dev, config);
   } else {
     domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
-        (T *)original_data, shape, adjusted_num_dev, config, coords);
+        shape, adjusted_num_dev, config, coords);
   }
+  domain_decomposer.set_original_data((T *)original_data);
 
   if (domain_decomposer.domain_decomposed()) {
     MemoryManager<DeviceType>::ReduceMemoryFootprint = true;
@@ -544,11 +571,11 @@ void MDRequest(std::vector<SIZE> shape,
   Config config;
   Metadata<DeviceType> m;
   m.Deserialize((SERIALIZED_TYPE *)refactored_metadata.header.data());
-
+  load(config, m);
   DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> domain_decomposer;
   int adjusted_num_dev = 1;
   domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
-      (T *)NULL, shape, adjusted_num_dev, m.domain_decomposed,
+      shape, adjusted_num_dev, m.domain_decomposed,
       m.domain_decomposed_dim, m.domain_decomposed_size, config);  
   generate_request(domain_decomposer, config, refactored_metadata, tol, s);
 }
@@ -559,6 +586,8 @@ void MDReconstruct(std::vector<SIZE> shape,
                   RefactoredData &refactored_data,
                   ReconstructedData &reconstructed_data, Config config,
                   bool output_pre_allocated) {
+  config.apply();
+
   size_t total_num_elem = 1;
   for (int i = 0; i < D; i++)
     total_num_elem *= shape[i];
@@ -578,22 +607,9 @@ void MDReconstruct(std::vector<SIZE> shape,
     log::info("Using " + std::to_string(adjusted_num_dev) + " devices.");
   }
 
-  config.apply();
-
   Timer timer_total, timer_each;
   if (log::level & log::TIME)
     timer_total.start();
-  if (log::level & log::TIME)
-    timer_each.start();
-
-  reconstructed_data.data.resize(1);
-  reconstructed_data.data[0] = (Byte*)malloc(total_num_elem * sizeof(T));
-
-  if (log::level & log::TIME) {
-    timer_each.end();
-    timer_each.print("Prepare input and output buffer");
-    timer_each.clear();
-  }
 
   if (log::level & log::TIME)
     timer_each.start();
@@ -612,17 +628,11 @@ void MDReconstruct(std::vector<SIZE> shape,
     }
   }
 
-  SIZE num_subdomains;
-  if (!m.domain_decomposed) {
-    num_subdomains = 1;
-  } else {
-    num_subdomains =
-        (shape[m.domain_decomposed_dim] - 1) / m.domain_decomposed_size + 1;
+  if (log::level & log::TIME) {
+    timer_each.end();
+    timer_each.print("Deserialization");
+    timer_each.clear();
   }
-
-  // Preparing decompression parameters
-  T local_tol;
-  enum error_bound_type local_ebtype;
 
   if (log::level & log::TIME)
     timer_each.start();
@@ -635,20 +645,34 @@ void MDReconstruct(std::vector<SIZE> shape,
 
   // Initialize DomainDecomposer
   DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> domain_decomposer;
-
   if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
     domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
-        (T *)reconstructed_data.data[0], shape, adjusted_num_dev, m.domain_decomposed,
+       shape, adjusted_num_dev, m.domain_decomposed,
         m.domain_decomposed_dim, m.domain_decomposed_size, config);
   } else {
-    domain_decomposer = domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
-        (T *)reconstructed_data.data[0], shape, adjusted_num_dev, m.domain_decomposed,
+    domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
+        shape, adjusted_num_dev, m.domain_decomposed,
         m.domain_decomposed_dim, m.domain_decomposed_size, config, coords);
   }
-
+  if (!config.mdr_adaptive_resolution) {
+    reconstructed_data.Initialize(1);
+    reconstructed_data.data[0] = (Byte*)malloc(total_num_elem * sizeof(T));
+    domain_decomposer.set_original_data((T*)reconstructed_data.data[0]);
+    reconstructed_data.offset[0] = std::vector<SIZE>(D, 0);
+    reconstructed_data.shape[0] = shape;
+  } else {
+    reconstructed_data.Initialize(domain_decomposer.num_subdomains());
+    std::vector<T *> decomposed_original_data(domain_decomposer.num_subdomains());
+    for (int subdomain_id = 0; subdomain_id < domain_decomposer.num_subdomains(); subdomain_id ++) {
+      reconstructed_data.data[subdomain_id] = (Byte*) malloc(linearize(domain_decomposer.subdomain_shape(subdomain_id))*sizeof(T));
+      decomposed_original_data[subdomain_id] = (T*)reconstructed_data.data[subdomain_id];
+    }
+    domain_decomposer.set_decomposed_original_data(decomposed_original_data);
+  }
+  
   if (log::level & log::TIME) {
     timer_each.end();
-    timer_each.print("Deserialization");
+    timer_each.print("Prepare input and output buffer");
     timer_each.clear();
   }
 

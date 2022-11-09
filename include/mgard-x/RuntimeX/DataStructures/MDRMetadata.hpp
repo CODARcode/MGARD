@@ -47,6 +47,15 @@ public:
     prev_used_level_num_bitplanes = std::vector<uint8_t>(num_levels, 0);
   }
 
+  void PrintLevelSizes() {
+    for (int level_idx = 0; level_idx < num_levels; level_idx++) {
+      for (int bitplane_idx = 0; bitplane_idx < num_bitplanes; bitplane_idx++) {
+        std::cout << level_sizes[level_idx][bitplane_idx] << " ";
+      }
+      std::cout << "\n";
+    }
+  }
+
   void PrintStatus() {
     for (int level_idx = 0; level_idx < num_levels; level_idx++) {
       printf("Request %d (%d more) bitplans from level %d\n",

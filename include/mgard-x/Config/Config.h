@@ -27,6 +27,7 @@ struct Config {
   SIZE max_memory_footprint;
   SIZE total_num_bitplanes;
   SIZE block_size;
+  bool mdr_adaptive_resolution;
 
   Config();
   void apply();

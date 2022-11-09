@@ -35,7 +35,7 @@ public:
       metadata[subdomain_id].InitializeForReconstruction();
     }
   }
-  
+
   std::vector<Byte> header;
   std::vector<MDRMetadata> metadata;
   SIZE num_subdomains;
@@ -86,7 +86,16 @@ public:
 
 class ReconstructedData {
 public:
+  void Initialize(SIZE num_subdomains) {
+    this->num_subdomains = num_subdomains;
+    offset.resize(num_subdomains);
+    shape.resize(num_subdomains);
+    data.resize(num_subdomains);
+  }
+  std::vector<std::vector<SIZE>> offset;
+  std::vector<std::vector<SIZE>> shape;
   std::vector<Byte *> data;
+  SIZE num_subdomains;
 };
 
 }
