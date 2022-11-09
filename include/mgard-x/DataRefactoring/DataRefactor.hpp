@@ -51,7 +51,7 @@ public:
     return size;
   }
 
-  void Decompose(Array<D, T, DeviceType> &data, int queue_idx) {
+  void Decompose(Array<D, T, DeviceType> &data, int stop_level, int queue_idx) {
     Timer timer;
     if (log::level & log::TIME)
       timer.start();
@@ -64,9 +64,9 @@ public:
 
     if (config.decomposition == decomposition_type::MultiDim) {
       decompose<D, T, DeviceType>(hierarchy, data_subarray, w_subarray,
-                                  b_subarray, 0, queue_idx);
+                                  b_subarray, stop_level, queue_idx);
     } else if (config.decomposition == decomposition_type::SingleDim) {
-      decompose_single<D, T, DeviceType>(hierarchy, data_subarray, 0,
+      decompose_single<D, T, DeviceType>(hierarchy, data_subarray, stop_level,
                                          queue_idx);
     }
     if (log::level & log::TIME) {
@@ -81,7 +81,7 @@ public:
       timer.clear();
     }
   }
-  void Recompose(Array<D, T, DeviceType> &data, int queue_idx) {
+  void Recompose(Array<D, T, DeviceType> &data, int stop_level, int queue_idx) {
     Timer timer;
     if (log::level & log::TIME)
       timer.start();
@@ -92,10 +92,10 @@ public:
       b_subarray = SubArray<D, T, DeviceType>(b_array);
     if (config.decomposition == decomposition_type::MultiDim) {
       recompose<D, T, DeviceType>(hierarchy, data_subarray, w_subarray,
-                                  b_subarray, hierarchy.l_target(), queue_idx);
+                                  b_subarray, stop_level, queue_idx);
     } else if (config.decomposition == decomposition_type::SingleDim) {
       recompose_single<D, T, DeviceType>(hierarchy, data_subarray,
-                                         hierarchy.l_target(), queue_idx);
+                                         stop_level, queue_idx);
     }
     if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
@@ -108,6 +108,14 @@ public:
           " GB/s");
       timer.clear();
     }
+  }
+
+  void Decompose(Array<D, T, DeviceType> &data, int queue_idx) {
+    Decompose(data, 0, queue_idx);
+  }
+
+  void Recompose(Array<D, T, DeviceType> &data, int queue_idx) {
+    Recompose(data, hierarchy.l_target(), queue_idx);
   }
 
   Hierarchy<D, T, DeviceType> hierarchy;

@@ -39,7 +39,8 @@ public:
                         )
       : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
         encoder(hierarchy), compressor(Encoder::buffer_size(hierarchy.level_num_elems(hierarchy.l_target())), config),
-        total_num_bitplanes(config.total_num_bitplanes), retriever(metadata_file, files) {
+        total_num_bitplanes(config.total_num_bitplanes), adaptive_resolution(config.mdr_adaptive_resolution),
+        retriever(metadata_file, files) {
     prev_reconstructed = false;
     partial_reconsctructed_data = Array<D, T_data, DeviceType>(hierarchy.level_shape(hierarchy.l_target()));
   }
@@ -48,7 +49,8 @@ public:
                         Config config)
       : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
         encoder(hierarchy), compressor(Encoder::buffer_size(hierarchy.level_num_elems(hierarchy.l_target())), config),
-        total_num_bitplanes(config.total_num_bitplanes), retriever(std::string(""), std::vector<std::string>()) {
+        total_num_bitplanes(config.total_num_bitplanes), adaptive_resolution(config.mdr_adaptive_resolution),
+        retriever(std::string(""), std::vector<std::string>()) {
     prev_reconstructed = false;
     partial_reconsctructed_data = Array<D, T_data, DeviceType>(hierarchy.level_shape(hierarchy.l_target()));
     levels_array = new Array<1, T_data, DeviceType>[hierarchy.l_target() + 1];
@@ -147,9 +149,19 @@ public:
     mdr_data.VerifyLoadedBitplans(mdr_metadata);
 
     Timer timer;
-    reconstructed_data.resize(hierarchy.level_shape(hierarchy.l_target()));
     // Decompress and decode bitplanes of each level
-    for (int level_idx = 0; level_idx <= hierarchy.l_target(); level_idx++) {
+    int final_level = 0;
+    for (int level_idx = hierarchy.l_target(); level_idx >= 0; level_idx--) {
+      SIZE num_bitplanes =
+          mdr_metadata.loaded_level_num_bitplanes[level_idx] - mdr_metadata.prev_used_level_num_bitplanes[level_idx];
+      if (num_bitplanes != 0) {
+        final_level = level_idx;
+        break;
+      }
+    }
+    log::info("Final level: " + std::to_string(final_level));
+    if (!adaptive_resolution) final_level = hierarchy.l_target();
+    for (int level_idx = 0; level_idx <= final_level; level_idx++) {
       timer.start();
       // Number of bitplanes need to be retrieved in addition to previously
       // already retrieved bitplanes
@@ -181,17 +193,20 @@ public:
       timer.print("Decoding");
     }
 
+    partial_reconsctructed_data.resize(hierarchy.level_shape(final_level));
+    reconstructed_data.resize(hierarchy.level_shape(final_level));
+
     timer.start();
     // Put decoded coefficients back to reordered layout
     interleaver.reposition(levels_data,
                            SubArray<D, T_data, DeviceType>(partial_reconsctructed_data),
-                           hierarchy.l_target(), queue_idx);
+                           final_level, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Reposition");
 
     timer.start();
-    decomposer.recompose(partial_reconsctructed_data, queue_idx);
+    decomposer.recompose(partial_reconsctructed_data, final_level, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Recomposing");
@@ -499,7 +514,7 @@ private:
     timer.start();
     // PrintSubarray("before recompose", SubArray(data_array));
     // Recompose data
-    decomposer.recompose(reconstructed_data, queue_idx);
+    decomposer.recompose(reconstructed_data, target_level, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     // PrintSubarray("after recompose", SubArray(data_array));
     timer.end();
@@ -524,6 +539,7 @@ private:
   SubArray<1, T_data, DeviceType> *levels_data = nullptr;
   std::vector<Array<2, T_bitplane, DeviceType>> encoded_bitplanes_array;
   SIZE total_num_bitplanes;
+  bool adaptive_resolution;
 
   // std::vector<Array<1, T_data, DeviceType>> levels_array;
   // std::vector<SubArray<1, T_data, DeviceType>> levels_data;
