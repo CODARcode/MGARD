@@ -112,7 +112,8 @@ if (MGARD_ENABLE_SERIAL OR
   add_subdirectory (include/mgard-x)
   add_subdirectory (include/mgard-x/MDR)
   add_subdirectory (include/mgard-x/MDR-X)
-  find_package(zstd REQUIRED)
+  find_package(PkgConfig REQUIRED)
+  pkg_search_module(zstd IMPORTED_TARGET GLOBAL libzstd)
 
   add_executable(mgard-x ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/mgard-x.cpp)
   target_link_libraries(mgard-x mgard-library  ${CMAKE_DL_LIBS})
@@ -210,7 +211,6 @@ if (MGARD_ENABLE_SYCL)
 endif()
 
 find_package(ZLIB REQUIRED)
-find_package(zstd)
 
 find_package(PkgConfig REQUIRED)
 
@@ -350,7 +350,7 @@ target_link_libraries(mgard-library PUBLIC ZLIB::ZLIB)
 
 if(zstd_FOUND)
   target_compile_definitions(mgard-library PUBLIC MGARD_ZSTD)
-  target_link_libraries(mgard-library PUBLIC zstd::zstd)
+  target_link_libraries(mgard-library PUBLIC PkgConfig::zstd)
 endif()
 
 if(MGARD_ENABLE_CUDA)
