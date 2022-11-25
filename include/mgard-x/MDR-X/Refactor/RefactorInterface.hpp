@@ -27,13 +27,12 @@ namespace MDR {
 namespace concepts {
 
 // refactor: a general interface for scnetific data refactor
-template <DIM D, typename T_data, typename DeviceType>
-class RefactorInterface {
+template <DIM D, typename T_data, typename DeviceType> class RefactorInterface {
 public:
   virtual ~RefactorInterface() = default;
 
-  virtual void refactor(Array<D, T_data, DeviceType> &data_array, uint8_t num_bitplanes,
-                        MDRMetadata &mdr_metadata,
+  virtual void refactor(Array<D, T_data, DeviceType> &data_array,
+                        uint8_t num_bitplanes, MDRMetadata &mdr_metadata,
                         MDRData<DeviceType> &mdr_data, int queue_idx) = 0;
 
   virtual void write_metadata(MDRMetadata &mdr_metadata) = 0;

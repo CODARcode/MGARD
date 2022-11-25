@@ -71,8 +71,7 @@ class MGARDOrthoganalDecomposer
     : public concepts::DecomposerInterface<D, T, DeviceType> {
 public:
   MGARDOrthoganalDecomposer(Hierarchy<D, T, DeviceType> hierarchy)
-      : hierarchy(hierarchy), refactor(hierarchy, Config()) {
-  }
+      : hierarchy(hierarchy), refactor(hierarchy, Config()) {}
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape) {
     size_t size = 0;
     Hierarchy<D, T, DeviceType> hierarchy;

@@ -5,11 +5,11 @@
  * Date: March 17, 2022
  */
 
-#include "LosslessCompressorInterface.hpp"
-#include "ParallelHuffman/Huffman.hpp"
+#include "CPU.hpp"
 #include "Cascaded.hpp"
 #include "LZ4.hpp"
-#include "CPU.hpp"
+#include "LosslessCompressorInterface.hpp"
+#include "ParallelHuffman/Huffman.hpp"
 #include "Zstd.hpp"
 
 #ifndef MGARD_X_LOSSLESS_TEMPLATE_HPP
@@ -34,7 +34,8 @@ public:
 
   static size_t EstimateMemoryFootprint(SIZE primary_count, Config config) {
     return Huffman<Q, S, H, DeviceType>::EstimateMemoryFootprint(
-        primary_count, config.huff_dict_size, config.huff_block_size, config.estimate_outlier_ratio);
+        primary_count, config.huff_dict_size, config.huff_block_size,
+        config.estimate_outlier_ratio);
   }
 
   void Compress(Array<1, T, DeviceType> &original_data,
