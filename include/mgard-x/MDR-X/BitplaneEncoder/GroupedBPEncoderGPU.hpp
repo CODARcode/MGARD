@@ -699,7 +699,8 @@ public:
 
     // std::vector<SIZE> level_num_elems(hierarchy.l_target() + 1);
     // SIZE prev_num_elems = 0;
-    // for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
+    // for (int level_idx = 0; level_idx < hierarchy.l_target() + 1;
+    // level_idx++) {
     //   SIZE curr_num_elems = 1;
     //   for (DIM d = 0; d < D; d++) {
     //     curr_num_elems *= hierarchy.level_shape(level_idx, d);
@@ -731,7 +732,8 @@ public:
     SIZE max_bitplane = 64;
     size_t size = 0;
     size += hierarchy.estimate_memory_usgae(shape);
-    size += (max_bitplane + 1) * num_blocks(max_level_num_elems) * sizeof(T_error);
+    size +=
+        (max_bitplane + 1) * num_blocks(max_level_num_elems) * sizeof(T_error);
     for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
       size += hierarchy.level_num_elems(level_idx) * sizeof(bool);
     }

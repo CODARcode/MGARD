@@ -54,7 +54,7 @@ void test(string filename, int num_bitplanes,
           mgard_x::Hierarchy<D, T_data, DeviceType> &hierarchy,
           std::string metadata_file, std::vector<std::string> files,
           const vector<double> &tolerance, double s) {
-    
+
   size_t num_elements = 1;
 
   printf("loading file\n");
@@ -66,7 +66,8 @@ void test(string filename, int num_bitplanes,
   fread(data.data(), 1, num_elements * sizeof(T_data), pFile);
   fclose(pFile);
   printf("done loading file\n");
-  mgard_x::Array<D, T_data, DeviceType> input_array(hierarchy.level_shape(hierarchy.l_target()));
+  mgard_x::Array<D, T_data, DeviceType> input_array(
+      hierarchy.level_shape(hierarchy.l_target()));
   input_array.load(data.data());
   mgard_x::log::level |= mgard_x::log::TIME;
   // mgard_x::Timer timer;
@@ -76,22 +77,21 @@ void test(string filename, int num_bitplanes,
   mgard_x::MDR::MDRData<DeviceType> mdr_data;
   mgard_x::MDR::MDRMetadata mdr_metadata;
   {
-    auto refactor =
-        mgard_x::MDR::ComposedRefactor<D, T_data, DeviceType>(
-            hierarchy, config);
+    auto refactor = mgard_x::MDR::ComposedRefactor<D, T_data, DeviceType>(
+        hierarchy, config);
     refactor.Refactor(input_array, mdr_metadata, mdr_data, 0);
   }
 
   {
-    auto reconstructor = mgard_x::MDR::ComposedReconstructor<
-        D, T_data, DeviceType>(hierarchy, config);
-
-    
+    auto reconstructor =
+        mgard_x::MDR::ComposedReconstructor<D, T_data, DeviceType>(hierarchy,
+                                                                   config);
 
     // reconstructor.load_metadata();
 
     mdr_metadata.InitializeForReconstruction();
-    mgard_x::Array<D, T_data, DeviceType> reconstructed_data(hierarchy.level_shape(hierarchy.l_target()));
+    mgard_x::Array<D, T_data, DeviceType> reconstructed_data(
+        hierarchy.level_shape(hierarchy.l_target()));
     reconstructed_data.memset(0);
     for (int i = 0; i < tolerance.size(); i++) {
       mgard_x::log::level |= mgard_x::log::TIME;
@@ -100,8 +100,10 @@ void test(string filename, int num_bitplanes,
       reconstructor.GenerateRequest(mdr_metadata, tolerance[i], s);
       mdr_metadata.PrintStatus();
       mdr_metadata.DoneLoadingBitplans();
-      // reconstructor.progressive_reconstruct(tolerance[i], s, reconstructed_data);
-      reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data, reconstructed_data, 0);
+      // reconstructor.progressive_reconstruct(tolerance[i], s,
+      // reconstructed_data);
+      reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data,
+                                           reconstructed_data, 0);
       // timer.end();
       // timer.print("Reconstruct");
       auto dims = reconstructor.get_dimensions();
@@ -141,8 +143,6 @@ int main(int argc, char **argv) {
   }
   double s = atof(argv[argv_id++]);
 
-
-
   string metadata_file = "refactored_data/metadata.bin";
   vector<string> files;
   for (int i = 0; i <= target_level; i++) {
@@ -176,14 +176,16 @@ int main(int argc, char **argv) {
   // auto interleaver = mgard_x::MDR::SFCInterleaver<T>();
   // auto interleaver = mgard_x::MDR::BlockedInterleaver<T>();
 
-  auto encoder = mgard_x::MDR::GroupedBPEncoder<D, T, T_stream, T_error,
-  DeviceType>(hierarchy);
+  auto encoder =
+      mgard_x::MDR::GroupedBPEncoder<D, T, T_stream, T_error, DeviceType>(
+          hierarchy);
   // auto encoder =
-  //     mgard_x::MDR::GroupedWarpBPEncoder<D, T, T_stream, T_error, DeviceType>(
+  //     mgard_x::MDR::GroupedWarpBPEncoder<D, T, T_stream, T_error,
+  //     DeviceType>(
   //         hierarchy);
 
-  auto compressor =
-      mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>(hierarchy.total_num_elems(), config);
+  auto compressor = mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>(
+      hierarchy.total_num_elems(), config);
   // auto compressor = mgard_x::MDR::AdaptiveLevelCompressor(32);
   // auto compressor = mgard_x::MDR::NullLevelCompressor();
 
@@ -194,9 +196,8 @@ int main(int argc, char **argv) {
   // auto writer = mgard_x::MDR::HPSSFileWriter(metadata_file, files, 2048,
   // 512 * 1024 * 1024);
 
-  test<D, T, DeviceType>(
-      filename, num_bitplanes, hierarchy, 
-      metadata_file, files, tolerance, s);
+  test<D, T, DeviceType>(filename, num_bitplanes, hierarchy, metadata_file,
+                         files, tolerance, s);
 
   // test2<T>(filename, dims, target_level, num_bitplanes, decomposer,
   //         interleaver, encoder, compressor, collector, writer);

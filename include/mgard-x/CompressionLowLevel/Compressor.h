@@ -39,8 +39,7 @@ public:
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape, Config config);
 
   void CalculateNorm(Array<D, T, DeviceType> &original_data,
-                     enum error_bound_type ebtype, T s, T &norm,
-                     int queue_idx);
+                     enum error_bound_type ebtype, T s, T &norm, int queue_idx);
 
   void Decompose(Array<D, T, DeviceType> &original_data, int queue_idx);
 

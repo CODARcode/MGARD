@@ -38,10 +38,11 @@ public:
   virtual ~LevelCompressorInterface() = default;
 
   // compress level, overwrite and free original streams; rewrite streams sizes
-  virtual void compress_level(
-      std::vector<SIZE> &bitplane_sizes,
-      Array<2, T, DeviceType> &encoded_bitplanes,
-      std::vector<Array<1, Byte, DeviceType>> &compressed_bitplanes, int queue_idx) = 0;
+  virtual void
+  compress_level(std::vector<SIZE> &bitplane_sizes,
+                 Array<2, T, DeviceType> &encoded_bitplanes,
+                 std::vector<Array<1, Byte, DeviceType>> &compressed_bitplanes,
+                 int queue_idx) = 0;
 
   // decompress level, create new buffer and overwrite original streams; will
   // not change stream sizes

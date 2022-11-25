@@ -30,9 +30,11 @@ template <DIM D, typename T, typename DeviceType> class DecomposerInterface {
 public:
   virtual ~DecomposerInterface() = default;
 
-  virtual void decompose(Array<D, T, DeviceType> &v, int stop_level, int queue_idx) = 0;
+  virtual void decompose(Array<D, T, DeviceType> &v, int stop_level,
+                         int queue_idx) = 0;
 
-  virtual void recompose(Array<D, T, DeviceType> &v, int stop_level, int queue_idx) = 0;
+  virtual void recompose(Array<D, T, DeviceType> &v, int stop_level,
+                         int queue_idx) = 0;
 
   virtual void print() const = 0;
 };

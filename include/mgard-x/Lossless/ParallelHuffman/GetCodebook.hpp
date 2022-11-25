@@ -5,11 +5,11 @@
  * Date: March 17, 2022
  */
 
-#include "HuffmanWorkspace.hpp"
 #include "FillArraySequence.hpp"
 #include "GenerateCL.hpp"
 #include "GenerateCW.hpp"
 #include "GetFirstNonzeroIndex.hpp"
+#include "HuffmanWorkspace.hpp"
 #include "ReorderByIndex.hpp"
 #include "ReverseArray.hpp"
 

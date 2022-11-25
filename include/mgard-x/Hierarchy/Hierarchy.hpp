@@ -521,7 +521,7 @@ Hierarchy<D, T, DeviceType>::estimate_memory_usgae(std::vector<SIZE> shape) {
       prev_num_elems = curr_num_elems;
     }
   }
-  
+
   return estimate_memory_usgae;
 }
 
@@ -710,8 +710,7 @@ bool Hierarchy<D, T, DeviceType>::is_initialized() {
 
 template <DIM D, typename T, typename DeviceType>
 bool Hierarchy<D, T, DeviceType>::can_reuse(std::vector<SIZE> shape) {
-  if (data_structure() ==
-      data_structure_type::Cartesian_Grid_Non_Uniform) {
+  if (data_structure() == data_structure_type::Cartesian_Grid_Non_Uniform) {
     return false;
   }
   for (DIM d = 0; d < D; d++) {

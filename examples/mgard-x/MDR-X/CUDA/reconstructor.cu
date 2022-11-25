@@ -72,11 +72,10 @@ void print_statistics(const T_data *data_ori, const T_data *data_dec,
 template <mgard_x::DIM D, class T_data, class T_stream, typename DeviceType>
 void test(string filename, const vector<double> &tolerance,
           mgard_x::Hierarchy<D, T_data, DeviceType> &hierarchy,
-          std::string metadata_file, std::vector<std::string> files,
-          double s) {
-  auto reconstructor = mgard_x::MDR::ComposedReconstructor<
-      D, T_data, DeviceType>(
-      hierarchy, metadata_file, files);
+          std::string metadata_file, std::vector<std::string> files, double s) {
+  auto reconstructor =
+      mgard_x::MDR::ComposedReconstructor<D, T_data, DeviceType>(
+          hierarchy, metadata_file, files);
   cout << "loading metadata" << endl;
   reconstructor.load_metadata();
 
@@ -152,13 +151,14 @@ int main(int argc, char **argv) {
       mgard_x::MDR::MGARDOrthoganalDecomposer<D, T_data, DeviceType>(hierarchy);
   auto interleaver =
       mgard_x::MDR::DirectInterleaver<D, T_data, DeviceType>(hierarchy);
-  auto encoder = mgard_x::MDR::GroupedBPEncoder<D, T_data, T_stream, T_error,
-  DeviceType>(hierarchy);
+  auto encoder =
+      mgard_x::MDR::GroupedBPEncoder<D, T_data, T_stream, T_error, DeviceType>(
+          hierarchy);
   // auto encoder =
   //     mgard_x::MDR::GroupedWarpBPEncoder<D, T_data, T_stream, T_error,
   //                                        DeviceType>(hierarchy);
-  auto compressor =
-      mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>(hierarchy.total_num_elems(), 8192, 20480, 1.0);
+  auto compressor = mgard_x::MDR::DefaultLevelCompressor<T_stream, DeviceType>(
+      hierarchy.total_num_elems(), 8192, 20480, 1.0);
   auto retriever = mgard_x::MDR::ConcatLevelFileRetriever(metadata_file, files);
 
   // switch (error_mode) {
@@ -178,11 +178,11 @@ int main(int argc, char **argv) {
     // auto estimator = mgard_x::MDR::L2ErrorEstimator_HB<T_data>(num_dims,
     // num_levels - 1); auto interpreter =
     // mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<mgard_x::MDR::L2ErrorEstimator_HB<T_data>>(estimator);
-    test<D, T_data, T_stream, DeviceType>(
-        filename, tolerance, hierarchy, metadata_file, files, s);
+    test<D, T_data, T_stream, DeviceType>(filename, tolerance, hierarchy,
+                                          metadata_file, files, s);
     // break;
-  // }
-  // default: 
+    // }
+    // default:
   } else {
     auto estimator = mgard_x::MDR::MaxErrorEstimatorOB<T_data>(num_dims);
     auto interpreter = mgard_x::MDR::SignExcludeGreedyBasedSizeInterpreter<
@@ -194,8 +194,8 @@ int main(int argc, char **argv) {
     // auto estimator = MDR::MaxErrorEstimatorHB<T_data>();
     // auto interpreter =
     // MDR::SignExcludeGreedyBasedSizeInterpreter<MDR::MaxErrorEstimatorHB<T_data>>(estimator);
-    test<D, T_data, T_stream, DeviceType>(
-        filename, tolerance, hierarchy, metadata_file, files, s);
+    test<D, T_data, T_stream, DeviceType>(filename, tolerance, hierarchy,
+                                          metadata_file, files, s);
   }
 
   // }

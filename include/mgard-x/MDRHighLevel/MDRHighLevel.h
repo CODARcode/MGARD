@@ -27,17 +27,18 @@ namespace mgard_x {
 namespace MDR {
 
 template <typename DeviceType>
-void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *original_data,
-          RefactoredMetadata &refactored_metadata,
-          RefactoredData &refactored_data,
-          Config config, bool output_pre_allocated);
+void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape,
+                const void *original_data,
+                RefactoredMetadata &refactored_metadata,
+                RefactoredData &refactored_data, Config config,
+                bool output_pre_allocated);
 
 template <typename DeviceType>
-void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *original_data,
-            std::vector<const Byte *> coords, 
-          RefactoredMetadata &refactored_metadata,
-          RefactoredData &refactored_data,
-          Config config, bool output_pre_allocated);
+void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape,
+                const void *original_data, std::vector<const Byte *> coords,
+                RefactoredMetadata &refactored_metadata,
+                RefactoredData &refactored_data, Config config,
+                bool output_pre_allocated);
 
 template <typename DeviceType>
 void MDRequest(RefactoredMetadata &refactored_metadata, double tol, double s,
@@ -45,10 +46,10 @@ void MDRequest(RefactoredMetadata &refactored_metadata, double tol, double s,
 
 template <typename DeviceType>
 void MDReconstruct(RefactoredMetadata &refactored_metadata,
-                  RefactoredData &refactored_data,
-                  ReconstructedData &reconstructed_data, Config config,
-                  bool output_pre_allocated);
-}
-}
+                   RefactoredData &refactored_data,
+                   ReconstructedData &reconstructed_data, Config config,
+                   bool output_pre_allocated);
+} // namespace MDR
+} // namespace mgard_x
 
 #endif
