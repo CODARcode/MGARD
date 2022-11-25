@@ -56,8 +56,8 @@ public:
   }
 
   static size_t EstimateMemoryFootprint(SIZE primary_count, SIZE dict_size,
-                              SIZE chunk_size,
-                              double estimated_outlier_ratio = 1) {
+                                        SIZE chunk_size,
+                                        double estimated_outlier_ratio = 1) {
     size_t size = 0;
     size += sizeof(LENGTH);
     size += primary_count * estimated_outlier_ratio * sizeof(LENGTH);

@@ -69,11 +69,13 @@ template <typename DeviceType> struct Metadata {
 public:
   template <typename T>
   void FillForCompression(enum error_bound_type ebtype, T tol, T s, T norm,
-            enum decomposition_type decomposition, uint32_t reorder,
-            enum lossless_type ltype, uint32_t huff_dict_size,
-            uint32_t huff_block_size, std::vector<SIZE> shape,
-            bool domain_decomposed, domain_decomposition_type ddtype, 
-            uint8_t domain_decomposed_dim, uint64_t domain_decomposed_size) {
+                          enum decomposition_type decomposition,
+                          uint32_t reorder, enum lossless_type ltype,
+                          uint32_t huff_dict_size, uint32_t huff_block_size,
+                          std::vector<SIZE> shape, bool domain_decomposed,
+                          domain_decomposition_type ddtype,
+                          uint8_t domain_decomposed_dim,
+                          uint64_t domain_decomposed_size) {
 
     otype = operation_type::Compression;
     if (std::is_same<DeviceType, SERIAL>::value) {
@@ -117,16 +119,18 @@ public:
   }
 
   template <typename T>
-  void FillForCompression(enum error_bound_type ebtype, T tol, T s, T norm,
-            enum decomposition_type decomposition, uint32_t reorder,
-            enum lossless_type ltype, uint32_t huff_dict_size,
-            uint32_t huff_block_size, std::vector<SIZE> shape,
-            bool domain_decomposed, domain_decomposition_type ddtype, 
-            uint8_t domain_decomposed_dim, uint64_t domain_decomposed_size,
-            std::vector<T *> coords) {
-    FillForCompression(ebtype, tol, s, norm, decomposition, reorder, ltype, huff_dict_size,
-         huff_block_size, shape, domain_decomposed, ddtype, domain_decomposed_dim,
-         domain_decomposed_size);
+  void
+  FillForCompression(enum error_bound_type ebtype, T tol, T s, T norm,
+                     enum decomposition_type decomposition, uint32_t reorder,
+                     enum lossless_type ltype, uint32_t huff_dict_size,
+                     uint32_t huff_block_size, std::vector<SIZE> shape,
+                     bool domain_decomposed, domain_decomposition_type ddtype,
+                     uint8_t domain_decomposed_dim,
+                     uint64_t domain_decomposed_size, std::vector<T *> coords) {
+    FillForCompression(ebtype, tol, s, norm, decomposition, reorder, ltype,
+                       huff_dict_size, huff_block_size, shape,
+                       domain_decomposed, ddtype, domain_decomposed_dim,
+                       domain_decomposed_size);
     for (int d = 0; d < this->total_dims; d++) {
       std::vector<double> coord(shape[d]);
       T *coord_h = new T[shape[d]];
@@ -142,11 +146,11 @@ public:
 
   template <typename T>
   void FillForMDR(T norm, enum decomposition_type decomposition,
-            enum lossless_type ltype, uint32_t huff_dict_size,
-            uint32_t huff_block_size, std::vector<SIZE> shape,
-            bool domain_decomposed, domain_decomposition_type ddtype, 
-            uint8_t domain_decomposed_dim, uint64_t domain_decomposed_size,
-            uint64_t number_bitplanes) {
+                  enum lossless_type ltype, uint32_t huff_dict_size,
+                  uint32_t huff_block_size, std::vector<SIZE> shape,
+                  bool domain_decomposed, domain_decomposition_type ddtype,
+                  uint8_t domain_decomposed_dim,
+                  uint64_t domain_decomposed_size, uint64_t number_bitplanes) {
     otype = operation_type::MDR;
     if (std::is_same<DeviceType, SERIAL>::value) {
       this->ptype = processor_type::X_SERIAL;
@@ -182,14 +186,15 @@ public:
 
   template <typename T>
   void FillForMDR(T norm, enum decomposition_type decomposition,
-            enum lossless_type ltype, uint32_t huff_dict_size,
-            uint32_t huff_block_size, std::vector<SIZE> shape,
-            bool domain_decomposed, domain_decomposition_type ddtype, 
-            uint8_t domain_decomposed_dim, uint64_t domain_decomposed_size,
-            uint64_t number_bitplanes, std::vector<T *> coords) {
-    FillForMDR(norm, decomposition, ltype, huff_dict_size,
-         huff_block_size, shape, domain_decomposed, ddtype, domain_decomposed_dim,
-         domain_decomposed_size, number_bitplanes);
+                  enum lossless_type ltype, uint32_t huff_dict_size,
+                  uint32_t huff_block_size, std::vector<SIZE> shape,
+                  bool domain_decomposed, domain_decomposition_type ddtype,
+                  uint8_t domain_decomposed_dim,
+                  uint64_t domain_decomposed_size, uint64_t number_bitplanes,
+                  std::vector<T *> coords) {
+    FillForMDR(norm, decomposition, ltype, huff_dict_size, huff_block_size,
+               shape, domain_decomposed, ddtype, domain_decomposed_dim,
+               domain_decomposed_size, number_bitplanes);
     for (int d = 0; d < this->total_dims; d++) {
       std::vector<double> coord(shape[d]);
       T *coord_h = new T[shape[d]];
@@ -583,8 +588,7 @@ private:
           domainDecomposition.set_method(
               mgard::pb::DomainDecomposition::MAX_DIMENSION);
         } else if (ddtype == domain_decomposition_type::Block) {
-          domainDecomposition.set_method(
-              mgard::pb::DomainDecomposition::BLOCK);
+          domainDecomposition.set_method(mgard::pb::DomainDecomposition::BLOCK);
         }
       } else {
         domainDecomposition.set_method(
@@ -613,7 +617,8 @@ private:
     { // Quantization
       mgard::pb::Quantization &quantization = *header.mutable_quantization();
       if (otype == operation_type::Compression) {
-        quantization.set_method(mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
+        quantization.set_method(
+            mgard::pb::Quantization::COEFFICIENTWISE_LINEAR);
         quantization.set_bin_widths(mgard::pb::Quantization::PER_COEFFICIENT);
         quantization.set_type(mgard::pb::Quantization::INT64_T);
         quantization.set_big_endian(big_endian<std::int64_t>());
@@ -628,14 +633,17 @@ private:
     }
 
     { // MDR
-      mgard::pb::BitplaneEncoding &bitplane_encoding = *header.mutable_bitplane_encoding();
+      mgard::pb::BitplaneEncoding &bitplane_encoding =
+          *header.mutable_bitplane_encoding();
       if (otype == operation_type::MDR) {
-        bitplane_encoding.set_method(mgard::pb::BitplaneEncoding::GROUPED_BITPLANE_ENCODING);
+        bitplane_encoding.set_method(
+            mgard::pb::BitplaneEncoding::GROUPED_BITPLANE_ENCODING);
         bitplane_encoding.set_type(mgard::pb::BitplaneEncoding::INT32_T);
         bitplane_encoding.set_number_bitplanes(number_bitplanes);
         bitplane_encoding.set_big_endian(big_endian<std::int64_t>());
       } else {
-        bitplane_encoding.set_method(mgard::pb::BitplaneEncoding::NOOP_BITPLANE_ENCODING);
+        bitplane_encoding.set_method(
+            mgard::pb::BitplaneEncoding::NOOP_BITPLANE_ENCODING);
       }
     }
 
@@ -883,8 +891,10 @@ private:
     }
 
     { // MDR
-      const mgard::pb::BitplaneEncoding bitplane_encoding = header.bitplane_encoding();
-      if (bitplane_encoding.method() != mgard::pb::BitplaneEncoding::NOOP_BITPLANE_ENCODING) {
+      const mgard::pb::BitplaneEncoding bitplane_encoding =
+          header.bitplane_encoding();
+      if (bitplane_encoding.method() !=
+          mgard::pb::BitplaneEncoding::NOOP_BITPLANE_ENCODING) {
         number_bitplanes = bitplane_encoding.number_bitplanes();
         assert(quantization.big_endian() == big_endian<std::int64_t>());
       }
@@ -892,20 +902,26 @@ private:
 
     {
       const mgard::pb::Quantization quantization = header.quantization();
-      const mgard::pb::BitplaneEncoding bitplane_encoding = header.bitplane_encoding();
+      const mgard::pb::BitplaneEncoding bitplane_encoding =
+          header.bitplane_encoding();
       if (quantization.method() != mgard::pb::Quantization::NOOP_QUANTIZATION &&
-          bitplane_encoding.method() != mgard::pb::BitplaneEncoding::NOOP_BITPLANE_ENCODING ||
+              bitplane_encoding.method() !=
+                  mgard::pb::BitplaneEncoding::NOOP_BITPLANE_ENCODING ||
           quantization.method() == mgard::pb::Quantization::NOOP_QUANTIZATION &&
-          bitplane_encoding.method() == mgard::pb::BitplaneEncoding::NOOP_BITPLANE_ENCODING) {
+              bitplane_encoding.method() ==
+                  mgard::pb::BitplaneEncoding::NOOP_BITPLANE_ENCODING) {
         std::cout << log::log_err
-                  << "cannot determine whether this is compressed or refactored data.\n";
+                  << "cannot determine whether this is compressed or "
+                     "refactored data.\n";
         exit(-1);
       }
     }
 
     if (otype == operation_type::MDR) { // MDR
-      mgard::pb::BitplaneEncoding &bitplane_encoding = *header.mutable_bitplane_encoding();
-      bitplane_encoding.set_method(mgard::pb::BitplaneEncoding::GROUPED_BITPLANE_ENCODING);
+      mgard::pb::BitplaneEncoding &bitplane_encoding =
+          *header.mutable_bitplane_encoding();
+      bitplane_encoding.set_method(
+          mgard::pb::BitplaneEncoding::GROUPED_BITPLANE_ENCODING);
       bitplane_encoding.set_type(mgard::pb::BitplaneEncoding::INT32_T);
       bitplane_encoding.set_number_bitplanes(number_bitplanes);
       bitplane_encoding.set_big_endian(big_endian<std::int64_t>());

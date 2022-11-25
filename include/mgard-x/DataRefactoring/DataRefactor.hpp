@@ -94,8 +94,8 @@ public:
       recompose<D, T, DeviceType>(hierarchy, data_subarray, w_subarray,
                                   b_subarray, stop_level, queue_idx);
     } else if (config.decomposition == decomposition_type::SingleDim) {
-      recompose_single<D, T, DeviceType>(hierarchy, data_subarray,
-                                         stop_level, queue_idx);
+      recompose_single<D, T, DeviceType>(hierarchy, data_subarray, stop_level,
+                                         queue_idx);
     }
     if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);

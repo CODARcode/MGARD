@@ -5,7 +5,6 @@
  * Date: March 17, 2022
  */
 
-
 #ifndef MGARD_X_MDR_HIGH_LEVEL_API_HPP
 #define MGARD_X_MDR_HIGH_LEVEL_API_HPP
 
@@ -14,32 +13,36 @@
 #include "../RuntimeX/RuntimeX.h"
 
 #include "mdr_x_lowlevel.hpp"
-#include "MDRHighLevel.h"
+
 #include "../CompressionLowLevel/Compressor.hpp"
-#include "../Metadata/Metadata.hpp"
 #include "../DomainDecomposer/DomainDecomposer.hpp"
+#include "../Metadata/Metadata.hpp"
+#include "MDRHighLevel.h"
 
 namespace mgard_x {
 namespace MDR {
 
 template <DIM D, typename T, typename DeviceType>
-void generate_request(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer, Config config,
-                      RefactoredMetadata &refactored_metadata,
+void generate_request(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>,
+                                       DeviceType> &domain_decomposer,
+                      Config config, RefactoredMetadata &refactored_metadata,
                       double tol, double s) {
-  for (int subdomain_id = 0; subdomain_id < domain_decomposer.num_subdomains(); subdomain_id++) {
+  for (int subdomain_id = 0; subdomain_id < domain_decomposer.num_subdomains();
+       subdomain_id++) {
     Hierarchy<D, T, DeviceType> hierarchy =
-      domain_decomposer.subdomain_hierarchy(subdomain_id);
+        domain_decomposer.subdomain_hierarchy(subdomain_id);
     ComposedReconstructor<D, T, DeviceType> reconstructor(hierarchy, config);
-    reconstructor.GenerateRequest(refactored_metadata.metadata[subdomain_id], tol, s);
+    reconstructor.GenerateRequest(refactored_metadata.metadata[subdomain_id],
+                                  tol, s);
   }
-} 
+}
 
 template <DIM D, typename T, typename DeviceType>
-void refactor_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
-                        SIZE subdomain_id, Config &config,
-                        RefactoredMetadata &refactored_metadata,
-                        RefactoredData &refactored_data,
-                        int dev_id) {
+void refactor_subdomain(
+    DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>
+        &domain_decomposer,
+    SIZE subdomain_id, Config &config, RefactoredMetadata &refactored_metadata,
+    RefactoredData &refactored_data, int dev_id) {
 
   Timer timer_series;
   if (log::level & log::TIME)
@@ -49,12 +52,13 @@ void refactor_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
   MDRMetadata mdr_metadata;
-  MDRData<DeviceType> mdr_data(hierarchy.l_target()+1, config.total_num_bitplanes);
+  MDRData<DeviceType> mdr_data(hierarchy.l_target() + 1,
+                               config.total_num_bitplanes);
 
-  domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
-                                   subdomain_copy_direction::OriginalToSubdomain, 0);
+  domain_decomposer.copy_subdomain(
+      device_subdomain_buffer, subdomain_id,
+      subdomain_copy_direction::OriginalToSubdomain, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
-  
 
   ComposedRefactor<D, T, DeviceType> refactor(hierarchy, config);
   std::stringstream ss;
@@ -64,7 +68,8 @@ void refactor_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType
   log::info("Refactoring subdomain " + std::to_string(subdomain_id) +
             " with shape: " + ss.str());
   refactor.Refactor(device_subdomain_buffer, mdr_metadata, mdr_data, 0);
-  mdr_data.CopyToRefactoredData(mdr_metadata, refactored_data.data[subdomain_id], 0);
+  mdr_data.CopyToRefactoredData(mdr_metadata,
+                                refactored_data.data[subdomain_id], 0);
   refactored_metadata.metadata[subdomain_id] = mdr_metadata;
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (log::level & log::TIME) {
@@ -76,11 +81,12 @@ void refactor_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType
 }
 
 template <DIM D, typename T, typename DeviceType>
-void refactor_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
-                              std::vector<SIZE> &subdomain_ids, Config &config,
-                              RefactoredMetadata &refactored_metadata,
-                              RefactoredData &refactored_data,
-                              int dev_id) {
+void refactor_subdomain_series(
+    DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>
+        &domain_decomposer,
+    std::vector<SIZE> &subdomain_ids, Config &config,
+    RefactoredMetadata &refactored_metadata, RefactoredData &refactored_data,
+    int dev_id) {
   assert(subdomain_ids.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME)
@@ -91,12 +97,14 @@ void refactor_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, Dev
     SIZE subdomain_id = subdomain_ids[i];
     // Trigger the copy constructor to copy hierarchy to the current device
     Hierarchy<D, T, DeviceType> hierarchy =
-      domain_decomposer.subdomain_hierarchy(subdomain_id);
-    domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
-                                     subdomain_copy_direction::OriginalToSubdomain, 0);
+        domain_decomposer.subdomain_hierarchy(subdomain_id);
+    domain_decomposer.copy_subdomain(
+        device_subdomain_buffer, subdomain_id,
+        subdomain_copy_direction::OriginalToSubdomain, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
     MDRMetadata mdr_metadata;
-    MDRData<DeviceType> mdr_data(hierarchy.l_target()+1, config.total_num_bitplanes);
+    MDRData<DeviceType> mdr_data(hierarchy.l_target() + 1,
+                                 config.total_num_bitplanes);
     ComposedRefactor<D, T, DeviceType> refactor(hierarchy, config);
     std::stringstream ss;
     for (DIM d = 0; d < D; d++) {
@@ -105,11 +113,12 @@ void refactor_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, Dev
     log::info("Refactoring subdomain " + std::to_string(subdomain_id) +
               " with shape: " + ss.str());
     refactor.Refactor(device_subdomain_buffer, mdr_metadata, mdr_data, 0);
-    mdr_data.CopyToRefactoredData(mdr_metadata, refactored_data.data[subdomain_id], 0);
+    mdr_data.CopyToRefactoredData(mdr_metadata,
+                                  refactored_data.data[subdomain_id], 0);
     refactored_metadata.metadata[subdomain_id] = mdr_metadata;
     DeviceRuntime<DeviceType>::SyncQueue(0);
   }
-  
+
   if (log::level & log::TIME) {
     timer_series.end();
     timer_series.print("Refactor subdomain series");
@@ -119,11 +128,12 @@ void refactor_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, Dev
 }
 
 template <DIM D, typename T, typename DeviceType>
-void refactor_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
-                              std::vector<SIZE> &subdomain_ids, Config &config,
-                              RefactoredMetadata &refactored_metadata,
-                              RefactoredData &refactored_data,
-                              int dev_id) {
+void refactor_subdomain_series_w_prefetch(
+    DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>
+        &domain_decomposer,
+    std::vector<SIZE> &subdomain_ids, Config &config,
+    RefactoredMetadata &refactored_metadata, RefactoredData &refactored_data,
+    int dev_id) {
   assert(subdomain_ids.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME)
@@ -143,14 +153,15 @@ void refactor_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefacto
       domain_decomposer.subdomain_shape(subdomain_ids[0]));
   // Output
   MDRData<DeviceType> mdr_data[2];
-  mdr_data[0].Resize(hierarchy.l_target()+1, config.total_num_bitplanes);
-  mdr_data[1].Resize(hierarchy.l_target()+1, config.total_num_bitplanes);
+  mdr_data[0].Resize(hierarchy.l_target() + 1, config.total_num_bitplanes);
+  mdr_data[1].Resize(hierarchy.l_target() + 1, config.total_num_bitplanes);
 
   // Prefetch the first subdomain to one buffer
   int current_buffer = 0;
   int current_queue = current_buffer;
-  domain_decomposer.copy_subdomain(device_subdomain_buffer[current_buffer],
-                                   subdomain_ids[0], subdomain_copy_direction::OriginalToSubdomain, current_queue);
+  domain_decomposer.copy_subdomain(
+      device_subdomain_buffer[current_buffer], subdomain_ids[0],
+      subdomain_copy_direction::OriginalToSubdomain, current_queue);
 
   for (SIZE i = 0; i < subdomain_ids.size(); i++) {
     SIZE curr_subdomain_id = subdomain_ids[i];
@@ -160,12 +171,13 @@ void refactor_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefacto
     // Prefetch the next subdomain
     if (i + 1 < subdomain_ids.size()) {
       next_subdomain_id = subdomain_ids[i + 1];
-      domain_decomposer.copy_subdomain(device_subdomain_buffer[next_buffer],
-                                       next_subdomain_id, subdomain_copy_direction::OriginalToSubdomain,
-                                       next_queue);
+      domain_decomposer.copy_subdomain(
+          device_subdomain_buffer[next_buffer], next_subdomain_id,
+          subdomain_copy_direction::OriginalToSubdomain, next_queue);
     }
     // Check if we can reuse the existing objects
-    if (!hierarchy.can_reuse(domain_decomposer.subdomain_shape(curr_subdomain_id))) {
+    if (!hierarchy.can_reuse(
+            domain_decomposer.subdomain_shape(curr_subdomain_id))) {
       hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
       refactor = ComposedRefactor<D, T, DeviceType>(hierarchy, config);
     }
@@ -177,11 +189,12 @@ void refactor_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefacto
     log::info("Refactoring subdomain " + std::to_string(curr_subdomain_id) +
               " with shape: " + ss.str());
 
-    refactor.Refactor(device_subdomain_buffer[current_buffer], 
-                      refactored_metadata.metadata[curr_subdomain_id], 
+    refactor.Refactor(device_subdomain_buffer[current_buffer],
+                      refactored_metadata.metadata[curr_subdomain_id],
                       mdr_data[current_buffer], current_queue);
-    mdr_data[current_buffer].CopyToRefactoredData(refactored_metadata.metadata[curr_subdomain_id], 
-                                     refactored_data.data[curr_subdomain_id], current_queue);
+    mdr_data[current_buffer].CopyToRefactoredData(
+        refactored_metadata.metadata[curr_subdomain_id],
+        refactored_data.data[curr_subdomain_id], current_queue);
 
     current_buffer = next_buffer;
     current_queue = next_queue;
@@ -195,11 +208,12 @@ void refactor_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefacto
 }
 
 template <DIM D, typename T, typename DeviceType>
-void reconstruct_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
-                          SIZE subdomain_id, Config &config,
-                          RefactoredMetadata &refactored_metadata,
-                          RefactoredData &refactored_data,
-                          ReconstructedData &reconstructed_data, int dev_id) {
+void reconstruct_subdomain(
+    DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>
+        &domain_decomposer,
+    SIZE subdomain_id, Config &config, RefactoredMetadata &refactored_metadata,
+    RefactoredData &refactored_data, ReconstructedData &reconstructed_data,
+    int dev_id) {
 
   Timer timer_series;
   if (log::level & log::TIME)
@@ -213,7 +227,8 @@ void reconstruct_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceT
   MDRData<DeviceType> mdr_data;
   mdr_data.Resize(mdr_metadata);
 
-  mdr_data.CopyFromRefactoredData(mdr_metadata, refactored_data.data[subdomain_id], 0);
+  mdr_data.CopyFromRefactoredData(mdr_metadata,
+                                  refactored_data.data[subdomain_id], 0);
 
   ComposedReconstructor<D, T, DeviceType> reconstructor(hierarchy, config);
 
@@ -225,13 +240,16 @@ void reconstruct_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceT
             " with shape: " + ss.str());
   device_subdomain_buffer.resize(hierarchy.level_shape(hierarchy.l_target()));
   device_subdomain_buffer.memset(0, 0);
-  reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data, device_subdomain_buffer, 0);
+  reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data,
+                                       device_subdomain_buffer, 0);
 
-  domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
-                                   subdomain_copy_direction::SubdomainToOriginal, 0);
+  domain_decomposer.copy_subdomain(
+      device_subdomain_buffer, subdomain_id,
+      subdomain_copy_direction::SubdomainToOriginal, 0);
   if (config.mdr_adaptive_resolution) {
     reconstructed_data.shape[subdomain_id] = device_subdomain_buffer.shape();
-    reconstructed_data.offset[subdomain_id] = domain_decomposer.dim_subdomain_offset(subdomain_id);
+    reconstructed_data.offset[subdomain_id] =
+        domain_decomposer.dim_subdomain_offset(subdomain_id);
   }
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (log::level & log::TIME) {
@@ -243,11 +261,12 @@ void reconstruct_subdomain(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceT
 }
 
 template <DIM D, typename T, typename DeviceType>
-void reconstruct_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
-                          std::vector<SIZE> &subdomain_ids, Config &config,
-                          RefactoredMetadata &refactored_metadata,
-                          RefactoredData &refactored_data,
-                          ReconstructedData &reconstructed_data, int dev_id) {
+void reconstruct_subdomain_series(
+    DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>
+        &domain_decomposer,
+    std::vector<SIZE> &subdomain_ids, Config &config,
+    RefactoredMetadata &refactored_metadata, RefactoredData &refactored_data,
+    ReconstructedData &reconstructed_data, int dev_id) {
   assert(subdomain_ids.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME)
@@ -263,7 +282,8 @@ void reconstruct_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, 
     MDRData<DeviceType> mdr_data;
     mdr_data.Resize(mdr_metadata);
 
-    mdr_data.CopyFromRefactoredData(mdr_metadata, refactored_data.data[subdomain_id], 0);
+    mdr_data.CopyFromRefactoredData(mdr_metadata,
+                                    refactored_data.data[subdomain_id], 0);
 
     ComposedReconstructor<D, T, DeviceType> reconstructor(hierarchy, config);
 
@@ -275,13 +295,16 @@ void reconstruct_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, 
               " with shape: " + ss.str());
     device_subdomain_buffer.resize(hierarchy.level_shape(hierarchy.l_target()));
     device_subdomain_buffer.memset(0, 0);
-    reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data, device_subdomain_buffer, 0);
+    reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data,
+                                         device_subdomain_buffer, 0);
 
-    domain_decomposer.copy_subdomain(device_subdomain_buffer, subdomain_id,
-                                     subdomain_copy_direction::SubdomainToOriginal, 0);
+    domain_decomposer.copy_subdomain(
+        device_subdomain_buffer, subdomain_id,
+        subdomain_copy_direction::SubdomainToOriginal, 0);
     if (config.mdr_adaptive_resolution) {
       reconstructed_data.shape[subdomain_id] = device_subdomain_buffer.shape();
-      reconstructed_data.offset[subdomain_id] = domain_decomposer.dim_subdomain_offset(subdomain_id);
+      reconstructed_data.offset[subdomain_id] =
+          domain_decomposer.dim_subdomain_offset(subdomain_id);
     }
   }
   DeviceRuntime<DeviceType>::SyncQueue(0);
@@ -294,37 +317,38 @@ void reconstruct_subdomain_series(DomainDecomposer<D, T, ComposedRefactor<D, T, 
 }
 
 template <DIM D, typename T, typename DeviceType>
-void reconstruct_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> &domain_decomposer,
-                          std::vector<SIZE> &subdomain_ids, Config &config,
-                          RefactoredMetadata &refactored_metadata,
-                          RefactoredData &refactored_data,
-                          ReconstructedData &reconstructed_data, int dev_id) {
+void reconstruct_subdomain_series_w_prefetch(
+    DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>
+        &domain_decomposer,
+    std::vector<SIZE> &subdomain_ids, Config &config,
+    RefactoredMetadata &refactored_metadata, RefactoredData &refactored_data,
+    ReconstructedData &reconstructed_data, int dev_id) {
   assert(subdomain_ids.size() > 0);
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
 
-  //Objects
+  // Objects
   Hierarchy<D, T, DeviceType> hierarchy =
-        domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
+      domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
   ComposedReconstructor<D, T, DeviceType> reconstructor(hierarchy, config);
   // Input
   MDRData<DeviceType> mdr_data[2];
   mdr_data[0].Resize(refactored_metadata.metadata[subdomain_ids[0]]);
   mdr_data[1].Resize(refactored_metadata.metadata[subdomain_ids[0]]);
-  //Output
+  // Output
   Array<D, T, DeviceType> device_subdomain_buffer[2];
   device_subdomain_buffer[0].resize(
       domain_decomposer.subdomain_shape(subdomain_ids[0]));
   device_subdomain_buffer[1].resize(
       domain_decomposer.subdomain_shape(subdomain_ids[0]));
 
-
   // Prefetch the first subdomain
   int current_buffer = 0;
   int current_queue = current_buffer;
-  mdr_data[current_buffer].CopyFromRefactoredData(refactored_metadata.metadata[subdomain_ids[0]], 
-                                                     refactored_data.data[subdomain_ids[0]], current_queue);
+  mdr_data[current_buffer].CopyFromRefactoredData(
+      refactored_metadata.metadata[subdomain_ids[0]],
+      refactored_data.data[subdomain_ids[0]], current_queue);
 
   for (SIZE i = 0; i < subdomain_ids.size(); i++) {
     SIZE curr_subdomain_id = subdomain_ids[i];
@@ -334,14 +358,17 @@ void reconstruct_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefa
     if (i + 1 < subdomain_ids.size()) {
       // Prefetch the next subdomain
       next_subdomain_id = subdomain_ids[i + 1];
-      mdr_data[next_buffer].CopyFromRefactoredData(refactored_metadata.metadata[next_subdomain_id], 
-                                                      refactored_data.data[next_subdomain_id], current_queue);
+      mdr_data[next_buffer].CopyFromRefactoredData(
+          refactored_metadata.metadata[next_subdomain_id],
+          refactored_data.data[next_subdomain_id], current_queue);
     }
 
     // Check if we can reuse the existing objects
-    if (!hierarchy.can_reuse(domain_decomposer.subdomain_shape(curr_subdomain_id))) {
+    if (!hierarchy.can_reuse(
+            domain_decomposer.subdomain_shape(curr_subdomain_id))) {
       hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
-      reconstructor = ComposedReconstructor<D, T, DeviceType>(hierarchy, config);
+      reconstructor =
+          ComposedReconstructor<D, T, DeviceType>(hierarchy, config);
     }
 
     std::stringstream ss;
@@ -350,16 +377,22 @@ void reconstruct_subdomain_series_w_prefetch(DomainDecomposer<D, T, ComposedRefa
     }
     log::info("Reconstruct subdomain " + std::to_string(curr_subdomain_id) +
               " with shape: " + ss.str());
-    device_subdomain_buffer[current_buffer].resize(hierarchy.level_shape(hierarchy.l_target()));
+    device_subdomain_buffer[current_buffer].resize(
+        hierarchy.level_shape(hierarchy.l_target()));
     device_subdomain_buffer[current_buffer].memset(0, current_queue);
-    reconstructor.ProgressiveReconstruct(refactored_metadata.metadata[curr_subdomain_id], 
-                                         mdr_data[current_buffer], device_subdomain_buffer[current_buffer], current_queue);
+    reconstructor.ProgressiveReconstruct(
+        refactored_metadata.metadata[curr_subdomain_id],
+        mdr_data[current_buffer], device_subdomain_buffer[current_buffer],
+        current_queue);
 
-    domain_decomposer.copy_subdomain(device_subdomain_buffer[current_buffer], curr_subdomain_id,
-                                     subdomain_copy_direction::SubdomainToOriginal, current_queue);
+    domain_decomposer.copy_subdomain(
+        device_subdomain_buffer[current_buffer], curr_subdomain_id,
+        subdomain_copy_direction::SubdomainToOriginal, current_queue);
     if (config.mdr_adaptive_resolution) {
-      reconstructed_data.shape[curr_subdomain_id] = device_subdomain_buffer[current_buffer].shape();
-      reconstructed_data.offset[curr_subdomain_id] = domain_decomposer.dim_subdomain_offset(curr_subdomain_id);
+      reconstructed_data.shape[curr_subdomain_id] =
+          device_subdomain_buffer[current_buffer].shape();
+      reconstructed_data.offset[curr_subdomain_id] =
+          domain_decomposer.dim_subdomain_offset(curr_subdomain_id);
     }
     current_buffer = next_buffer;
     current_queue = next_queue;
@@ -393,9 +426,9 @@ SIZE linearize(std::vector<SIZE> shape) {
 
 template <DIM D, typename T, typename DeviceType>
 void MDRefactor(std::vector<SIZE> shape, const void *original_data,
-                bool uniform, std::vector<T *> coords, 
+                bool uniform, std::vector<T *> coords,
                 RefactoredMetadata &refactored_metadata,
-                RefactoredData &refactored_data, Config config, 
+                RefactoredData &refactored_data, Config config,
                 bool output_pre_allocated) {
   size_t total_num_elem = 1;
   for (int i = 0; i < D; i++)
@@ -421,13 +454,16 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
   if (log::level & log::TIME)
     timer_total.start();
 
-  DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> domain_decomposer;
+  DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>
+      domain_decomposer;
   if (uniform) {
-    domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
-        shape, adjusted_num_dev, config);
+    domain_decomposer =
+        DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
+            shape, adjusted_num_dev, config);
   } else {
-    domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
-        shape, adjusted_num_dev, config, coords);
+    domain_decomposer =
+        DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
+            shape, adjusted_num_dev, config, coords);
   }
   domain_decomposer.set_original_data((T *)original_data);
 
@@ -476,15 +512,16 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
         domain_decomposer.subdomain_ids_for_device(dev_id);
     if (subdomain_ids.size() == 1) {
       refactor_subdomain(domain_decomposer, subdomain_ids[0], config,
-                        refactored_metadata, refactored_data, dev_id);
+                         refactored_metadata, refactored_data, dev_id);
     } else {
       // Compress a series of subdomains according to the subdomain id list
       if (!config.prefetch) {
         refactor_subdomain_series(domain_decomposer, subdomain_ids, config,
-                        refactored_metadata, refactored_data, dev_id);
+                                  refactored_metadata, refactored_data, dev_id);
       } else {
-        refactor_subdomain_series_w_prefetch(domain_decomposer, subdomain_ids, config,
-                        refactored_metadata, refactored_data, dev_id);
+        refactor_subdomain_series_w_prefetch(domain_decomposer, subdomain_ids,
+                                             config, refactored_metadata,
+                                             refactored_data, dev_id);
       }
     }
   }
@@ -503,24 +540,25 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
     timer_each.start();
   Metadata<DeviceType> m;
   if (uniform) {
-    m.FillForMDR((T)0.0, config.decomposition, 
-           config.lossless, config.huff_dict_size, config.huff_block_size,
-           shape, domain_decomposer.domain_decomposed(), config.domain_decomposition,
-           domain_decomposer.domain_decomposed_dim(),
-           domain_decomposer.domain_decomposed_size(), config.total_num_bitplanes);
+    m.FillForMDR(
+        (T)0.0, config.decomposition, config.lossless, config.huff_dict_size,
+        config.huff_block_size, shape, domain_decomposer.domain_decomposed(),
+        config.domain_decomposition, domain_decomposer.domain_decomposed_dim(),
+        domain_decomposer.domain_decomposed_size(), config.total_num_bitplanes);
   } else {
-    m.FillForMDR((T)0.0, config.decomposition, 
-           config.lossless, config.huff_dict_size, config.huff_block_size,
-           shape, domain_decomposer.domain_decomposed(), config.domain_decomposition,
-           domain_decomposer.domain_decomposed_dim(),
-           domain_decomposer.domain_decomposed_size(), config.total_num_bitplanes, coords);
+    m.FillForMDR(
+        (T)0.0, config.decomposition, config.lossless, config.huff_dict_size,
+        config.huff_block_size, shape, domain_decomposer.domain_decomposed(),
+        config.domain_decomposition, domain_decomposer.domain_decomposed_dim(),
+        domain_decomposer.domain_decomposed_size(), config.total_num_bitplanes,
+        coords);
   }
 
   uint32_t metadata_size;
-  Byte * metadata = m.Serialize(metadata_size);
+  Byte *metadata = m.Serialize(metadata_size);
   refactored_metadata.header.resize(metadata_size);
-  MemoryManager<DeviceType>::Copy1D(refactored_metadata.header.data(),
-                                    metadata, metadata_size);
+  MemoryManager<DeviceType>::Copy1D(refactored_metadata.header.data(), metadata,
+                                    metadata_size);
   MemoryManager<DeviceType>::Free(metadata);
 
   if (!input_previously_pinned) {
@@ -544,48 +582,49 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
 template <DIM D, typename T, typename DeviceType>
 void MDRefactor(std::vector<SIZE> shape, const void *original_data,
                 RefactoredMetadata &refactored_metadata,
-                RefactoredData &refactored_data,
-                Config config, bool output_pre_allocated) {
+                RefactoredData &refactored_data, Config config,
+                bool output_pre_allocated) {
 
-  MDRefactor<D, T, DeviceType>(shape, original_data, true, std::vector<T *>(0), refactored_metadata,
-             refactored_data, config, 
-             output_pre_allocated);
+  MDRefactor<D, T, DeviceType>(shape, original_data, true, std::vector<T *>(0),
+                               refactored_metadata, refactored_data, config,
+                               output_pre_allocated);
 }
 
 template <DIM D, typename T, typename DeviceType>
 void MDRefactor(std::vector<SIZE> shape, const void *original_data,
-                std::vector<T *> coords, 
+                std::vector<T *> coords,
                 RefactoredMetadata &refactored_metadata,
-                RefactoredData &refactored_data,
-                Config config, bool output_pre_allocated) {
+                RefactoredData &refactored_data, Config config,
+                bool output_pre_allocated) {
 
-  MDRefactor<D, T, DeviceType>(shape, original_data, false, coords, refactored_metadata,
-             refactored_data, config, 
-             output_pre_allocated);
+  MDRefactor<D, T, DeviceType>(shape, original_data, false, coords,
+                               refactored_metadata, refactored_data, config,
+                               output_pre_allocated);
 }
 
 template <DIM D, typename T, typename DeviceType>
-void MDRequest(std::vector<SIZE> shape, 
-               RefactoredMetadata &refactored_metadata, double tol, double s,
-               enum error_bound_type ebtype) {
+void MDRequest(std::vector<SIZE> shape, RefactoredMetadata &refactored_metadata,
+               double tol, double s, enum error_bound_type ebtype) {
   Config config;
   Metadata<DeviceType> m;
   m.Deserialize((SERIALIZED_TYPE *)refactored_metadata.header.data());
   load(config, m);
-  DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> domain_decomposer;
+  DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>
+      domain_decomposer;
   int adjusted_num_dev = 1;
-  domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
-      shape, adjusted_num_dev, m.domain_decomposed,
-      m.domain_decomposed_dim, m.domain_decomposed_size, config);  
+  domain_decomposer =
+      DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
+          shape, adjusted_num_dev, m.domain_decomposed, m.domain_decomposed_dim,
+          m.domain_decomposed_size, config);
   generate_request(domain_decomposer, config, refactored_metadata, tol, s);
 }
 
 template <DIM D, typename T, typename DeviceType>
 void MDReconstruct(std::vector<SIZE> shape,
-                  RefactoredMetadata &refactored_metadata,
-                  RefactoredData &refactored_data,
-                  ReconstructedData &reconstructed_data, Config config,
-                  bool output_pre_allocated) {
+                   RefactoredMetadata &refactored_metadata,
+                   RefactoredData &refactored_data,
+                   ReconstructedData &reconstructed_data, Config config,
+                   bool output_pre_allocated) {
   config.apply();
 
   size_t total_num_elem = 1;
@@ -644,32 +683,40 @@ void MDReconstruct(std::vector<SIZE> shape,
   }
 
   // Initialize DomainDecomposer
-  DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType> domain_decomposer;
+  DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>
+      domain_decomposer;
   if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
-    domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
-       shape, adjusted_num_dev, m.domain_decomposed,
-        m.domain_decomposed_dim, m.domain_decomposed_size, config);
+    domain_decomposer =
+        DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
+            shape, adjusted_num_dev, m.domain_decomposed,
+            m.domain_decomposed_dim, m.domain_decomposed_size, config);
   } else {
-    domain_decomposer = DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
-        shape, adjusted_num_dev, m.domain_decomposed,
-        m.domain_decomposed_dim, m.domain_decomposed_size, config, coords);
+    domain_decomposer =
+        DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
+            shape, adjusted_num_dev, m.domain_decomposed,
+            m.domain_decomposed_dim, m.domain_decomposed_size, config, coords);
   }
   if (!config.mdr_adaptive_resolution) {
     reconstructed_data.Initialize(1);
-    reconstructed_data.data[0] = (Byte*)malloc(total_num_elem * sizeof(T));
-    domain_decomposer.set_original_data((T*)reconstructed_data.data[0]);
+    reconstructed_data.data[0] = (Byte *)malloc(total_num_elem * sizeof(T));
+    domain_decomposer.set_original_data((T *)reconstructed_data.data[0]);
     reconstructed_data.offset[0] = std::vector<SIZE>(D, 0);
     reconstructed_data.shape[0] = shape;
   } else {
     reconstructed_data.Initialize(domain_decomposer.num_subdomains());
-    std::vector<T *> decomposed_original_data(domain_decomposer.num_subdomains());
-    for (int subdomain_id = 0; subdomain_id < domain_decomposer.num_subdomains(); subdomain_id ++) {
-      reconstructed_data.data[subdomain_id] = (Byte*) malloc(linearize(domain_decomposer.subdomain_shape(subdomain_id))*sizeof(T));
-      decomposed_original_data[subdomain_id] = (T*)reconstructed_data.data[subdomain_id];
+    std::vector<T *> decomposed_original_data(
+        domain_decomposer.num_subdomains());
+    for (int subdomain_id = 0;
+         subdomain_id < domain_decomposer.num_subdomains(); subdomain_id++) {
+      reconstructed_data.data[subdomain_id] = (Byte *)malloc(
+          linearize(domain_decomposer.subdomain_shape(subdomain_id)) *
+          sizeof(T));
+      decomposed_original_data[subdomain_id] =
+          (T *)reconstructed_data.data[subdomain_id];
     }
     domain_decomposer.set_decomposed_original_data(decomposed_original_data);
   }
-  
+
   if (log::level & log::TIME) {
     timer_each.end();
     timer_each.print("Prepare input and output buffer");
@@ -695,18 +742,18 @@ void MDReconstruct(std::vector<SIZE> shape,
         domain_decomposer.subdomain_ids_for_device(dev_id);
     if (subdomain_ids.size() == 1) {
       reconstruct_subdomain(domain_decomposer, subdomain_ids[0], config,
-                           refactored_metadata, refactored_data, 
-                           reconstructed_data, dev_id);
+                            refactored_metadata, refactored_data,
+                            reconstructed_data, dev_id);
     } else {
       // Decompress a series of subdomains according to the subdomain id list
       if (!config.prefetch) {
         reconstruct_subdomain_series(domain_decomposer, subdomain_ids, config,
-                           refactored_metadata, refactored_data, 
-                           reconstructed_data, dev_id);
+                                     refactored_metadata, refactored_data,
+                                     reconstructed_data, dev_id);
       } else {
-        reconstruct_subdomain_series_w_prefetch(domain_decomposer, subdomain_ids, config,
-                           refactored_metadata, refactored_data, 
-                           reconstructed_data, dev_id);
+        reconstruct_subdomain_series_w_prefetch(
+            domain_decomposer, subdomain_ids, config, refactored_metadata,
+            refactored_data, reconstructed_data, dev_id);
       }
     }
   }
@@ -737,48 +784,58 @@ void MDReconstruct(std::vector<SIZE> shape,
   }
 }
 
-
 template <typename DeviceType>
-void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *original_data,
-          RefactoredMetadata &refactored_metadata,
-          RefactoredData &refactored_data,
-          Config config, bool output_pre_allocated) {
+void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape,
+                const void *original_data,
+                RefactoredMetadata &refactored_metadata,
+                RefactoredData &refactored_data, Config config,
+                bool output_pre_allocated) {
   if (dtype == data_type::Float) {
     if (D == 1) {
-      MDRefactor<1, float, DeviceType>(shape, original_data, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<1, float, DeviceType>(shape, original_data,
+                                       refactored_metadata, refactored_data,
+                                       config, output_pre_allocated);
     } else if (D == 2) {
-      MDRefactor<2, float, DeviceType>(shape, original_data, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<2, float, DeviceType>(shape, original_data,
+                                       refactored_metadata, refactored_data,
+                                       config, output_pre_allocated);
     } else if (D == 3) {
-      MDRefactor<3, float, DeviceType>(shape, original_data, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<3, float, DeviceType>(shape, original_data,
+                                       refactored_metadata, refactored_data,
+                                       config, output_pre_allocated);
     } else if (D == 4) {
-      MDRefactor<4, float, DeviceType>(shape, original_data, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<4, float, DeviceType>(shape, original_data,
+                                       refactored_metadata, refactored_data,
+                                       config, output_pre_allocated);
     } else if (D == 5) {
-      MDRefactor<5, float, DeviceType>(shape, original_data, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<5, float, DeviceType>(shape, original_data,
+                                       refactored_metadata, refactored_data,
+                                       config, output_pre_allocated);
     } else {
       log::err("do not support higher than five dimentions");
       exit(-1);
     }
   } else if (dtype == data_type::Double) {
     if (D == 1) {
-      MDRefactor<1, double, DeviceType>(shape, original_data, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<1, double, DeviceType>(shape, original_data,
+                                        refactored_metadata, refactored_data,
+                                        config, output_pre_allocated);
     } else if (D == 2) {
-      MDRefactor<2, double, DeviceType>(shape, original_data, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<2, double, DeviceType>(shape, original_data,
+                                        refactored_metadata, refactored_data,
+                                        config, output_pre_allocated);
     } else if (D == 3) {
-      MDRefactor<3, double, DeviceType>(shape, original_data, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<3, double, DeviceType>(shape, original_data,
+                                        refactored_metadata, refactored_data,
+                                        config, output_pre_allocated);
     } else if (D == 4) {
-      MDRefactor<4, double, DeviceType>(shape, original_data, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<4, double, DeviceType>(shape, original_data,
+                                        refactored_metadata, refactored_data,
+                                        config, output_pre_allocated);
     } else if (D == 5) {
-      MDRefactor<5, double, DeviceType>(shape, original_data, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<5, double, DeviceType>(shape, original_data,
+                                        refactored_metadata, refactored_data,
+                                        config, output_pre_allocated);
     } else {
       log::err("do not support higher than five dimentions");
       exit(-1);
@@ -790,29 +847,35 @@ void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *ori
 }
 
 template <typename DeviceType>
-void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *original_data,
-          std::vector<const Byte *> coords, RefactoredMetadata &refactored_metadata,
-          RefactoredData &refactored_data,
-          Config config, bool output_pre_allocated) {
+void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape,
+                const void *original_data, std::vector<const Byte *> coords,
+                RefactoredMetadata &refactored_metadata,
+                RefactoredData &refactored_data, Config config,
+                bool output_pre_allocated) {
   if (dtype == data_type::Float) {
     std::vector<float *> float_coords;
     for (auto &coord : coords)
       float_coords.push_back((float *)coord);
     if (D == 1) {
-      MDRefactor<1, float, DeviceType>(shape, original_data, float_coords, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<1, float, DeviceType>(shape, original_data, float_coords,
+                                       refactored_metadata, refactored_data,
+                                       config, output_pre_allocated);
     } else if (D == 2) {
-      MDRefactor<2, float, DeviceType>(shape, original_data, float_coords, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<2, float, DeviceType>(shape, original_data, float_coords,
+                                       refactored_metadata, refactored_data,
+                                       config, output_pre_allocated);
     } else if (D == 3) {
-      MDRefactor<3, float, DeviceType>(shape, original_data, float_coords, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<3, float, DeviceType>(shape, original_data, float_coords,
+                                       refactored_metadata, refactored_data,
+                                       config, output_pre_allocated);
     } else if (D == 4) {
-      MDRefactor<4, float, DeviceType>(shape, original_data, float_coords, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<4, float, DeviceType>(shape, original_data, float_coords,
+                                       refactored_metadata, refactored_data,
+                                       config, output_pre_allocated);
     } else if (D == 5) {
-      MDRefactor<5, float, DeviceType>(shape, original_data, float_coords, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<5, float, DeviceType>(shape, original_data, float_coords,
+                                       refactored_metadata, refactored_data,
+                                       config, output_pre_allocated);
     } else {
       log::err("do not support higher than five dimentions");
       exit(-1);
@@ -822,20 +885,25 @@ void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape, const void *ori
     for (auto &coord : coords)
       double_coords.push_back((double *)coord);
     if (D == 1) {
-      MDRefactor<1, double, DeviceType>(shape, original_data, double_coords, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<1, double, DeviceType>(shape, original_data, double_coords,
+                                        refactored_metadata, refactored_data,
+                                        config, output_pre_allocated);
     } else if (D == 2) {
-      MDRefactor<2, double, DeviceType>(shape, original_data, double_coords, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<2, double, DeviceType>(shape, original_data, double_coords,
+                                        refactored_metadata, refactored_data,
+                                        config, output_pre_allocated);
     } else if (D == 3) {
-      MDRefactor<3, double, DeviceType>(shape, original_data, double_coords, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<3, double, DeviceType>(shape, original_data, double_coords,
+                                        refactored_metadata, refactored_data,
+                                        config, output_pre_allocated);
     } else if (D == 4) {
-      MDRefactor<4, double, DeviceType>(shape, original_data, double_coords, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<4, double, DeviceType>(shape, original_data, double_coords,
+                                        refactored_metadata, refactored_data,
+                                        config, output_pre_allocated);
     } else if (D == 5) {
-      MDRefactor<5, double, DeviceType>(shape, original_data, double_coords, refactored_metadata, 
-                                      refactored_data, config, output_pre_allocated);
+      MDRefactor<5, double, DeviceType>(shape, original_data, double_coords,
+                                        refactored_metadata, refactored_data,
+                                        config, output_pre_allocated);
     } else {
       log::err("do not support higher than five dimentions");
       exit(-1);
@@ -859,30 +927,40 @@ void MDRequest(RefactoredMetadata &refactored_metadata, double tol, double s,
 
   if (dtype == data_type::Float) {
     if (shape.size() == 1) {
-      MDRequest<1, float, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
+      MDRequest<1, float, DeviceType>(shape, refactored_metadata, tol, s,
+                                      ebtype);
     } else if (shape.size() == 2) {
-      MDRequest<2, float, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
+      MDRequest<2, float, DeviceType>(shape, refactored_metadata, tol, s,
+                                      ebtype);
     } else if (shape.size() == 3) {
-      MDRequest<3, float, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
+      MDRequest<3, float, DeviceType>(shape, refactored_metadata, tol, s,
+                                      ebtype);
     } else if (shape.size() == 4) {
-      MDRequest<4, float, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
+      MDRequest<4, float, DeviceType>(shape, refactored_metadata, tol, s,
+                                      ebtype);
     } else if (shape.size() == 5) {
-      MDRequest<5, float, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
+      MDRequest<5, float, DeviceType>(shape, refactored_metadata, tol, s,
+                                      ebtype);
     } else {
       log::err("do not support higher than five dimentions");
       exit(-1);
     }
   } else if (dtype == data_type::Double) {
     if (shape.size() == 1) {
-      MDRequest<1, double, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
+      MDRequest<1, double, DeviceType>(shape, refactored_metadata, tol, s,
+                                       ebtype);
     } else if (shape.size() == 2) {
-      MDRequest<2, double, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
+      MDRequest<2, double, DeviceType>(shape, refactored_metadata, tol, s,
+                                       ebtype);
     } else if (shape.size() == 3) {
-      MDRequest<3, double, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
+      MDRequest<3, double, DeviceType>(shape, refactored_metadata, tol, s,
+                                       ebtype);
     } else if (shape.size() == 4) {
-      MDRequest<4, double, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
+      MDRequest<4, double, DeviceType>(shape, refactored_metadata, tol, s,
+                                       ebtype);
     } else if (shape.size() == 5) {
-      MDRequest<5, double, DeviceType>(shape, refactored_metadata, tol, s, ebtype);
+      MDRequest<5, double, DeviceType>(shape, refactored_metadata, tol, s,
+                                       ebtype);
     } else {
       log::err("do not support higher than five dimentions");
       exit(-1);
@@ -895,9 +973,9 @@ void MDRequest(RefactoredMetadata &refactored_metadata, double tol, double s,
 
 template <typename DeviceType>
 void MDReconstruct(RefactoredMetadata &refactored_metadata,
-                  RefactoredData &refactored_data,
-                  ReconstructedData &reconstructed_data, Config config,
-                  bool output_pre_allocated) {
+                   RefactoredData &refactored_data,
+                   ReconstructedData &reconstructed_data, Config config,
+                   bool output_pre_allocated) {
 
   Metadata<DeviceType> meta;
   meta.Deserialize((SERIALIZED_TYPE *)refactored_metadata.header.data());
@@ -909,40 +987,50 @@ void MDReconstruct(RefactoredMetadata &refactored_metadata,
 
   if (dtype == data_type::Float) {
     if (shape.size() == 1) {
-      MDReconstruct<1, float, DeviceType>(shape, refactored_metadata, refactored_data, reconstructed_data,
-                                         config, output_pre_allocated);
+      MDReconstruct<1, float, DeviceType>(shape, refactored_metadata,
+                                          refactored_data, reconstructed_data,
+                                          config, output_pre_allocated);
     } else if (shape.size() == 2) {
-      MDReconstruct<2, float, DeviceType>(shape, refactored_metadata, refactored_data, reconstructed_data,
-                                         config, output_pre_allocated);
+      MDReconstruct<2, float, DeviceType>(shape, refactored_metadata,
+                                          refactored_data, reconstructed_data,
+                                          config, output_pre_allocated);
     } else if (shape.size() == 3) {
-      MDReconstruct<3, float, DeviceType>(shape, refactored_metadata, refactored_data, reconstructed_data,
-                                         config, output_pre_allocated);
+      MDReconstruct<3, float, DeviceType>(shape, refactored_metadata,
+                                          refactored_data, reconstructed_data,
+                                          config, output_pre_allocated);
     } else if (shape.size() == 4) {
-      MDReconstruct<4, float, DeviceType>(shape, refactored_metadata, refactored_data, reconstructed_data,
-                                         config, output_pre_allocated);
+      MDReconstruct<4, float, DeviceType>(shape, refactored_metadata,
+                                          refactored_data, reconstructed_data,
+                                          config, output_pre_allocated);
     } else if (shape.size() == 5) {
-      MDReconstruct<5, float, DeviceType>(shape, refactored_metadata, refactored_data, reconstructed_data,
-                                         config, output_pre_allocated);
+      MDReconstruct<5, float, DeviceType>(shape, refactored_metadata,
+                                          refactored_data, reconstructed_data,
+                                          config, output_pre_allocated);
     } else {
       log::err("do not support higher than five dimentions");
       exit(-1);
     }
   } else if (dtype == data_type::Double) {
     if (shape.size() == 1) {
-      MDReconstruct<1, double, DeviceType>(shape, refactored_metadata, refactored_data, reconstructed_data,
-                                         config, output_pre_allocated);
+      MDReconstruct<1, double, DeviceType>(shape, refactored_metadata,
+                                           refactored_data, reconstructed_data,
+                                           config, output_pre_allocated);
     } else if (shape.size() == 2) {
-      MDReconstruct<2, double, DeviceType>(shape, refactored_metadata, refactored_data, reconstructed_data,
-                                         config, output_pre_allocated);
+      MDReconstruct<2, double, DeviceType>(shape, refactored_metadata,
+                                           refactored_data, reconstructed_data,
+                                           config, output_pre_allocated);
     } else if (shape.size() == 3) {
-      MDReconstruct<3, double, DeviceType>(shape, refactored_metadata, refactored_data, reconstructed_data,
-                                         config, output_pre_allocated);
+      MDReconstruct<3, double, DeviceType>(shape, refactored_metadata,
+                                           refactored_data, reconstructed_data,
+                                           config, output_pre_allocated);
     } else if (shape.size() == 4) {
-      MDReconstruct<4, double, DeviceType>(shape, refactored_metadata, refactored_data, reconstructed_data,
-                                         config, output_pre_allocated);
+      MDReconstruct<4, double, DeviceType>(shape, refactored_metadata,
+                                           refactored_data, reconstructed_data,
+                                           config, output_pre_allocated);
     } else if (shape.size() == 5) {
-      MDReconstruct<5, double, DeviceType>(shape, refactored_metadata, refactored_data, reconstructed_data,
-                                         config, output_pre_allocated);
+      MDReconstruct<5, double, DeviceType>(shape, refactored_metadata,
+                                           refactored_data, reconstructed_data,
+                                           config, output_pre_allocated);
     } else {
       log::err("do not support higher than five dimentions");
       exit(-1);
@@ -953,7 +1041,7 @@ void MDReconstruct(RefactoredMetadata &refactored_metadata,
   }
 }
 
-}
-}
+} // namespace MDR
+} // namespace mgard_x
 
 #endif

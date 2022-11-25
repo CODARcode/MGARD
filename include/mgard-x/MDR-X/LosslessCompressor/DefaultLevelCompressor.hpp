@@ -58,20 +58,24 @@ template <typename T, typename DeviceType>
 class DefaultLevelCompressor
     : public concepts::LevelCompressorInterface<T, DeviceType> {
 public:
-  DefaultLevelCompressor(SIZE max_n, Config config): huffman(max_n, config.huff_dict_size, config.huff_block_size, config.estimate_outlier_ratio) {
-  }
+  DefaultLevelCompressor(SIZE max_n, Config config)
+      : huffman(max_n, config.huff_dict_size, config.huff_block_size,
+                config.estimate_outlier_ratio) {}
   ~DefaultLevelCompressor(){};
 
   static size_t EstimateMemoryFootprint(SIZE max_n, Config config) {
     size_t size = 0;
-    size += Huffman<T, T, HUFFMAN_CODE, DeviceType>::EstimateMemoryFootprint(max_n, config.huff_dict_size, config.huff_block_size, config.estimate_outlier_ratio);
+    size += Huffman<T, T, HUFFMAN_CODE, DeviceType>::EstimateMemoryFootprint(
+        max_n, config.huff_dict_size, config.huff_block_size,
+        config.estimate_outlier_ratio);
     return size;
   }
   // compress level, overwrite and free original streams; rewrite streams sizes
-  void compress_level(
-      std::vector<SIZE> &bitplane_sizes,
-      Array<2, T, DeviceType> &encoded_bitplanes,
-      std::vector<Array<1, Byte, DeviceType>> &compressed_bitplanes, int queue_idx) {
+  void
+  compress_level(std::vector<SIZE> &bitplane_sizes,
+                 Array<2, T, DeviceType> &encoded_bitplanes,
+                 std::vector<Array<1, Byte, DeviceType>> &compressed_bitplanes,
+                 int queue_idx) {
 
     SubArray<2, T, DeviceType> encoded_bitplanes_subarray(encoded_bitplanes);
     for (SIZE bitplane_idx = 0;
@@ -93,9 +97,11 @@ public:
       compressed_bitplanes[bitplane_idx] = compressed_bitplane;
       bitplane_sizes[bitplane_idx] = compressed_bitplane_size;
 
-      // Array<1, T, DeviceType> encoded_bitplane({encoded_bitplanes_subarray.shape(1)}, bitplane);
-      // huffman.Compress(encoded_bitplane, compressed_bitplanes[bitplane_idx], queue_idx);
-      // bitplane_sizes[bitplane_idx] = compressed_bitplanes[bitplane_idx].shape(0);      
+      // Array<1, T, DeviceType>
+      // encoded_bitplane({encoded_bitplanes_subarray.shape(1)}, bitplane);
+      // huffman.Compress(encoded_bitplane, compressed_bitplanes[bitplane_idx],
+      // queue_idx); bitplane_sizes[bitplane_idx] =
+      // compressed_bitplanes[bitplane_idx].shape(0);
     }
   }
 
@@ -113,23 +119,24 @@ public:
       SIZE compressed_size = bitplane_sizes[starting_bitplane + bitplane_idx];
       Byte *compressed_host = new Byte[compressed_size];
       MemoryManager<DeviceType>::Copy1D(
-          compressed_host, compressed_bitplanes[starting_bitplane + bitplane_idx].data(),
+          compressed_host,
+          compressed_bitplanes[starting_bitplane + bitplane_idx].data(),
           compressed_size, 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
 
       Byte *bitplane_host = NULL;
       SIZE decompressed_size = ::MDR::ZSTD::decompress(
           compressed_host, compressed_size, &bitplane_host);
-      
+
       T *bitplane = encoded_bitplanes_subarray(bitplane_idx, 0);
-      MemoryManager<DeviceType>::Copy1D(
-          bitplane, (T *)bitplane_host,
-          decompressed_size / sizeof(T), 0);
+      MemoryManager<DeviceType>::Copy1D(bitplane, (T *)bitplane_host,
+                                        decompressed_size / sizeof(T), 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
 
-      // Array<1, T, DeviceType> encoded_bitplane({encoded_bitplanes_subarray.shape(1)}, bitplane);
-      // huffman.Decompress(compressed_bitplanes[bitplane_idx], encoded_bitplane, queue_idx);
-
+      // Array<1, T, DeviceType>
+      // encoded_bitplane({encoded_bitplanes_subarray.shape(1)}, bitplane);
+      // huffman.Decompress(compressed_bitplanes[bitplane_idx],
+      // encoded_bitplane, queue_idx);
     }
   }
 

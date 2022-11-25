@@ -24,8 +24,8 @@ int main() {
   double tol = 0.01, s = 0, norm;
   mgard_x::Compressor compressor(hierarchy, config);
   mgard_x::Array<1, unsigned char, mgard_x::SERIAL> compressed_array;
-  compressor.Compress(in_array, mgard_x::error_bound_type::REL, tol, s,
-                    norm, compressed_array, 0);
+  compressor.Compress(in_array, mgard_x::error_bound_type::REL, tol, s, norm,
+                      compressed_array, 0);
   mgard_x::DeviceRuntime<mgard_x::SERIAL>::SyncQueue(0);
   // Get compressed size in number of bytes.
   size_t compressed_size = compressed_array.shape(0);
@@ -35,9 +35,8 @@ int main() {
   std::cout << "Decompressing with MGARD-X SERIAL backend...";
   // decompression
   mgard_x::Array<3, double, mgard_x::SERIAL> decompressed_array;
-  compressor.Decompress(compressed_array,
-                      mgard_x::error_bound_type::REL, tol, s, norm, 
-                      decompressed_array, 0);
+  compressor.Decompress(compressed_array, mgard_x::error_bound_type::REL, tol,
+                        s, norm, decompressed_array, 0);
   mgard_x::DeviceRuntime<mgard_x::SERIAL>::SyncQueue(0);
   delete[] in_array_cpu;
   double *decompressed_array_cpu = decompressed_array.hostCopy();
