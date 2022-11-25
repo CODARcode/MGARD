@@ -5,13 +5,17 @@
  * Date: March 17, 2022
  */
 
+#ifndef MGARD_X_CASCADED_TEMPLATE_HPP
+#define MGARD_X_CASCADED_TEMPLATE_HPP
+
+#ifdef MGARDX_COMPILE_CUDA
+
 #include "nvcomp.hpp"
 #include "nvcomp/cascaded.h"
 #include "nvcomp/cascaded.hpp"
 #include "nvcomp/nvcompManagerFactory.hpp"
 
-#ifndef MGARD_X_CASCADED_TEMPLATE_HPP
-#define MGARD_X_CASCADED_TEMPLATE_HPP
+#endif
 
 namespace mgard_x {
 
@@ -19,6 +23,7 @@ template <typename C, typename DeviceType>
 Array<1, Byte, DeviceType>
 CascadedCompress(SubArray<1, C, DeviceType> &input_data, int n_rle, int n_de,
                  bool bitpack) {
+#ifdef MGARDX_COMPILE_CUDA
   using Mem = MemoryManager<DeviceType>;
   nvcompBatchedCascadedOpts_t options = nvcompBatchedCascadedDefaultOpts;
   options.type = nvcomp::TypeOf<C>();
@@ -37,11 +42,18 @@ CascadedCompress(SubArray<1, C, DeviceType> &input_data, int n_rle, int n_de,
       nvcomp_manager.get_compressed_output_size(output_data.data());
   DeviceRuntime<DeviceType>::SyncQueue(0);
   return output_data;
+#else
+  log::err(
+      "Cascaded for is only available on CUDA devices. Portable version is "
+      "in development.");
+  exit(-1);
+#endif
 }
 
 template <typename C, typename DeviceType>
 Array<1, C, DeviceType>
 CascadedDecompress(SubArray<1, Byte, DeviceType> &input_data) {
+#ifdef MGARDX_COMPILE_CUDA
   auto decomp_nvcomp_manager = nvcomp::create_manager(
       input_data.data(), DeviceRuntime<DeviceType>::GetQueue(0));
   size_t input_size = input_data.shape(0);
@@ -53,6 +65,12 @@ CascadedDecompress(SubArray<1, Byte, DeviceType> &input_data) {
   output_data.shape(0) = decomp_config.decomp_data_size / sizeof(C);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   return output_data;
+#else
+  log::err(
+      "Cascaded for is only available on CUDA devices. Portable version is "
+      "in development.");
+  exit(-1);
+#endif
 }
 } // namespace mgard_x
 
