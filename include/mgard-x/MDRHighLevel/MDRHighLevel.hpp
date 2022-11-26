@@ -14,7 +14,7 @@
 
 #include "mdr_x_lowlevel.hpp"
 
-#include "../CompressionLowLevel/Compressor.hpp"
+// #include "../CompressionLowLevel/Compressor.hpp"
 #include "../DomainDecomposer/DomainDecomposer.hpp"
 #include "../Metadata/Metadata.hpp"
 #include "MDRHighLevel.h"
