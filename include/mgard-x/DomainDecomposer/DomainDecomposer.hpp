@@ -8,6 +8,9 @@
 #ifndef MGARD_X_DOMAIN_DECOMPOSER_HPP
 #define MGARD_X_DOMAIN_DECOMPOSER_HPP
 
+#include "../Config/Config.h"
+#include "../Hierarchy/Hierarchy.hpp"
+
 namespace mgard_x {
 
 enum class subdomain_copy_direction : uint8_t {
@@ -55,8 +58,9 @@ public:
   bool need_domain_decomposition(std::vector<SIZE> shape,
                                  bool enable_prefetch) {
     size_t estm = estimate_memory_usgae(shape, 1.0, enable_prefetch);
-    size_t aval = std::min(DeviceRuntime<DeviceType>::GetAvailableMemory(),
-                           config.max_memory_footprint);
+    size_t aval =
+        std::min((SIZE)DeviceRuntime<DeviceType>::GetAvailableMemory(),
+                 config.max_memory_footprint);
     log::info("Estimated memory usage: " + std::to_string((double)estm / 1e9) +
               "GB, Available: " + std::to_string((double)aval / 1e9) + "GB");
     return estm >= aval;
