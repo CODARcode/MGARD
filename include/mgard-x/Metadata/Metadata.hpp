@@ -896,7 +896,7 @@ private:
       if (bitplane_encoding.method() !=
           mgard::pb::BitplaneEncoding::NOOP_BITPLANE_ENCODING) {
         number_bitplanes = bitplane_encoding.number_bitplanes();
-        assert(quantization.big_endian() == big_endian<std::int64_t>());
+        assert(bitplane_encoding.big_endian() == big_endian<std::int64_t>());
       }
     }
 

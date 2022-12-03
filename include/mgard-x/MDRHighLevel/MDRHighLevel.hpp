@@ -416,14 +416,6 @@ void load(Config &config, Metadata<DeviceType> &metadata) {
   config.total_num_bitplanes = metadata.number_bitplanes;
 }
 
-SIZE linearize(std::vector<SIZE> shape) {
-  SIZE n = 1;
-  for (int i = 0; i < shape.size(); i++) {
-    n *= shape[i];
-  }
-  return n;
-}
-
 template <DIM D, typename T, typename DeviceType>
 void MDRefactor(std::vector<SIZE> shape, const void *original_data,
                 bool uniform, std::vector<T *> coords,
@@ -708,9 +700,12 @@ void MDReconstruct(std::vector<SIZE> shape,
         domain_decomposer.num_subdomains());
     for (int subdomain_id = 0;
          subdomain_id < domain_decomposer.num_subdomains(); subdomain_id++) {
-      reconstructed_data.data[subdomain_id] = (Byte *)malloc(
-          linearize(domain_decomposer.subdomain_shape(subdomain_id)) *
-          sizeof(T));
+      SIZE n = 1;
+      for (int i = 0;
+           i < domain_decomposer.subdomain_shape(subdomain_id).size(); i++) {
+        n *= domain_decomposer.subdomain_shape(subdomain_id)[i];
+      }
+      reconstructed_data.data[subdomain_id] = (Byte *)malloc(n * sizeof(T));
       decomposed_original_data[subdomain_id] =
           (T *)reconstructed_data.data[subdomain_id];
     }
