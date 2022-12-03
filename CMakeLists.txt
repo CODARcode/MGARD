@@ -158,7 +158,7 @@ if(MGARD_ENABLE_CUDA)
   find_package(CUDAToolkit REQUIRED)
 
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_CUDA)
-  set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -w")
+  set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -w --generate-line-info")
   
   set (MGARD_X_SEPARATE_COMPILE_COMPILATION_OPTION 
        CUDA_SEPARABLE_COMPILATION ON)

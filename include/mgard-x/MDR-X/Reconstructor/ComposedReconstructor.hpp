@@ -10,7 +10,7 @@
 #include "../ErrorEstimator/ErrorEstimator.hpp"
 #include "../Interleaver/Interleaver.hpp"
 #include "../LosslessCompressor/LevelCompressor.hpp"
-#include "../RefactorUtils.hpp"
+// #include "../RefactorUtils.hpp"
 #include "../Retriever/Retriever.hpp"
 #include "../SizeInterpreter/SizeInterpreter.hpp"
 #include "ReconstructorInterface.hpp"
@@ -400,18 +400,18 @@ public:
   }
 
   void load_metadata() {
-    uint8_t *metadata = retriever.load_metadata();
-    uint8_t const *metadata_pos = metadata;
-    uint8_t num_dims = *(metadata_pos++);
-    MDR::deserialize(metadata_pos, num_dims, dimensions);
-    uint8_t num_levels = *(metadata_pos++);
-    MDR::deserialize(metadata_pos, num_levels, level_error_bounds);
-    MDR::deserialize(metadata_pos, num_levels, level_squared_errors);
-    MDR::deserialize(metadata_pos, num_levels, level_sizes);
-    // MDR::deserialize(metadata_pos, num_levels, stopping_indices);
-    // MDR::deserialize(metadata_pos, num_levels, level_num);
-    level_num_bitplanes = std::vector<uint8_t>(num_levels, 0);
-    free(metadata);
+    // uint8_t *metadata = retriever.load_metadata();
+    // uint8_t const *metadata_pos = metadata;
+    // uint8_t num_dims = *(metadata_pos++);
+    // MDR::deserialize(metadata_pos, num_dims, dimensions);
+    // uint8_t num_levels = *(metadata_pos++);
+    // MDR::deserialize(metadata_pos, num_levels, level_error_bounds);
+    // MDR::deserialize(metadata_pos, num_levels, level_squared_errors);
+    // MDR::deserialize(metadata_pos, num_levels, level_sizes);
+    // // MDR::deserialize(metadata_pos, num_levels, stopping_indices);
+    // // MDR::deserialize(metadata_pos, num_levels, level_num);
+    // level_num_bitplanes = std::vector<uint8_t>(num_levels, 0);
+    // free(metadata);
   }
 
   const std::vector<SIZE> &get_dimensions() { return dimensions; }
