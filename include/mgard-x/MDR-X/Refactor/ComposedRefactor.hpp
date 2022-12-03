@@ -6,7 +6,7 @@
 #include "../ErrorCollector/ErrorCollector.hpp"
 #include "../Interleaver/Interleaver.hpp"
 #include "../LosslessCompressor/LevelCompressor.hpp"
-#include "../RefactorUtils.hpp"
+// #include "../RefactorUtils.hpp"
 #include "../Writer/Writer.hpp"
 #include "RefactorInterface.hpp"
 // #include "../DataStructures/MDRData.hpp"
@@ -199,25 +199,27 @@ public:
   }
 
   void write_metadata(MDRMetadata &mdr_metadata) {
-    SIZE metadata_size =
-        sizeof(uint8_t) +
-        MDR::get_size(hierarchy.level_shape(hierarchy.l_target())) // dimensions
-        + sizeof(uint8_t) + MDR::get_size(mdr_metadata.level_error_bounds) +
-        MDR::get_size(mdr_metadata.level_squared_errors) +
-        MDR::get_size(mdr_metadata.level_sizes);
-    // + MDR::get_size(stopping_indices) + MDR::get_size(level_num);
-    uint8_t *metadata = (uint8_t *)malloc(metadata_size);
-    uint8_t *metadata_pos = metadata;
-    *(metadata_pos++) = (uint8_t)D;
-    MDR::serialize(hierarchy.level_shape(hierarchy.l_target()), metadata_pos);
-    *(metadata_pos++) = (uint8_t)mdr_metadata.level_error_bounds.size();
-    MDR::serialize(mdr_metadata.level_error_bounds, metadata_pos);
-    MDR::serialize(mdr_metadata.level_squared_errors, metadata_pos);
-    MDR::serialize(mdr_metadata.level_sizes, metadata_pos);
-    // MDR::serialize(stopping_indices, metadata_pos);
-    // MDR::serialize(level_num, metadata_pos);
-    writer.write_metadata(metadata, metadata_size);
-    free(metadata);
+    // SIZE metadata_size =
+    //     sizeof(uint8_t) +
+    //     MDR::get_size(hierarchy.level_shape(hierarchy.l_target())) //
+    //     dimensions
+    //     + sizeof(uint8_t) + MDR::get_size(mdr_metadata.level_error_bounds) +
+    //     MDR::get_size(mdr_metadata.level_squared_errors) +
+    //     MDR::get_size(mdr_metadata.level_sizes);
+    // // + MDR::get_size(stopping_indices) + MDR::get_size(level_num);
+    // uint8_t *metadata = (uint8_t *)malloc(metadata_size);
+    // uint8_t *metadata_pos = metadata;
+    // *(metadata_pos++) = (uint8_t)D;
+    // MDR::serialize(hierarchy.level_shape(hierarchy.l_target()),
+    // metadata_pos);
+    // *(metadata_pos++) = (uint8_t)mdr_metadata.level_error_bounds.size();
+    // MDR::serialize(mdr_metadata.level_error_bounds, metadata_pos);
+    // MDR::serialize(mdr_metadata.level_squared_errors, metadata_pos);
+    // MDR::serialize(mdr_metadata.level_sizes, metadata_pos);
+    // // MDR::serialize(stopping_indices, metadata_pos);
+    // // MDR::serialize(level_num, metadata_pos);
+    // writer.write_metadata(metadata, metadata_size);
+    // free(metadata);
   }
 
   void print() const {

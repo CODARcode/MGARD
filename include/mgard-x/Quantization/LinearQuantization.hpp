@@ -13,120 +13,6 @@
 
 namespace mgard_x {
 
-template <DIM D, typename T>
-void calc_quantizers(size_t dof, T *quantizers, enum error_bound_type type,
-                     T tol, T s, T norm, SIZE l_target,
-                     enum decomposition_type decomposition, bool reciprocal) {
-
-  double abs_tol = tol;
-  if (type == error_bound_type::REL) {
-    abs_tol *= norm;
-  }
-
-  // printf("tol %f, l_target %d, D %d\n", tol, l_target, D);
-
-  abs_tol *= 2;
-
-  // original
-  // tol /= l_target + 2;
-  // for (int l = 0; l < l_target+1; l++) {
-  //   quantizers[l] = tol;
-  // }
-  // printf("l_target %d\n", l_target);
-
-  // levelwise
-  // tol *= 2;
-  // T C2 = 1 + 3*std::sqrt(3)/4;
-  // T c = std::sqrt(std::pow(2, D));
-  // T cc = (1 - c) / (1 - std::pow(c, l_target+1));
-  // T level_eb = cc * tol / C2;
-
-  // for (int l = 0; l < l_target+1; l++) {
-  //   quantizers[l] = level_eb;
-  //   level_eb *= c;
-  // }
-
-  // s = 0;
-
-  // levelwise with s
-  // tol *= 2;
-  // T C2 = 1 + 3 * std::sqrt(3) / 4;
-  // T c = std::sqrt(std::pow(2, D - 2 * s));
-  // T cc = (1 - c) / (1 - std::pow(c, l_target + 1));
-  // T level_eb = cc * tol / C2;
-
-  // for (int l = 0; l < l_target + 1; l++) {
-  //   quantizers[l] = level_eb;
-  //   // T c = std::sqrt(std::pow(2, 2*s*l + D * (l_target - l)));
-  //   level_eb *= c;
-  //   if (reciprocal)
-  //     quantizers[l] = 1.0f / quantizers[l];
-  // }
-
-  if (s == std::numeric_limits<T>::infinity()) {
-
-    // printf("quantizers: ");
-    for (int l = 0; l < l_target + 1; l++) {
-      if (decomposition == decomposition_type::MultiDim) {
-        // ben
-        quantizers[l] = (abs_tol) / ((l_target + 1) * (1 + std::pow(3, D)));
-        // xin
-        // quantizers[l] = (tol) / ((l_target + 1) * (1 + 3 * std::sqrt(3) /
-        // 4));
-      } else if (decomposition == decomposition_type::SingleDim) {
-        // ken
-        quantizers[l] = (abs_tol) / ((l_target + 1) * D * (1 + std::pow(3, 1)));
-      }
-
-      // printf("%f ", quantizers[l]);
-      if (reciprocal)
-        quantizers[l] = 1.0f / quantizers[l];
-    }
-    // printf("\n");
-
-  } else { // s != inf
-    // xin - uniform
-    // T C2 = 1 + 3 * std::sqrt(3) / 4;
-    // T c = std::sqrt(std::pow(2, D - 2 * s));
-    // T cc = (1 - c) / (1 - std::pow(c, l_target + 1));
-    // T level_eb = cc * tol / C2;
-    // for (int l = 0; l < l_target + 1; l++) {
-    //   quantizers[l] = level_eb;
-    //   // T c = std::sqrt(std::pow(2, 2*s*l + D * (l_target - l)));
-    //   level_eb *= c;
-    //   if (reciprocal)
-    //     quantizers[l] = 1.0f / quantizers[l];
-    // }
-
-    // ben - uniform
-    // printf("quantizers: ");
-
-    // size_t dof = 1;
-    // for (int d = 0; d < D; d++) dof *= handle.dofs[d][0];
-    // printf("tol: %f, dof: %llu\n", tol, dof);
-    // printf ("dof = %llu\n", dof);
-    for (int l = 0; l < l_target + 1; l++) {
-
-      quantizers[l] = (abs_tol) / (std::exp2(s * l) * std::sqrt(dof));
-
-      // printf("l %d, vol: %f quantizer: %f \n", l, std::pow(2, (l_target - l)
-      // * D), quantizers[l]);
-
-      // printf("tol: %f quant: %e \n", tol, quantizers[l]);
-      if (reciprocal)
-        quantizers[l] = 1.0f / quantizers[l];
-    }
-    // printf("\n");
-  }
-
-  // print quantizers
-  // printf("quantizers: ");
-  // for (int l = 0; l < l_target+1; l++) {
-  //   printf("%f ", 1.0f/quantizers[l]);
-  // }
-  // printf("\n");
-}
-
 #define MGARDX_QUANTIZE 1
 #define MGARDX_DEQUANTIZE 2
 
@@ -408,7 +294,10 @@ public:
       QUANTIZED_INT quantized_data;
 
       if constexpr (OP == MGARDX_QUANTIZE) {
-        quantized_data = copysign(0.5 + fabs(t * quantizer * volume), t);
+        if (sizeof(T) == sizeof(double))
+          quantized_data = copysign((T)0.5 + fabs(t * quantizer * volume), t);
+        else if (sizeof(T) == sizeof(float))
+          quantized_data = copysign((T)0.5 + fabsf(t * quantizer * volume), t);
         if (prep_huffman) {
           quantized_data += dict_size / 2;
           if (quantized_data >= 0 && quantized_data < dict_size) {
@@ -837,6 +726,11 @@ public:
         if (log::level & log::TIME) {
           timer.end();
           timer.print("Quantization");
+          log::time(
+              "Quantization throughput: " +
+              std::to_string((double)(hierarchy.total_num_elems() * sizeof(T)) /
+                             timer.get() / 1e9) +
+              " GB/s");
           timer.clear();
         }
         log::info("Outlier ratio: " +
@@ -890,8 +784,8 @@ public:
 
     SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
     T *quantizers = new T[hierarchy.l_target() + 1];
-    calc_quantizers<D, T>(total_elems, quantizers, ebtype, tol, s, norm,
-                          hierarchy.l_target(), config.decomposition, false);
+    CalcQuantizers(total_elems, quantizers, ebtype, tol, s, norm,
+                   hierarchy.l_target(), config.decomposition, false);
     MemoryManager<DeviceType>::Copy1D(quantizers_subarray.data(), quantizers,
                                       hierarchy.l_target() + 1, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
@@ -953,6 +847,11 @@ public:
     if (log::level & log::TIME) {
       timer.end();
       timer.print("Dequantization");
+      log::time(
+          "Dequantization throughput: " +
+          std::to_string((double)(hierarchy.total_num_elems() * sizeof(T)) /
+                         timer.get() / 1e9) +
+          " GB/s");
       timer.clear();
     }
 
