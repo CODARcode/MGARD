@@ -17,6 +17,8 @@
 #include "mgard-x/Utilities/ErrorCalculator.h"
 // #include "compress_cuda.hpp"
 
+#define OUTPUT_SAFTY_OVERHEAD 1e6
+
 using namespace std::chrono;
 
 void print_usage_message(std::string error) {
@@ -328,7 +330,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   size_t in_size = 0;
   if (std::string(input_file).compare("random") == 0) {
     in_size = original_size * sizeof(T);
-    original_data = new T[original_size];
+    original_data = (T *)malloc(original_size * sizeof(T));
     srand(7117);
     T c = 0;
     for (size_t i = 0; i < original_size; i++) {
@@ -342,10 +344,10 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
               << in_size << " vs. " << original_size * sizeof(T) << "!\n";
   }
 
-  void *compressed_data = (void *)new T[original_size];
-  size_t compressed_size = 0;
+  size_t compressed_size = original_size * sizeof(T) + OUTPUT_SAFTY_OVERHEAD;
+  void *compressed_data = (void *)malloc(compressed_size);
   mgard_x::pin_memory(original_data, original_size * sizeof(T), config);
-  mgard_x::pin_memory(compressed_data, original_size * sizeof(T), config);
+  mgard_x::pin_memory(compressed_data, compressed_size, config);
   std::vector<const mgard_x::Byte *> coords_byte;
   if (!non_uniform) {
     mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
@@ -387,8 +389,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   mgard_x::unpin_memory(original_data, config);
   mgard_x::unpin_memory(compressed_data, config);
-  delete[](T *) original_data;
-  delete[](unsigned char *) compressed_data;
+  free(original_data);
+  free(compressed_data);
 
   return 0;
 }
