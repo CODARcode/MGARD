@@ -107,7 +107,7 @@ T PSNR(size_t n, const T *original_data, const T *decompressed_data) {
       min = original_data[i];
   }
   T range = max - min;
-  return 20 * std::log10(range) - 10 * std::log10(mse);
+  return 20 * std::log10(range / std::sqrt(mse));
 }
 
 } // namespace mgard_x
