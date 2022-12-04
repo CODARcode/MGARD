@@ -22,7 +22,8 @@ class LevelwiseLinearQuantizerNDFunctor : public Functor<DeviceType> {
 public:
   MGARDX_CONT LevelwiseLinearQuantizerNDFunctor() {}
   MGARDX_CONT LevelwiseLinearQuantizerNDFunctor(
-      SubArray<2, SIZE, DeviceType> level_ranges, SIZE l_target,
+      SubArray<2, SIZE, DeviceType> level_ranges,
+      SubArray<2, int, DeviceType> level_marks, SIZE l_target,
       SubArray<1, T, DeviceType> quantizers,
       SubArray<3, T, DeviceType> level_volumes, SubArray<D, T, DeviceType> v,
       SubArray<D, QUANTIZED_INT, DeviceType> quantized_v,
@@ -31,7 +32,8 @@ public:
       SubArray<1, LENGTH, DeviceType> outlier_count,
       SubArray<1, LENGTH, DeviceType> outlier_indexes,
       SubArray<1, QUANTIZED_INT, DeviceType> outliers)
-      : level_ranges(level_ranges), l_target(l_target), quantizers(quantizers),
+      : level_ranges(level_ranges), level_marks(level_marks),
+        l_target(l_target), quantizers(quantizers),
         level_volumes(level_volumes), v(v), quantized_v(quantized_v),
         quantized_linearized_v(quantized_linearized_v),
         prep_huffman(prep_huffman), calc_vol(calc_vol),
@@ -140,124 +142,31 @@ public:
   }
 
   MGARDX_EXEC void Operation1() {
-    threadId = (FunctorBase<DeviceType>::GetThreadIdZ() *
-                (FunctorBase<DeviceType>::GetBlockDimX() *
-                 FunctorBase<DeviceType>::GetBlockDimY())) +
-               (FunctorBase<DeviceType>::GetThreadIdY() *
-                FunctorBase<DeviceType>::GetBlockDimX()) +
-               FunctorBase<DeviceType>::GetThreadIdX();
-
-    Byte *sm = FunctorBase<DeviceType>::GetSharedMemory();
-    volumes_0 = (T *)sm;
-    if (calc_vol)
-      sm += roundup<SIZE>(FunctorBase<DeviceType>::GetBlockDimX() *
-                          (l_target + 1) * sizeof(T));
-    volumes_1 = (T *)sm;
-    if (calc_vol)
-      sm += roundup<SIZE>(FunctorBase<DeviceType>::GetBlockDimY() *
-                          (l_target + 1) * sizeof(T));
-    volumes_2 = (T *)sm;
-    if (calc_vol)
-      sm += roundup<SIZE>(FunctorBase<DeviceType>::GetBlockDimZ() *
-                          (l_target + 1) * sizeof(T));
-    volumes_3_plus = (T *)sm;
-    if (calc_vol && D > 3)
-      sm += roundup<SIZE>((D - 3) * (l_target + 1) * sizeof(T));
-
     // determine global idx
     SIZE firstD = div_roundup(v.shape(D - 1), F);
 
     SIZE bidx = FunctorBase<DeviceType>::GetBlockIdX();
     idx[D - 1] = (bidx % firstD) * F + FunctorBase<DeviceType>::GetThreadIdX();
-    idx0[D - 1] = (bidx % firstD) * F;
 
     bidx /= firstD;
     if (D >= 2) {
       idx[D - 2] = FunctorBase<DeviceType>::GetBlockIdY() *
                        FunctorBase<DeviceType>::GetBlockDimY() +
                    FunctorBase<DeviceType>::GetThreadIdY();
-      idx0[D - 2] = FunctorBase<DeviceType>::GetBlockIdY() *
-                    FunctorBase<DeviceType>::GetBlockDimY();
     }
     if (D >= 3) {
       idx[D - 3] = FunctorBase<DeviceType>::GetBlockIdZ() *
                        FunctorBase<DeviceType>::GetBlockDimZ() +
                    FunctorBase<DeviceType>::GetThreadIdZ();
-      idx0[D - 3] = FunctorBase<DeviceType>::GetBlockIdZ() *
-                    FunctorBase<DeviceType>::GetBlockDimZ();
     }
 
     for (int d = D - 4; d >= 0; d--) {
       idx[d] = bidx % v.shape(d);
-      idx0[d] = idx[d];
+      // idx0[d] = idx[d];
       bidx /= v.shape(d);
     }
 
-    if (calc_vol) {
-      // cache volumes
-      for (int l = 0; l < l_target + 1; l++) {
-        // volumes 0
-        if (threadId < FunctorBase<DeviceType>::GetBlockDimX() &&
-            idx0[D - 1] + threadId < v.shape(D - 1)) {
-          volumes_0[l * FunctorBase<DeviceType>::GetBlockDimX() + threadId] =
-              *level_volumes(l, D - 1, idx0[D - 1] + threadId);
-        }
-        if (D >= 2) {
-          // volumes 1
-          if (threadId < FunctorBase<DeviceType>::GetBlockDimY() &&
-              idx0[D - 2] + threadId < v.shape(D - 2)) {
-            volumes_1[l * FunctorBase<DeviceType>::GetBlockDimY() + threadId] =
-                *level_volumes(l, D - 2, idx0[D - 2] + threadId);
-          }
-        }
-        if (D >= 3) {
-          // volumes 2
-          if (threadId < FunctorBase<DeviceType>::GetBlockDimZ() &&
-              idx0[D - 3] + threadId < v.shape(D - 3)) {
-            volumes_2[l * FunctorBase<DeviceType>::GetBlockDimZ() + threadId] =
-                *level_volumes(l, D - 3, idx0[D - 3] + threadId);
-          }
-        }
-      }
-
-      if (D >= 4) {
-        if (threadId < 1) {
-          // for (int d = 3; d < D; d++) {
-          for (int d = D - 4; d >= 0; d--) {
-            for (int l = 0; l < l_target + 1; l++) {
-              volumes_3_plus[l * (D - 3) + d] = *level_volumes(l, d, idx0[d]);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  MGARDX_EXEC void Operation2() {
     level = 0;
-    // Old appraoch
-    // for (int d = D - 1; d >= 0; d--) {
-    //   l_bit[d] = 0l;
-    //   for (SIZE l = 0; l < l_target + 1; l++) {
-    //     long long unsigned int bit = (idx[d] >= *level_ranges(l, d)) &&
-    //                                  (idx[d] < *level_ranges(l + 1, d));
-    //     l_bit[d] += bit << l;
-    //   }
-    //   level =
-    //       Math<DeviceType>::Max((int)level,
-    //       Math<DeviceType>::ffsll(l_bit[d]));
-    // }
-    // level = level - 1;
-
-    for (int d = D - 1; d >= 0; d--) {
-      l_bit[d] = 0l;
-      for (SIZE l = 0; l < l_target + 1; l++) {
-        if (idx[d] >= *level_ranges(l, d) && idx[d] < *level_ranges(l + 1, d)) {
-          l_bit[d] = l;
-        }
-      }
-      level = Math<DeviceType>::Max(level, l_bit[d]);
-    }
 
     bool in_range = true;
     for (int d = D - 1; d >= 0; d--) {
@@ -269,20 +178,14 @@ public:
       T t = v[idx];
       T volume = 1;
       if (calc_vol) {
-        volume *= volumes_0[level * FunctorBase<DeviceType>::GetBlockDimX() +
-                            FunctorBase<DeviceType>::GetThreadIdX()];
-        if (D >= 2) {
-          volume *= volumes_1[level * FunctorBase<DeviceType>::GetBlockDimY() +
-                              FunctorBase<DeviceType>::GetThreadIdY()];
+        // Determine level
+        for (int d = D - 1; d >= 0; d--) {
+          level = Math<DeviceType>::Max(level, *level_marks(d, idx[d]));
         }
-        if (D >= 3) {
-          volume *= volumes_2[level * FunctorBase<DeviceType>::GetBlockDimZ() +
-                              FunctorBase<DeviceType>::GetThreadIdZ()];
-        }
-        if (D >= 4) {
-          for (int d = D - 4; d >= 0; d--) {
-            volume *= volumes_3_plus[level * (D - 3) + d];
-          }
+
+        // Determine volume
+        for (int d = D - 1; d >= 0; d--) {
+          volume *= *level_volumes(level, d, idx[d]);
         }
         if (sizeof(T) == sizeof(double))
           volume = sqrt(volume);
@@ -360,17 +263,13 @@ public:
 
   MGARDX_CONT size_t shared_memory_size() {
     size_t size = 0;
-    size += roundup<SIZE>(F * (l_target + 1) * sizeof(T));
-    size += roundup<SIZE>(C * (l_target + 1) * sizeof(T));
-    size += roundup<SIZE>(R * (l_target + 1) * sizeof(T));
-    if (D > 3)
-      size += roundup<SIZE>((D - 3) * (l_target + 1) * sizeof(T));
     return size;
   }
 
 private:
   IDX threadId;
   SubArray<2, SIZE, DeviceType> level_ranges;
+  SubArray<2, int, DeviceType> level_marks;
   SIZE l_target;
   SubArray<1, T, DeviceType> quantizers;
   SubArray<3, T, DeviceType> level_volumes;
@@ -455,7 +354,8 @@ public:
   constexpr static std::string_view Name = "lwqzk";
   MGARDX_CONT
   LevelwiseLinearQuantizerKernel(
-      SubArray<2, SIZE, DeviceType> level_ranges, SIZE l_target,
+      SubArray<2, SIZE, DeviceType> level_ranges,
+      SubArray<2, int, DeviceType> level_marks, SIZE l_target,
       SubArray<1, T, DeviceType> quantizers,
       SubArray<3, T, DeviceType> level_volumes, T s, SIZE dict_size,
       SubArray<D, T, DeviceType> v,
@@ -465,7 +365,8 @@ public:
       SubArray<1, LENGTH, DeviceType> outlier_count,
       SubArray<1, LENGTH, DeviceType> outlier_indexes,
       SubArray<1, QUANTIZED_INT, DeviceType> outliers)
-      : level_ranges(level_ranges), l_target(l_target), quantizers(quantizers),
+      : level_ranges(level_ranges), level_marks(level_marks),
+        l_target(l_target), quantizers(quantizers),
         level_volumes(level_volumes), s(s), dict_size(dict_size), v(v),
         quantized_v(quantized_v), prep_huffman(prep_huffman),
         level_linearize(level_linearize),
@@ -482,10 +383,10 @@ public:
 
     bool calc_vol =
         s != std::numeric_limits<T>::infinity(); // m.ntype == norm_type::L_2;
-    FunctorType functor(level_ranges, l_target, quantizers, level_volumes, v,
-                        quantized_v, quantized_linearized_v, prep_huffman,
-                        calc_vol, level_linearize, dict_size, outlier_count,
-                        outlier_indexes, outliers);
+    FunctorType functor(level_ranges, level_marks, l_target, quantizers,
+                        level_volumes, v, quantized_v, quantized_linearized_v,
+                        prep_huffman, calc_vol, level_linearize, dict_size,
+                        outlier_count, outlier_indexes, outliers);
 
     SIZE total_thread_z = v.shape(D - 3);
     SIZE total_thread_y = v.shape(D - 2);
@@ -511,6 +412,7 @@ public:
 
 private:
   SubArray<2, SIZE, DeviceType> level_ranges;
+  SubArray<2, int, DeviceType> level_marks;
   SIZE l_target;
   SubArray<1, T, DeviceType> quantizers;
   SubArray<3, T, DeviceType> level_volumes;
@@ -655,6 +557,7 @@ public:
     SIZE total_elems = hierarchy.total_num_elems();
     SubArray<2, SIZE, DeviceType> level_ranges_subarray(
         hierarchy.level_ranges());
+    SubArray<2, int, DeviceType> level_marks_subarray(hierarchy.level_marks());
     SubArray<3, T, DeviceType> level_volumes_subarray(
         hierarchy.level_volumes(false));
     SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
@@ -705,10 +608,11 @@ public:
     while (!done_quantization) {
       DeviceLauncher<DeviceType>::Execute(
           LevelwiseLinearQuantizerKernel<D, T, MGARDX_QUANTIZE, DeviceType>(
-              level_ranges_subarray, hierarchy.l_target(), quantizers_subarray,
-              level_volumes_subarray, s, config.huff_dict_size,
-              SubArray(original_data), SubArray(quantized_data), prep_huffman,
-              config.reorder, quantized_linearized_v,
+              level_ranges_subarray, level_marks_subarray, hierarchy.l_target(),
+              quantizers_subarray, level_volumes_subarray, s,
+              config.huff_dict_size, SubArray(original_data),
+              SubArray(quantized_data), prep_huffman, config.reorder,
+              quantized_linearized_v,
               lossless.huffman.workspace.outlier_count_subarray,
               lossless.huffman.workspace.outlier_idx_subarray,
               lossless.huffman.workspace.outlier_subarray),
@@ -777,6 +681,7 @@ public:
         &lossless_compressor.huffman.workspace.outlier_count, 1, queue_idx);
     SubArray<2, SIZE, DeviceType> level_ranges_subarray(
         hierarchy.level_ranges());
+    SubArray<2, int, DeviceType> level_marks_subarray(hierarchy.level_marks());
     SubArray<3, T, DeviceType> level_volumes_subarray(
         hierarchy.level_volumes(true));
 
@@ -834,10 +739,11 @@ public:
 
     DeviceLauncher<DeviceType>::Execute(
         LevelwiseLinearQuantizerKernel<D, T, MGARDX_DEQUANTIZE, DeviceType>(
-            level_ranges_subarray, hierarchy.l_target(), quantizers_subarray,
-            level_volumes_subarray, s, config.huff_dict_size,
-            SubArray(original_data), SubArray(quantized_data), prep_huffman,
-            config.reorder, quantized_linearized_v,
+            level_ranges_subarray, level_marks_subarray, hierarchy.l_target(),
+            quantizers_subarray, level_volumes_subarray, s,
+            config.huff_dict_size, SubArray(original_data),
+            SubArray(quantized_data), prep_huffman, config.reorder,
+            quantized_linearized_v,
             lossless_compressor.huffman.workspace.outlier_count_subarray,
             lossless_compressor.huffman.workspace.outlier_idx_subarray,
             lossless_compressor.huffman.workspace.outlier_subarray),

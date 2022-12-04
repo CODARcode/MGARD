@@ -38,6 +38,7 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   Array<1, DIM, DeviceType> &processed(SIZE idx, DIM &processed_n);
   Array<1, DIM, DeviceType> &unprocessed(SIZE idx, DIM &processed_n);
   Array<2, SIZE, DeviceType> &level_ranges();
+  Array<2, int, DeviceType> &level_marks();
   Array<3, T, DeviceType> &level_volumes(bool reciprocal);
   data_structure_type data_structure();
   bool is_initialized();
@@ -77,6 +78,7 @@ private:
   Array<1, DIM, DeviceType> _unprocessed_dims[D];
   // Pre-computed range array for fast quantization
   Array<2, SIZE, DeviceType> _level_ranges;
+  Array<2, int, DeviceType> _level_marks;
   // Pre-computed volume array for fast quantization
   Array<3, T, DeviceType> _level_volumes;
   Array<3, T, DeviceType> _level_volumes_reciprocal;
