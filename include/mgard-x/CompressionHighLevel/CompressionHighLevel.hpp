@@ -25,6 +25,8 @@
 #ifndef MGARD_X_COMPRESSION_HIGH_LEVEL_API_HPP
 #define MGARD_X_COMPRESSION_HIGH_LEVEL_API_HPP
 
+#define OUTPUT_SAFTY_OVERHEAD 1e6
+
 namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType>
@@ -290,7 +292,7 @@ void compress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>,
   compressor.Compress(device_subdomain_buffer, local_ebtype, local_tol, s, norm,
                       device_compressed_buffer, 0);
   if (device_compressed_buffer.shape(0) >
-      hierarchy.total_num_elems() * sizeof(T)) {
+      hierarchy.total_num_elems() * sizeof(T) + OUTPUT_SAFTY_OVERHEAD) {
     log::err("Compression failed. Output larger than input.");
     exit(-1);
   }
@@ -812,17 +814,19 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   if (log::level & log::TIME)
     timer_each.start();
   // Use consistance memory space between input and output data
-  size_t safty_overhead = 1e6;
+  size_t output_buffer_size;
   if (!output_pre_allocated) {
+    output_buffer_size = total_num_elem * sizeof(T) + OUTPUT_SAFTY_OVERHEAD;
     if (MemoryManager<DeviceType>::IsDevicePointer(original_data)) {
       DeviceRuntime<DeviceType>::SelectDevice(
           MemoryManager<DeviceType>::GetPointerDevice(original_data));
-      MemoryManager<DeviceType>::Malloc1D(compressed_data,
-                                          total_num_elem * sizeof(T));
+      MemoryManager<DeviceType>::Malloc1D(compressed_data, output_buffer_size);
     } else {
-      compressed_data =
-          (unsigned char *)malloc(total_num_elem * sizeof(T) + safty_overhead);
+      compressed_data = (unsigned char *)malloc(output_buffer_size);
     }
+  } else {
+    // compressed_size stores pre-allocated buffer size
+    output_buffer_size = compressed_size;
   }
 
   bool input_previously_pinned =
@@ -836,8 +840,8 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
       !MemoryManager<DeviceType>::IsDevicePointer((void *)compressed_data) &&
       MemoryManager<DeviceType>::CheckHostRegister((void *)compressed_data);
   if (!output_previously_pinned) {
-    MemoryManager<DeviceType>::HostRegister(
-        (void *)compressed_data, total_num_elem * sizeof(T) + safty_overhead);
+    MemoryManager<DeviceType>::HostRegister((void *)compressed_data,
+                                            output_buffer_size);
   }
 
   log::info("Output preallocated: " + std::to_string(output_pre_allocated));
