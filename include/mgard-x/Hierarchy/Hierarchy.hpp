@@ -274,6 +274,28 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     delete[] ranges_h_org;
   }
 
+  {
+    SIZE max_width = 0;
+    for (DIM d = 0; d < D; d++) {
+      max_width = std::max(max_width, _level_shape[_l_target][d]);
+    }
+    int *_level_marks_h = new int[D * max_width];
+    for (DIM d = 0; d < D; d++) {
+      int curr_level = 0;
+      int i = 0;
+      for (SIZE l = 0; l < _l_target + 1; l++) {
+        for (; i < _level_shape[l][d]; i++) {
+          _level_marks_h[d * max_width + i] = l;
+        }
+      }
+    }
+    bool pitched = false;
+    _level_marks = Array<2, int, DeviceType>({D, max_width}, pitched);
+    _level_marks.load(_level_marks_h);
+    // PrintSubarray("_level_marks", SubArray(_level_marks));
+    delete[] _level_marks_h;
+  }
+
   { // Coords
     for (int d = 0; d < D; d++) {
       Array<1, T, DeviceType> coord({shape[d]});
@@ -653,6 +675,11 @@ Array<2, SIZE, DeviceType> &Hierarchy<D, T, DeviceType>::level_ranges() {
 }
 
 template <DIM D, typename T, typename DeviceType>
+Array<2, int, DeviceType> &Hierarchy<D, T, DeviceType>::level_marks() {
+  return _level_marks;
+}
+
+template <DIM D, typename T, typename DeviceType>
 Array<3, T, DeviceType> &
 Hierarchy<D, T, DeviceType>::level_volumes(bool reciprocal) {
   if (!reciprocal) {
@@ -788,6 +815,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy(const Hierarchy &hierarchy) {
   _level_shape = hierarchy._level_shape;
   _level_shape_array = hierarchy._level_shape_array;
   _level_ranges = hierarchy._level_ranges;
+  _level_marks = hierarchy._level_marks;
   dstype = hierarchy.dstype;
   if (D >= 4) {
     for (DIM d = 0; d < D; d++) {
