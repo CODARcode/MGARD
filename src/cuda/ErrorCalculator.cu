@@ -83,7 +83,7 @@ template <typename T> T PSNR(size_t n, T *original_data, T *decompressed_data) {
       min = original_data[i];
   }
   T range = max - min;
-  return 20 * std::log10(range) - 10 * std::log10(mse);
+  return 20 * std::log10(range / std::sqrt(mse));
 }
 
 // double max = 0, min = std::numeric_limits<double>::max(), range = 0;
