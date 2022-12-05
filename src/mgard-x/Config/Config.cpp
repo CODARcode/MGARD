@@ -16,7 +16,7 @@ Config::Config() {
   domain_decomposition = domain_decomposition_type::MaxDim;
   decomposition = decomposition_type::MultiDim;
   estimate_outlier_ratio = 1.0;
-  huff_dict_size = 8192 * 8;
+  huff_dict_size = 8192;
   huff_block_size = 1024 * 20;
   lz4_block_size = 1 << 15;
   zstd_compress_level = 3;
