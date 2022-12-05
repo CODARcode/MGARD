@@ -1786,10 +1786,11 @@ public:
                   Array<1, Byte, SYCL> &workspace, int queue_idx) {}
 
   template <typename KeyT, typename ValueT>
-  MGARDX_CONT static void SortByKey(SIZE n, SubArray<1, KeyT, SYCL> &in_keys,
-                                    SubArray<1, ValueT, SYCL> &in_values,
-                                    SubArray<1, KeyT, SYCL> &out_keys,
-                                    SubArray<1, ValueT, SYCL> &out_values,
+  MGARDX_CONT static void SortByKey(SIZE n, SubArray<1, KeyT, SYCL> in_keys,
+                                    SubArray<1, ValueT, SYCL> in_values,
+                                    SubArray<1, KeyT, SYCL> out_keys,
+                                    SubArray<1, ValueT, SYCL> out_values,
+                                    Array<1, Byte, SYCL> &workspace,
                                     int queue_idx) {
     if (workspace.hasDeviceAllocation()) {
       KeyT *keys_array = new KeyT[n];
