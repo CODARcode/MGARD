@@ -42,6 +42,7 @@ option(MGARD_ENABLE_LEGACY_CUDA "Enable legacy CUDA support" OFF)
 option(MGARD_ENABLE_MULTI_DEVICE "Enable multi-device" OFF)
 option(MGARD_ENABLE_COORDINATE_NORMALIZATION "Enable coordinate normalication for uniform grid" ON)
 option(MGARD_ENABLE_AUTO_TUNING "Enable auto tuning" OFF)
+option(MGARD_ENABLE_MDR "Enable MDR" OFF)
 
 option(MGARD_ENABLE_CLI "Build executable." OFF)
 
@@ -116,20 +117,21 @@ if (MGARD_ENABLE_SERIAL OR
   target_link_libraries(mgard-x mgard-library  ${CMAKE_DL_LIBS})
   target_include_directories(mgard-x PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                             $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+  install(TARGETS mgard-x)
 
   add_executable(mgard-x-autotuner ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/mgard-x-autotuner.cpp)
   target_link_libraries(mgard-x-autotuner mgard-library  ${CMAKE_DL_LIBS})
   target_include_directories(mgard-x-autotuner PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                                       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-
-  add_executable(mdr-x ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/mdr-x.cpp)
-  target_link_libraries(mdr-x mgard-library  ${CMAKE_DL_LIBS})
-  target_include_directories(mgard-x PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-
-  install(TARGETS mgard-x)
   install(TARGETS mgard-x-autotuner)
-  install(TARGETS mdr-x)
+
+  if(MGARD_ENABLE_MDR)
+    add_executable(mdr-x ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/mdr-x.cpp)
+    target_link_libraries(mdr-x mgard-library  ${CMAKE_DL_LIBS})
+    target_include_directories(mgard-x PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                              $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+    install(TARGETS mdr-x)
+  endif()
 endif()
 
 #Adding library here so we can set compile definitions for it.
@@ -497,6 +499,7 @@ if (MGARD_ENABLE_LEGACY_CUDA)
 endif()
 message(STATUS "multi-device:  ${MGARD_ENABLE_MULTI_DEVICE}")
 message(STATUS "auto tuning:   ${MGARD_ENABLE_AUTO_TUNING}")
+message(STATUS "MDR:           ${MGARD_ENABLE_MDR}")
 message(STATUS "timing:        ${MGARD_ENABLE_TIMING}")
 message(STATUS "ASan:          ${MGARD_ENABLE_ASAN}")
 message(STATUS "UBSan:         ${MGARD_ENABLE_UBSAN}")
