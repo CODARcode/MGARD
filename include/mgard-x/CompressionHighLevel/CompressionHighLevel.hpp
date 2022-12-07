@@ -884,8 +884,14 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
         domain_decomposer.total_subdomain_size_for_device(dev_id);
     buffer_size += sizeof(SIZE) *
                    domain_decomposer.subdomain_ids_for_device(dev_id).size();
-    MemoryManager<DeviceType>::MallocHost(compressed_subdomain_data[dev_id],
+
+    if (MemoryManager<DeviceType>::IsDevicePointer((void *)original_data)) {
+      MemoryManager<DeviceType>::Malloc1D(compressed_subdomain_data[dev_id],
                                           buffer_size);
+    } else {
+      MemoryManager<DeviceType>::MallocHost(compressed_subdomain_data[dev_id],
+                                            buffer_size);
+    }
   }
 
   if (log::level & log::TIME) {
