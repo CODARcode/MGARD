@@ -71,7 +71,10 @@ public:
                                         (uint8_t *)bitplane,
                                         bitplane_sizes[bitplane_idx], 0);
       DeviceRuntime<DeviceType>::SyncQueue(0);
+      int old_log_level = log::level;
+      log::level = log::ERR;
       ZstdCompress(compressed_bitplane, config.zstd_compress_level);
+      log::level = old_log_level;
       compressed_bitplanes[bitplane_idx] = compressed_bitplane;
       bitplane_sizes[bitplane_idx] = compressed_bitplane.shape(0);
     }
@@ -111,8 +114,10 @@ public:
       // encoded_bitplane({encoded_bitplanes_subarray.shape(1)}, bitplane);
       // huffman.Decompress(compressed_bitplanes[bitplane_idx],
       // encoded_bitplane, queue_idx);
-
+      int old_log_level = log::level;
+      log::level = log::ERR;
       ZstdDecompress(compressed_bitplanes[bitplane_idx]);
+      log::level = old_log_level;
       MemoryManager<DeviceType>::Copy1D(
           (uint8_t *)bitplane, compressed_bitplanes[bitplane_idx].data(),
           compressed_bitplanes[bitplane_idx].shape(0), 0);
