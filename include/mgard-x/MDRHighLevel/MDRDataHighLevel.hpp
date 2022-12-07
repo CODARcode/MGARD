@@ -94,11 +94,14 @@ public:
     offset.resize(num_subdomains);
     shape.resize(num_subdomains);
     data.resize(num_subdomains);
+    initialized = true;
   }
+  bool IsInitialized() { return initialized; }
   std::vector<std::vector<SIZE>> offset;
   std::vector<std::vector<SIZE>> shape;
   std::vector<Byte *> data;
   SIZE num_subdomains;
+  bool initialized = false;
 };
 
 } // namespace MDR
