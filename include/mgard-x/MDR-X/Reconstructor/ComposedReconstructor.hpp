@@ -42,7 +42,6 @@ public:
                        hierarchy.level_num_elems(hierarchy.l_target())),
                    config),
         total_num_bitplanes(config.total_num_bitplanes),
-        adaptive_resolution(config.mdr_adaptive_resolution),
         retriever(metadata_file, files) {
     prev_reconstructed = false;
     partial_reconsctructed_data = Array<D, T_data, DeviceType>(
@@ -57,7 +56,6 @@ public:
                        hierarchy.level_num_elems(hierarchy.l_target())),
                    config),
         total_num_bitplanes(config.total_num_bitplanes),
-        adaptive_resolution(config.mdr_adaptive_resolution),
         retriever(std::string(""), std::vector<std::string>()) {
     prev_reconstructed = false;
     partial_reconsctructed_data = Array<D, T_data, DeviceType>(
@@ -167,6 +165,7 @@ public:
 
   void ProgressiveReconstruct(MDRMetadata &mdr_metadata,
                               MDRData<DeviceType> &mdr_data,
+                              bool adaptive_resolution,
                               Array<D, T_data, DeviceType> &reconstructed_data,
                               int queue_idx) {
 
@@ -585,7 +584,6 @@ private:
   SubArray<1, T_data, DeviceType> *levels_data = nullptr;
   std::vector<Array<2, T_bitplane, DeviceType>> encoded_bitplanes_array;
   SIZE total_num_bitplanes;
-  bool adaptive_resolution;
 
   // std::vector<Array<1, T_data, DeviceType>> levels_array;
   // std::vector<SubArray<1, T_data, DeviceType>> levels_data;
