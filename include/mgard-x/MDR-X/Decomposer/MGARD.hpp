@@ -79,11 +79,13 @@ public:
     size += DataRefactor<D, T, DeviceType>::EstimateMemoryFootprint(shape);
     return size;
   }
-  void decompose(Array<D, T, DeviceType> &v, int stop_level, int queue_idx) {
-    refactor.Decompose(v, stop_level, queue_idx);
+  void decompose(Array<D, T, DeviceType> &v, int start_level, int stop_level,
+                 int queue_idx) {
+    refactor.Decompose(v, start_level, stop_level, queue_idx);
   }
-  void recompose(Array<D, T, DeviceType> &v, int stop_level, int queue_idx) {
-    refactor.Recompose(v, stop_level, queue_idx);
+  void recompose(Array<D, T, DeviceType> &v, int start_level, int stop_level,
+                 int queue_idx) {
+    refactor.Recompose(v, start_level, stop_level, queue_idx);
   }
   void print() const {
     std::cout << "MGARD orthogonal decomposer" << std::endl;

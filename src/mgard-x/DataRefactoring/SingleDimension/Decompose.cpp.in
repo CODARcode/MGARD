@@ -11,7 +11,7 @@ namespace mgard_x {
 
 template void decompose_single<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
-    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, int stop_level,
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, int start_level, int stop_level,
     int queue_idx);
 } // namespace mgard_x
 // clang-format on
