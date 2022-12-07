@@ -163,6 +163,16 @@ public:
     timer.print("Preprocessing");
   }
 
+  void InterpolateToLevel(Array<D, T_data, DeviceType> &reconstructed_data,
+                          int prev_level, int curr_level, int queue_idx) {
+    Timer timer;
+    timer.start();
+    decomposer.recompose(reconstructed_data, prev_level, curr_level, queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+    timer.end();
+    timer.print("Interpolation");
+  }
+
   void ProgressiveReconstruct(MDRMetadata &mdr_metadata,
                               MDRData<DeviceType> &mdr_data,
                               bool adaptive_resolution,
@@ -173,20 +183,16 @@ public:
 
     Timer timer;
     // Decompress and decode bitplanes of each level
-    int final_level = 0;
-    for (int level_idx = hierarchy.l_target(); level_idx >= 0; level_idx--) {
-      SIZE num_bitplanes =
-          mdr_metadata.loaded_level_num_bitplanes[level_idx] -
-          mdr_metadata.prev_used_level_num_bitplanes[level_idx];
-      if (num_bitplanes != 0) {
-        final_level = level_idx;
-        break;
-      }
+    int prev_final_level = mdr_metadata.PrevFinalLevel();
+    int curr_final_level = mdr_metadata.CurrFinalLevel();
+    log::info("Prev Final level: " + std::to_string(prev_final_level));
+    log::info("Curr Final level: " + std::to_string(curr_final_level));
+
+    if (!adaptive_resolution) {
+      curr_final_level = hierarchy.l_target();
     }
-    log::info("Final level: " + std::to_string(final_level));
-    if (!adaptive_resolution)
-      final_level = hierarchy.l_target();
-    for (int level_idx = 0; level_idx <= final_level; level_idx++) {
+
+    for (int level_idx = 0; level_idx <= curr_final_level; level_idx++) {
       timer.start();
       // Number of bitplanes need to be retrieved in addition to previously
       // already retrieved bitplanes
@@ -225,25 +231,31 @@ public:
       timer.print("Decoding");
     }
 
-    partial_reconsctructed_data.resize(hierarchy.level_shape(final_level));
-    reconstructed_data.resize(hierarchy.level_shape(final_level));
+    partial_reconsctructed_data.resize(hierarchy.level_shape(curr_final_level));
 
     timer.start();
     // Put decoded coefficients back to reordered layout
     interleaver.reposition(
         levels_data,
         SubArray<D, T_data, DeviceType>(partial_reconsctructed_data),
-        final_level, queue_idx);
+        curr_final_level, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Reposition");
 
     timer.start();
-    decomposer.recompose(partial_reconsctructed_data, 0, final_level,
+    decomposer.recompose(partial_reconsctructed_data, 0, curr_final_level,
                          queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Recomposing");
+
+    // This should only allocate memory one time
+    reconstructed_data.resize(hierarchy.level_shape(curr_final_level));
+
+    // Interpolate previous reconstructed data to the same resolution
+    InterpolateToLevel(reconstructed_data, prev_final_level, curr_final_level,
+                       queue_idx);
 
     SubArray partial_reconstructed_subarray(partial_reconsctructed_data);
     SubArray reconstructed_subarray(reconstructed_data);

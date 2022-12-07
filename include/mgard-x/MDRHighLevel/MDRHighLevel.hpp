@@ -379,8 +379,6 @@ void reconstruct_subdomain_series_w_prefetch(
     }
     log::info("Reconstruct subdomain " + std::to_string(curr_subdomain_id) +
               " with shape: " + ss.str());
-    printf("config.mdr_adaptive_resolution: %d\n",
-           config.mdr_adaptive_resolution);
     device_subdomain_buffer[current_buffer].resize(
         hierarchy.level_shape(hierarchy.l_target()));
     device_subdomain_buffer[current_buffer].memset(0, current_queue);
