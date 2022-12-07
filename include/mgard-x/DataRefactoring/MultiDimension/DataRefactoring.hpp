@@ -20,7 +20,13 @@ namespace mgard_x {
 template <DIM D, typename T, typename DeviceType>
 void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
                SubArray<D, T, DeviceType> &v, SubArray<D, T, DeviceType> w,
-               SubArray<D, T, DeviceType> b, int stop_level, int queue_idx) {
+               SubArray<D, T, DeviceType> b, int start_level, int stop_level,
+               int queue_idx) {
+
+  if (start_level < 0 || start_level > hierarchy.l_target()) {
+    std::cout << log::log_err << "decompose: start_level out of bound.\n";
+    exit(-1);
+  }
 
   if (stop_level < 0 || stop_level > hierarchy.l_target()) {
     std::cout << log::log_err << "decompose: stop_level out of bound.\n";
@@ -66,7 +72,7 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
   SubArray<D, T, DeviceType> v_coarse = v;
 
   if constexpr (D <= 3) {
-    for (int l = hierarchy.l_target(); l > stop_level; l--) {
+    for (int l = start_level; l > stop_level; l--) {
       if (multidim_refactoring_debug_print) {
         PrintSubarray("input v", v);
       }
@@ -116,7 +122,7 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
     // Array<D, T, DeviceType> workspace2(workspace_shape);
     // SubArray b(workspace2);
     SubArray<D, T, DeviceType> b_fine = b;
-    for (int l = hierarchy.l_target(); l > stop_level; l--) {
+    for (int l = start_level; l > stop_level; l--) {
       if (multidim_refactoring_debug_print) { // debug
         PrintSubarray4D("before coeff", v);
       }
@@ -153,10 +159,16 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
 template <DIM D, typename T, typename DeviceType>
 void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
                SubArray<D, T, DeviceType> &v, SubArray<D, T, DeviceType> w,
-               SubArray<D, T, DeviceType> b, int stop_level, int queue_idx) {
+               SubArray<D, T, DeviceType> b, int start_level, int stop_level,
+               int queue_idx) {
 
   if (stop_level < 0 || stop_level > hierarchy.l_target()) {
     std::cout << log::log_err << "recompose: stop_level out of bound.\n";
+    exit(-1);
+  }
+
+  if (start_level < 0 || start_level > hierarchy.l_target()) {
+    std::cout << log::log_err << "recompose: start_level out of bound.\n";
     exit(-1);
   }
 
@@ -198,19 +210,19 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
       prefix +=
           std::to_string(hierarchy.level_shape(hierarchy.l_target(), d)) + "_";
 
-    for (int l = 1; l <= stop_level; l++) {
+    for (int l = start_level; l < stop_level; l++) {
 
-      v_coeff.resize(hierarchy.level_shape(l));
+      v_coeff.resize(hierarchy.level_shape(l + 1));
+      w_correction.resize(hierarchy.level_shape(l + 1));
+      CalcCorrection3D(hierarchy, v_coeff, w_correction, l + 1, queue_idx);
+
       w_correction.resize(hierarchy.level_shape(l));
-      CalcCorrection3D(hierarchy, v_coeff, w_correction, l, queue_idx);
-
-      w_correction.resize(hierarchy.level_shape(l - 1));
-      v_coarse.resize(hierarchy.level_shape(l - 1));
+      v_coarse.resize(hierarchy.level_shape(l));
       SubtractND(w_correction, v_coarse, queue_idx);
 
-      v_coeff.resize(hierarchy.level_shape(l));
-      w_fine.resize(hierarchy.level_shape(l));
-      CoefficientsRestore3D(hierarchy, v_coeff, w_fine, l, queue_idx);
+      v_coeff.resize(hierarchy.level_shape(l + 1));
+      w_fine.resize(hierarchy.level_shape(l + 1));
+      CoefficientsRestore3D(hierarchy, v_coeff, w_fine, l + 1, queue_idx);
 
       v_fine.resize(hierarchy.level_shape(l));
       CopyND(w_fine, v_fine, queue_idx);
@@ -239,10 +251,10 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
       b = SubArray(workspace2);
     }
     SubArray<D, T, DeviceType> b_fine = b;
-    for (int l = 1; l <= stop_level; l++) {
+    for (int l = start_level; l < stop_level; l++) {
 
       if (multidim_refactoring_debug_print) { // debug
-        PrintSubarray4D(format("before corection[%d]", l), v);
+        PrintSubarray4D(format("before corection[%d]", l + 1), v);
       }
 
       int curr_dim_r, curr_dim_c, curr_dim_f;
@@ -251,29 +263,30 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
       int lddb1, lddb2;
 
       if (multidim_refactoring_debug_print) { // debug
-        PrintSubarray4D(format("before subtract correction[%d]", l), v);
+        PrintSubarray4D(format("before subtract correction[%d]", l + 1), v);
       } // deb
 
-      v_coeff.resize(hierarchy.level_shape(l));
-      w_correction.resize(hierarchy.level_shape(l));
-      CalcCorrectionND(hierarchy, v_coeff, w_correction, l, queue_idx);
+      v_coeff.resize(hierarchy.level_shape(l + 1));
+      w_correction.resize(hierarchy.level_shape(l + 1));
+      CalcCorrectionND(hierarchy, v_coeff, w_correction, l + 1, queue_idx);
 
-      w_correction.resize(hierarchy.level_shape(l - 1));
-      v_coarse.resize(hierarchy.level_shape(l - 1));
+      w_correction.resize(hierarchy.level_shape(l));
+      v_coarse.resize(hierarchy.level_shape(l));
       SubtractND(w_correction, v_coarse, queue_idx);
 
       if (multidim_refactoring_debug_print) { // debug
-        PrintSubarray4D(format("after subtract correction[%d]", l), v);
+        PrintSubarray4D(format("after subtract correction[%d]", l + 1), v);
       } // deb
 
-      v_coeff.resize(hierarchy.level_shape(l));
-      w_fine.resize(hierarchy.level_shape(l));
-      b_fine.resize(hierarchy.level_shape(l));
+      v_coeff.resize(hierarchy.level_shape(l + 1));
+      w_fine.resize(hierarchy.level_shape(l + 1));
+      b_fine.resize(hierarchy.level_shape(l + 1));
       CopyND(v_coeff, b_fine, queue_idx);
       CopyND(v_coeff, w_fine, queue_idx);
 
-      v_fine.resize(hierarchy.level_shape(l));
-      CoefficientsRestoreND(hierarchy, w_fine, b_fine, v_fine, l, queue_idx);
+      v_fine.resize(hierarchy.level_shape(l + 1));
+      CoefficientsRestoreND(hierarchy, w_fine, b_fine, v_fine, l + 1,
+                            queue_idx);
     } // loop levels
 
     if (multidim_refactoring_debug_print) { // debug

@@ -14,5 +14,5 @@ template void recompose<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v,
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> w,
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> b, 
-    int stop_level, int queue_idx);
+    int start_level, int stop_level, int queue_idx);
 } // namespace mgard_x// clang-format on

@@ -239,7 +239,8 @@ public:
     timer.print("Reposition");
 
     timer.start();
-    decomposer.recompose(partial_reconsctructed_data, final_level, queue_idx);
+    decomposer.recompose(partial_reconsctructed_data, 0, final_level,
+                         queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Recomposing");
@@ -560,7 +561,7 @@ private:
     timer.start();
     // PrintSubarray("before recompose", SubArray(data_array));
     // Recompose data
-    decomposer.recompose(reconstructed_data, target_level, queue_idx);
+    decomposer.recompose(reconstructed_data, 0, target_level, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     // PrintSubarray("after recompose", SubArray(data_array));
     timer.end();
