@@ -295,11 +295,15 @@ void reconstruct_subdomain_series(
     log::info("Reconstruct subdomain " + std::to_string(subdomain_id) +
               " with shape: " + ss.str());
     device_subdomain_buffer.resize(hierarchy.level_shape(hierarchy.l_target()));
-    device_subdomain_buffer.memset(0, 0);
+    // Load previously reconstructred data
+    domain_decomposer.copy_subdomain(
+        device_subdomain_buffer, subdomain_id,
+        subdomain_copy_direction::OriginalToSubdomain, 0);
+    // Reconstruct
     reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data,
                                          config.mdr_adaptive_resolution,
                                          device_subdomain_buffer, 0);
-
+    // Update reconstructed data
     domain_decomposer.copy_subdomain(
         device_subdomain_buffer, subdomain_id,
         subdomain_copy_direction::SubdomainToOriginal, 0);
@@ -381,12 +385,16 @@ void reconstruct_subdomain_series_w_prefetch(
               " with shape: " + ss.str());
     device_subdomain_buffer[current_buffer].resize(
         hierarchy.level_shape(hierarchy.l_target()));
-    device_subdomain_buffer[current_buffer].memset(0, current_queue);
+    // Load previously reconstructred data
+    domain_decomposer.copy_subdomain(
+        device_subdomain_buffer[current_buffer], curr_subdomain_id,
+        subdomain_copy_direction::OriginalToSubdomain, current_queue);
+    // Reconstruct
     reconstructor.ProgressiveReconstruct(
         refactored_metadata.metadata[curr_subdomain_id],
         mdr_data[current_buffer], config.mdr_adaptive_resolution,
         device_subdomain_buffer[current_buffer], current_queue);
-
+    // Update reconstructed data
     domain_decomposer.copy_subdomain(
         device_subdomain_buffer[current_buffer], curr_subdomain_id,
         subdomain_copy_direction::SubdomainToOriginal, current_queue);
@@ -691,23 +699,32 @@ void MDReconstruct(std::vector<SIZE> shape,
             m.domain_decomposed_dim, m.domain_decomposed_size, config, coords);
   }
   if (!config.mdr_adaptive_resolution) {
-    reconstructed_data.Initialize(1);
-    reconstructed_data.data[0] = (Byte *)malloc(total_num_elem * sizeof(T));
+    if (!reconstructed_data.IsInitialized()) {
+      // First time reconstruction
+      reconstructed_data.Initialize(1);
+      reconstructed_data.data[0] = (Byte *)malloc(total_num_elem * sizeof(T));
+      reconstructed_data.offset[0] = std::vector<SIZE>(D, 0);
+      reconstructed_data.shape[0] = shape;
+    }
     domain_decomposer.set_original_data((T *)reconstructed_data.data[0]);
-    reconstructed_data.offset[0] = std::vector<SIZE>(D, 0);
-    reconstructed_data.shape[0] = shape;
   } else {
-    reconstructed_data.Initialize(domain_decomposer.num_subdomains());
+    if (!reconstructed_data.IsInitialized()) {
+      // First time reconstruction
+      reconstructed_data.Initialize(domain_decomposer.num_subdomains());
+      for (int subdomain_id = 0;
+           subdomain_id < domain_decomposer.num_subdomains(); subdomain_id++) {
+        SIZE n = 1;
+        for (int i = 0;
+             i < domain_decomposer.subdomain_shape(subdomain_id).size(); i++) {
+          n *= domain_decomposer.subdomain_shape(subdomain_id)[i];
+        }
+        reconstructed_data.data[subdomain_id] = (Byte *)malloc(n * sizeof(T));
+      }
+    }
     std::vector<T *> decomposed_original_data(
         domain_decomposer.num_subdomains());
     for (int subdomain_id = 0;
          subdomain_id < domain_decomposer.num_subdomains(); subdomain_id++) {
-      SIZE n = 1;
-      for (int i = 0;
-           i < domain_decomposer.subdomain_shape(subdomain_id).size(); i++) {
-        n *= domain_decomposer.subdomain_shape(subdomain_id)[i];
-      }
-      reconstructed_data.data[subdomain_id] = (Byte *)malloc(n * sizeof(T));
       decomposed_original_data[subdomain_id] =
           (T *)reconstructed_data.data[subdomain_id];
     }
