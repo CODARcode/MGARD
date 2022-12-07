@@ -241,6 +241,7 @@ void reconstruct_subdomain(
   device_subdomain_buffer.resize(hierarchy.level_shape(hierarchy.l_target()));
   device_subdomain_buffer.memset(0, 0);
   reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data,
+                                       config.mdr_adaptive_resolution,
                                        device_subdomain_buffer, 0);
 
   domain_decomposer.copy_subdomain(
@@ -296,6 +297,7 @@ void reconstruct_subdomain_series(
     device_subdomain_buffer.resize(hierarchy.level_shape(hierarchy.l_target()));
     device_subdomain_buffer.memset(0, 0);
     reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data,
+                                         config.mdr_adaptive_resolution,
                                          device_subdomain_buffer, 0);
 
     domain_decomposer.copy_subdomain(
@@ -377,13 +379,15 @@ void reconstruct_subdomain_series_w_prefetch(
     }
     log::info("Reconstruct subdomain " + std::to_string(curr_subdomain_id) +
               " with shape: " + ss.str());
+    printf("config.mdr_adaptive_resolution: %d\n",
+           config.mdr_adaptive_resolution);
     device_subdomain_buffer[current_buffer].resize(
         hierarchy.level_shape(hierarchy.l_target()));
     device_subdomain_buffer[current_buffer].memset(0, current_queue);
     reconstructor.ProgressiveReconstruct(
         refactored_metadata.metadata[curr_subdomain_id],
-        mdr_data[current_buffer], device_subdomain_buffer[current_buffer],
-        current_queue);
+        mdr_data[current_buffer], config.mdr_adaptive_resolution,
+        device_subdomain_buffer[current_buffer], current_queue);
 
     domain_decomposer.copy_subdomain(
         device_subdomain_buffer[current_buffer], curr_subdomain_id,
