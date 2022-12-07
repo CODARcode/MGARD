@@ -206,6 +206,12 @@ public:
 
     log::info("Huffman block size: " + std::to_string(chunk_size));
     log::info("Huffman dictionary size: " + std::to_string(dict_size));
+    log::info("Huffman compress ratio (primary): " +
+              std::to_string(primary_count * sizeof(Q)) + "/" +
+              std::to_string(ddata_size * sizeof(H)) + " (" +
+              std::to_string((double)primary_count * sizeof(Q) / ddata_size *
+                             sizeof(H)) +
+              ")");
     log::info(
         "Huffman compress ratio: " + std::to_string(primary_count * sizeof(Q)) +
         "/" + std::to_string(compressed_data.shape(0)) + " (" +
