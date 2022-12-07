@@ -82,6 +82,30 @@ public:
     }
   }
 
+  int PrevFinalLevel() {
+    int final_level = 0;
+    for (int level_idx = num_levels - 1; level_idx >= 0; level_idx--) {
+      SIZE num_bitplanes = prev_used_level_num_bitplanes[level_idx];
+      if (num_bitplanes != 0) {
+        final_level = level_idx;
+        break;
+      }
+    }
+    return final_level;
+  }
+
+  int CurrFinalLevel() {
+    int final_level = 0;
+    for (int level_idx = num_levels - 1; level_idx >= 0; level_idx--) {
+      SIZE num_bitplanes = loaded_level_num_bitplanes[level_idx];
+      if (num_bitplanes != 0) {
+        final_level = level_idx;
+        break;
+      }
+    }
+    return final_level;
+  }
+
   SIZE MetadataSize() {
     SIZE metadata_size = 0;
     metadata_size += sizeof(SIZE) * 2;
