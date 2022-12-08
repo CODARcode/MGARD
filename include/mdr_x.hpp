@@ -25,12 +25,11 @@ void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape,
                 RefactoredData &refactored_data, Config config,
                 bool output_pre_allocated);
 
-void MDRequest(RefactoredMetadata &refactored_metadata, double tol, double s,
-               enum error_bound_type ebtype, Config config);
+void MDRequest(RefactoredMetadata &refactored_metadata, Config config);
 
 void MDReconstruct(RefactoredMetadata &refactored_metadata,
                    RefactoredData &refactored_data,
                    ReconstructedData &reconstructed_data, Config config,
-                   bool output_pre_allocated);
+                   bool output_pre_allocated, const void *original_data = nullptr);
 } // namespace MDR
 } // namespace mgard_x

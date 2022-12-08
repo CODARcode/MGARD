@@ -166,8 +166,7 @@ void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape,
   }
 }
 
-void MDRequest(RefactoredMetadata &refactored_metadata, double tol, double s,
-               enum error_bound_type ebtype, Config config) {
+void MDRequest(RefactoredMetadata &refactored_metadata, Config config) {
 
   enum device_type dev_type = config.dev_type;
   if (dev_type == device_type::AUTO) {
@@ -176,35 +175,35 @@ void MDRequest(RefactoredMetadata &refactored_metadata, double tol, double s,
 
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
-    MDRequest<SERIAL>(refactored_metadata, tol, s, ebtype);
+    MDRequest<SERIAL>(refactored_metadata);
 #else
     log::err("MDR-X was not built with SERIAL backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
-    MDRequest<OPENMP>(refactored_metadata, tol, s, ebtype);
+    MDRequest<OPENMP>(refactored_metadata);
 #else
     log::err("MDR-X was not built with OPENMP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    MDRequest<CUDA>(refactored_metadata, tol, s, ebtype);
+    MDRequest<CUDA>(refactored_metadata);
 #else
     log::err("MDR-X was not built with CUDA backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    MDRequest<HIP>(refactored_metadata, tol, s, ebtype);
+    MDRequest<HIP>(refactored_metadata);
 #else
     log::err("MDR-X was not built with HIP backend.");
     exit(-1);
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    MDRequest<SYCL>(refactored_metadata, tol, s, ebtype);
+    MDRequest<SYCL>(refactored_metadata);
 #else
     log::err("MDR-X was not built with SYCL backend.");
     exit(-1);
@@ -217,7 +216,7 @@ void MDRequest(RefactoredMetadata &refactored_metadata, double tol, double s,
 void MDReconstruct(RefactoredMetadata &refactored_metadata,
                    RefactoredData &refactored_data,
                    ReconstructedData &reconstructed_data, Config config,
-                   bool output_pre_allocated) {
+                   bool output_pre_allocated, const void *original_data) {
 
   enum device_type dev_type = config.dev_type;
   if (dev_type == device_type::AUTO) {
@@ -227,7 +226,8 @@ void MDReconstruct(RefactoredMetadata &refactored_metadata,
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
     MDReconstruct<SERIAL>(refactored_metadata, refactored_data,
-                          reconstructed_data, config, output_pre_allocated);
+                          reconstructed_data, config, output_pre_allocated,
+                          original_data);
 #else
     log::err("MDR-X was not built with SERIAL backend.");
     exit(-1);
@@ -235,7 +235,8 @@ void MDReconstruct(RefactoredMetadata &refactored_metadata,
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
     MDReconstruct<OPENMP>(refactored_metadata, refactored_data,
-                          reconstructed_data, config, output_pre_allocated);
+                          reconstructed_data, config, output_pre_allocated,
+                          original_data);
 #else
     log::err("MDR-X was not built with OPENMP backend.");
     exit(-1);
@@ -243,7 +244,8 @@ void MDReconstruct(RefactoredMetadata &refactored_metadata,
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
     MDReconstruct<CUDA>(refactored_metadata, refactored_data,
-                        reconstructed_data, config, output_pre_allocated);
+                        reconstructed_data, config, output_pre_allocated,
+                        original_data);
 #else
     log::err("MDR-X was not built with CUDA backend.");
     exit(-1);
@@ -251,7 +253,7 @@ void MDReconstruct(RefactoredMetadata &refactored_metadata,
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
     MDReconstruct<HIP>(refactored_metadata, refactored_data, reconstructed_data,
-                       config, output_pre_allocated);
+                       config, output_pre_allocated, original_data);
 #else
     log::err("MDR-X was not built with HIP backend.");
     exit(-1);
@@ -259,7 +261,8 @@ void MDReconstruct(RefactoredMetadata &refactored_metadata,
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
     MDReconstruct<SYCL>(refactored_metadata, refactored_data,
-                        reconstructed_data, config, output_pre_allocated);
+                        reconstructed_data, config, output_pre_allocated,
+                        original_data);
 #else
     log::err("MDR-X was not built with SYCL backend.");
     exit(-1);

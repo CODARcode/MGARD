@@ -536,8 +536,12 @@ int launch_reconstruct(std::string input_file, std::string output_file,
   mgard_x::MDR::RefactoredData refactored_data;
   read_mdr(refactored_metadata, refactored_data, input_file);
   refactored_metadata.InitializeForReconstruction();
-  mgard_x::MDR::MDRequest(refactored_metadata, tol, s, mode, config);
-  for (auto metadata : refactored_metadata.metadata) {
+  for (auto &metadata : refactored_metadata.metadata) {
+    metadata.requested_tol = tol;
+    metadata.requested_s = s;
+  }
+  mgard_x::MDR::MDRequest(refactored_metadata, config);
+  for (auto &metadata : refactored_metadata.metadata) {
     metadata.PrintStatus();
   }
 
