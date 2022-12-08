@@ -41,14 +41,13 @@ void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape,
                 bool output_pre_allocated);
 
 template <typename DeviceType>
-void MDRequest(RefactoredMetadata &refactored_metadata, double tol, double s,
-               enum error_bound_type ebtype);
+void MDRequest(RefactoredMetadata &refactored_metadata);
 
 template <typename DeviceType>
 void MDReconstruct(RefactoredMetadata &refactored_metadata,
                    RefactoredData &refactored_data,
                    ReconstructedData &reconstructed_data, Config config,
-                   bool output_pre_allocated);
+                   bool output_pre_allocated, const void *original_data);
 } // namespace MDR
 } // namespace mgard_x
 
