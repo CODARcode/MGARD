@@ -119,7 +119,7 @@ public:
     return size;
   }
 
-  void GenerateRequest(MDRMetadata &mdr_metadata, double tolerance, double s) {
+  void GenerateRequest(MDRMetadata &mdr_metadata) {
     mgard_x::Timer timer;
     timer.start();
     std::vector<std::vector<double>> level_abs_errors;
@@ -127,7 +127,7 @@ public:
     std::vector<std::vector<double>> level_errors =
         mdr_metadata.level_squared_errors;
     std::vector<SIZE> retrieve_sizes;
-    if (s == std::numeric_limits<double>::infinity()) {
+    if (mdr_metadata.requested_s == std::numeric_limits<double>::infinity()) {
       std::cout << "ErrorEstimator is base of MaxErrorEstimator, computing "
                    "absolute error"
                 << std::endl;
@@ -146,17 +146,18 @@ public:
       // RoundRobinSizeInterpreter interpreter(estimator);
       // InorderSizeInterpreter interpreter(estimator);
       retrieve_sizes = interpreter.interpret_retrieve_size(
-          mdr_metadata.level_sizes, level_errors, tolerance,
+          mdr_metadata.level_sizes, level_errors, mdr_metadata.requested_tol,
           mdr_metadata.requested_level_num_bitplanes);
     } else {
       std::cout << "ErrorEstimator is base of SquaredErrorEstimator, using "
                    "level squared error directly"
                 << std::endl;
-      SNormErrorEstimator<T_data> estimator(D, hierarchy.l_target(), s);
+      SNormErrorEstimator<T_data> estimator(D, hierarchy.l_target(),
+                                            mdr_metadata.requested_s);
       SignExcludeGreedyBasedSizeInterpreter interpreter(estimator);
       // NegaBinaryGreedyBasedSizeInterpreter interpreter(estimator);
       retrieve_sizes = interpreter.interpret_retrieve_size(
-          mdr_metadata.level_sizes, level_errors, tolerance,
+          mdr_metadata.level_sizes, level_errors, mdr_metadata.requested_tol,
           mdr_metadata.requested_level_num_bitplanes);
     }
     timer.end();

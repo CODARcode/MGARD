@@ -33,16 +33,24 @@ public:
 
   using T_error = double;
   // Metadata
+  SIZE num_levels;
+  SIZE num_bitplanes;
   std::vector<T_error> level_error_bounds;
   std::vector<std::vector<T_error>> level_squared_errors;
   std::vector<std::vector<SIZE>> level_sizes;
 
   // For progressive reconstruction
+  T_error loaded_tol, loaded_s;
+  T_error requested_tol, requested_s;
+  T_error prev_tol, prev_s;
   std::vector<uint8_t> loaded_level_num_bitplanes;
   std::vector<uint8_t> requested_level_num_bitplanes;
   std::vector<uint8_t> prev_used_level_num_bitplanes;
 
   void InitializeForReconstruction() {
+    loaded_tol = 0, loaded_s = 0;
+    requested_tol = 0, requested_s = 0;
+    prev_tol = 0, prev_s = 0;
     loaded_level_num_bitplanes = std::vector<uint8_t>(num_levels, 0);
     requested_level_num_bitplanes = std::vector<uint8_t>(num_levels, 0);
     prev_used_level_num_bitplanes = std::vector<uint8_t>(num_levels, 0);
@@ -58,6 +66,7 @@ public:
   }
 
   void PrintStatus() {
+    printf("Request tol: %f, s: %f\n", requested_tol, requested_s);
     for (int level_idx = 0; level_idx < num_levels; level_idx++) {
       printf("Request %d (%d more) bitplans from level %d\n",
              requested_level_num_bitplanes[level_idx],
@@ -69,6 +78,8 @@ public:
 
   void DoneLoadingBitplans() {
     // TODO: load
+    loaded_tol = requested_tol;
+    loaded_s = requested_s;
     for (int level_idx = 0; level_idx < num_levels; level_idx++) {
       loaded_level_num_bitplanes[level_idx] =
           requested_level_num_bitplanes[level_idx];
@@ -76,6 +87,8 @@ public:
   }
 
   void DoneReconstruct() {
+    prev_tol = loaded_tol;
+    prev_s = loaded_s;
     for (int level_idx = 0; level_idx < num_levels; level_idx++) {
       prev_used_level_num_bitplanes[level_idx] =
           loaded_level_num_bitplanes[level_idx];
@@ -155,9 +168,6 @@ public:
       Deserialize(ptr, level_sizes[i].data(), sizeof(SIZE) * (num_bitplanes));
     }
   }
-
-  SIZE num_levels;
-  SIZE num_bitplanes;
 };
 
 } // namespace MDR
