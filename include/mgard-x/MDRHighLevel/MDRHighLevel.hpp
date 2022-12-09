@@ -17,7 +17,10 @@
 // #include "../CompressionLowLevel/Compressor.hpp"
 #include "../DomainDecomposer/DomainDecomposer.hpp"
 #include "../Metadata/Metadata.hpp"
+#include "../UncertaintyCollector/UncertaintyCollector.hpp"
 #include "MDRHighLevel.h"
+
+#define BINSIZE 10
 
 namespace mgard_x {
 namespace MDR {
@@ -220,6 +223,12 @@ void reconstruct_subdomain(
     timer_series.start();
   Array<D, T, DeviceType> device_subdomain_buffer;
   Array<D, T, DeviceType> device_subdomain_buffer_org;
+  Array<D + 1, int, DeviceType> device_uncertainty_dist;
+  device_subdomain_buffer.resize(
+      domain_decomposer.subdomain_shape(subdomain_id));
+  device_subdomain_buffer_org.resize(
+      domain_decomposer.subdomain_shape(subdomain_id));
+  device_subdomain_buffer.memset(0, 0);
 
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
@@ -240,7 +249,6 @@ void reconstruct_subdomain(
   log::info("Reconstruct subdomain " + std::to_string(subdomain_id) +
             " with shape: " + ss.str());
   device_subdomain_buffer.resize(hierarchy.level_shape(hierarchy.l_target()));
-  device_subdomain_buffer.memset(0, 0);
   reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data,
                                        config.mdr_adaptive_resolution,
                                        device_subdomain_buffer, 0);
@@ -253,16 +261,30 @@ void reconstruct_subdomain(
     reconstructed_data.offset[subdomain_id] =
         domain_decomposer.dim_subdomain_offset(subdomain_id);
   }
-  if (config.collect_actual_error) {
-    // Interpolate reconstructed data to full resolution
-    reconstructor.InterpolateToLevel(
-        device_subdomain_buffer,
-        refactored_metadata.metadata[subdomain_id].CurrFinalLevel(),
-        hierarchy.l_target(), 0);
+  if (config.collect_uncertainty) {
+    if (config.mdr_adaptive_resolution) {
+      // Interpolate reconstructed data to full resolution
+      reconstructor.InterpolateToLevel(
+          device_subdomain_buffer,
+          refactored_metadata.metadata[subdomain_id].CurrFinalLevel(),
+          hierarchy.l_target(), 0);
+    }
+    // PrintSubarray("reconstructed_data", SubArray(device_subdomain_buffer));
     // Get original data
     domain_decomposer_org.copy_subdomain(
         device_subdomain_buffer_org, subdomain_id,
         subdomain_copy_direction::OriginalToSubdomain, 0);
+    // Uncertainty distribution
+    std::vector<SIZE> uncertainty_dist_shape = hierarchy.level_shape(
+        refactored_metadata.metadata[subdomain_id].CurrFinalLevel());
+    uncertainty_dist_shape.insert(uncertainty_dist_shape.begin(), BINSIZE);
+    device_uncertainty_dist.resize(uncertainty_dist_shape);
+    UncertaintyCollector<D, T, DeviceType> uncertainty_collector(
+        hierarchy, mdr_metadata.prev_tol, BINSIZE);
+    uncertainty_collector.Collect(
+        device_subdomain_buffer_org, device_subdomain_buffer,
+        refactored_metadata.metadata[subdomain_id].CurrFinalLevel(),
+        device_uncertainty_dist, 0);
   }
   DeviceRuntime<DeviceType>::SyncQueue(0);
   if (log::level & log::TIME) {
@@ -288,6 +310,7 @@ void reconstruct_subdomain_series(
     timer_series.start();
   Array<D, T, DeviceType> device_subdomain_buffer;
   Array<D, T, DeviceType> device_subdomain_buffer_org;
+  Array<D + 1, int, DeviceType> device_uncertainty_dist;
 
   for (SIZE i = 0; i < subdomain_ids.size(); i++) {
     SIZE subdomain_id = subdomain_ids[i];
@@ -310,6 +333,7 @@ void reconstruct_subdomain_series(
     log::info("Reconstruct subdomain " + std::to_string(subdomain_id) +
               " with shape: " + ss.str());
     device_subdomain_buffer.resize(hierarchy.level_shape(hierarchy.l_target()));
+    device_subdomain_buffer.memset(0, 0);
     // Load previously reconstructred data
     domain_decomposer.copy_subdomain(
         device_subdomain_buffer, subdomain_id,
@@ -327,16 +351,29 @@ void reconstruct_subdomain_series(
       reconstructed_data.offset[subdomain_id] =
           domain_decomposer.dim_subdomain_offset(subdomain_id);
     }
-    if (config.collect_actual_error) {
-      // Interpolate reconstructed data to full resolution
-      reconstructor.InterpolateToLevel(
-          device_subdomain_buffer,
-          refactored_metadata.metadata[subdomain_id].CurrFinalLevel(),
-          hierarchy.l_target(), 0);
+    if (config.collect_uncertainty) {
+      if (config.mdr_adaptive_resolution) {
+        // Interpolate reconstructed data to full resolution
+        reconstructor.InterpolateToLevel(
+            device_subdomain_buffer,
+            refactored_metadata.metadata[subdomain_id].CurrFinalLevel(),
+            hierarchy.l_target(), 0);
+      }
       // Get original data
       domain_decomposer_org.copy_subdomain(
           device_subdomain_buffer_org, subdomain_id,
           subdomain_copy_direction::OriginalToSubdomain, 0);
+      // Uncertainty distribution
+      std::vector<SIZE> uncertainty_dist_shape = hierarchy.level_shape(
+          refactored_metadata.metadata[subdomain_id].CurrFinalLevel());
+      uncertainty_dist_shape.insert(uncertainty_dist_shape.begin(), BINSIZE);
+      device_uncertainty_dist.resize(uncertainty_dist_shape);
+      UncertaintyCollector<D, T, DeviceType> uncertainty_collector(
+          hierarchy, mdr_metadata.prev_tol, BINSIZE);
+      uncertainty_collector.Collect(
+          device_subdomain_buffer_org, device_subdomain_buffer,
+          refactored_metadata.metadata[subdomain_id].CurrFinalLevel(),
+          device_uncertainty_dist, 0);
     }
   }
   DeviceRuntime<DeviceType>::SyncQueue(0);
@@ -382,6 +419,8 @@ void reconstruct_subdomain_series_w_prefetch(
       domain_decomposer.subdomain_shape(subdomain_ids[0]));
   device_subdomain_buffer_org[1].resize(
       domain_decomposer.subdomain_shape(subdomain_ids[1]));
+
+  Array<D + 1, int, DeviceType> device_uncertainty_dist[2];
 
   // Prefetch the first subdomain
   int current_buffer = 0;
@@ -438,16 +477,31 @@ void reconstruct_subdomain_series_w_prefetch(
       reconstructed_data.offset[curr_subdomain_id] =
           domain_decomposer.dim_subdomain_offset(curr_subdomain_id);
     }
-    if (config.collect_actual_error) {
-      // Interpolate reconstructed data to full resolution
-      reconstructor.InterpolateToLevel(
-          device_subdomain_buffer[current_buffer],
-          refactored_metadata.metadata[curr_subdomain_id].CurrFinalLevel(),
-          hierarchy.l_target(), current_queue);
+    if (config.collect_uncertainty) {
+      if (config.mdr_adaptive_resolution) {
+        // Interpolate reconstructed data to full resolution
+        reconstructor.InterpolateToLevel(
+            device_subdomain_buffer[current_buffer],
+            refactored_metadata.metadata[curr_subdomain_id].CurrFinalLevel(),
+            hierarchy.l_target(), current_queue);
+      }
       // Get original data
       domain_decomposer_org.copy_subdomain(
           device_subdomain_buffer_org[current_buffer], curr_subdomain_id,
           subdomain_copy_direction::OriginalToSubdomain, current_queue);
+      // Uncertainty distribution
+      std::vector<SIZE> uncertainty_dist_shape = hierarchy.level_shape(
+          refactored_metadata.metadata[curr_subdomain_id].CurrFinalLevel());
+      uncertainty_dist_shape.insert(uncertainty_dist_shape.begin(), BINSIZE);
+      device_uncertainty_dist[current_buffer].resize(uncertainty_dist_shape);
+      UncertaintyCollector<D, T, DeviceType> uncertainty_collector(
+          hierarchy, refactored_metadata.metadata[curr_subdomain_id].prev_tol,
+          BINSIZE);
+      uncertainty_collector.Collect(
+          device_subdomain_buffer_org[current_buffer],
+          device_subdomain_buffer[current_buffer],
+          refactored_metadata.metadata[curr_subdomain_id].CurrFinalLevel(),
+          device_uncertainty_dist[current_buffer], 0);
     }
     current_buffer = next_buffer;
     current_queue = next_queue;
@@ -781,7 +835,7 @@ void MDReconstruct(std::vector<SIZE> shape,
   // This is for accessing original data for error collection
   DomainDecomposer<D, T, ComposedReconstructor<D, T, DeviceType>, DeviceType>
       domain_decomposer_org;
-  if (config.collect_actual_error) {
+  if (config.collect_uncertainty) {
     if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
       domain_decomposer_org =
           DomainDecomposer<D, T, ComposedReconstructor<D, T, DeviceType>,

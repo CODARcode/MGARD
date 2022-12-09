@@ -548,7 +548,7 @@ int launch_reconstruct(std::string input_file, std::string output_file,
   mgard_x::MDR::ReconstructedData reconstructed_data;
 
   mgard_x::MDR::MDReconstruct(refactored_metadata, refactored_data,
-                              reconstructed_data, config, false);
+                              reconstructed_data, config, false, original_data);
   int subdomain_id = 0;
 
   for (int subdomain_id = 0; subdomain_id < reconstructed_data.data.size();
