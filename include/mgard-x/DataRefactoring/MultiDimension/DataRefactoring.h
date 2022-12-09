@@ -65,15 +65,15 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
 
 template <DIM D, typename T, typename DeviceType>
 void CopyND(SubArray<D, T, DeviceType> dinput,
-            SubArray<D, T, DeviceType> &doutput, int queue_idx);
+            SubArray<D, T, DeviceType> doutput, int queue_idx);
 
 template <DIM D, typename T, typename DeviceType>
 void AddND(SubArray<D, T, DeviceType> dinput,
-           SubArray<D, T, DeviceType> &doutput, int queue_idx);
+           SubArray<D, T, DeviceType> doutput, int queue_idx);
 
 template <DIM D, typename T, typename DeviceType>
 void SubtractND(SubArray<D, T, DeviceType> dinput,
-                SubArray<D, T, DeviceType> &doutput, int queue_idx);
+                SubArray<D, T, DeviceType> doutput, int queue_idx);
 
 template <DIM D, typename T, typename DeviceType>
 void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
