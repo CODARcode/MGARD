@@ -60,6 +60,8 @@ public:
     prev_reconstructed = false;
     partial_reconsctructed_data = Array<D, T_data, DeviceType>(
         hierarchy.level_shape(hierarchy.l_target()));
+    interpolation_workspace = Array<D, T_data, DeviceType>(
+        hierarchy.level_shape(hierarchy.l_target()));
     levels_array = new Array<1, T_data, DeviceType>[hierarchy.l_target() + 1];
     levels_data = new SubArray<1, T_data, DeviceType>[hierarchy.l_target() + 1];
     for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
@@ -97,7 +99,7 @@ public:
         partial_data_size *= shape[d];
       }
     }
-    size += partial_data_size;
+    size += partial_data_size * 2; // including interpolation workspace
     for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
       size += hierarchy.level_num_elems(level_idx) * sizeof(T_data);
     }
@@ -166,8 +168,17 @@ public:
 
   void InterpolateToLevel(Array<D, T_data, DeviceType> &reconstructed_data,
                           int prev_level, int curr_level, int queue_idx) {
+    log::info("Interpoate from level " + std::to_string(prev_level) + " to" +
+              " level " + std::to_string(curr_level));
     Timer timer;
     timer.start();
+    interpolation_workspace.resize(reconstructed_data.shape());
+    CopyND(SubArray(reconstructed_data), SubArray(interpolation_workspace),
+           queue_idx);
+    reconstructed_data.resize(hierarchy.level_shape(curr_level));
+    reconstructed_data.memset(0, queue_idx);
+    CopyND(SubArray(interpolation_workspace), SubArray(reconstructed_data),
+           queue_idx);
     decomposer.recompose(reconstructed_data, prev_level, curr_level, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
@@ -250,9 +261,6 @@ public:
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Recomposing");
-
-    // This should only allocate memory one time
-    reconstructed_data.resize(hierarchy.level_shape(curr_final_level));
 
     // Interpolate previous reconstructed data to the same resolution
     InterpolateToLevel(reconstructed_data, prev_final_level, curr_final_level,
@@ -594,6 +602,7 @@ private:
   // compressed_bitplanes;
 
   Array<D, T_data, DeviceType> partial_reconsctructed_data;
+  Array<D, T_data, DeviceType> interpolation_workspace;
   Array<1, T_data, DeviceType> *levels_array = nullptr;
   SubArray<1, T_data, DeviceType> *levels_data = nullptr;
   std::vector<Array<2, T_bitplane, DeviceType>> encoded_bitplanes_array;

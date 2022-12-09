@@ -9,6 +9,7 @@ add_subdirectory(Lossless)
 add_subdirectory(MDRHighLevel)
 add_subdirectory(Quantization)
 add_subdirectory(RuntimeX)
+add_subdirectory(UncertaintyCollector)
 
 set(MGARD_X_HEADER ${MGARD_X_HEADER} PARENT_SCOPE)
 
