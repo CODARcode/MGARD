@@ -11,7 +11,7 @@ namespace mgard_x {
 
 template void SubtractND<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> dinput,
-    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &doutput, int queue_idx);
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> doutput, int queue_idx);
 
 } // namespace mgard_x
 // clang-format on

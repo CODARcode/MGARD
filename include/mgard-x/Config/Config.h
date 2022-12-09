@@ -28,7 +28,7 @@ struct Config {
   SIZE total_num_bitplanes;
   SIZE block_size;
   bool mdr_adaptive_resolution;
-  bool collect_actual_error;
+  bool collect_uncertainty;
 
   Config();
   void apply();
