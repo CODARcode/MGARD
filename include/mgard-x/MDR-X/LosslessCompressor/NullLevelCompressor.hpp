@@ -53,42 +53,13 @@ public:
     for (SIZE bitplane_idx = 0;
          bitplane_idx < encoded_bitplanes_subarray.shape(0); bitplane_idx++) {
       T *bitplane = encoded_bitplanes_subarray(bitplane_idx, 0);
-      // MDR::Zstd
-      // T *bitplane_host = new T[bitplane_sizes[bitplane_idx]];
-
-      // MemoryManager<DeviceType>::Copy1D(
-      //     bitplane_host, bitplane, bitplane_sizes[bitplane_idx] / sizeof(T),
-      //     0);
-      // DeviceRuntime<DeviceType>::SyncQueue(0);
-
-      // Byte *compressed_host = NULL;
-      // SIZE compressed_bitplane_size =
-      //     ::MDR::ZSTD::compress((uint8_t *)bitplane_host,
-      //                           bitplane_sizes[bitplane_idx],
-      //                           &compressed_host);
-      // Array<1, Byte, DeviceType> compressed_bitplane(
-      //     {compressed_bitplane_size});
-      // compressed_bitplane.load(compressed_host);
-      // compressed_bitplanes[bitplane_idx] = compressed_bitplane;
-      // bitplane_sizes[bitplane_idx] = compressed_bitplane_size;
-
-      // Huffman
-      // Array<1, T, DeviceType>
-      // encoded_bitplane({encoded_bitplanes_subarray.shape(1)}, bitplane);
-      // huffman.Compress(encoded_bitplane, compressed_bitplanes[bitplane_idx],
-      // queue_idx); bitplane_sizes[bitplane_idx] =
-      // compressed_bitplanes[bitplane_idx].shape(0);
 
       Array<1, Byte, DeviceType> compressed_bitplane(
           {bitplane_sizes[bitplane_idx]});
       MemoryManager<DeviceType>::Copy1D(compressed_bitplane.data(),
-                                        (uint8_t *)bitplane,
-                                        bitplane_sizes[bitplane_idx], 0);
-      DeviceRuntime<DeviceType>::SyncQueue(0);
-      // int old_log_level = log::level;
-      // log::level = log::ERR;
-      // ZstdCompress(compressed_bitplane, config.zstd_compress_level);
-      // log::level = old_log_level;
+                                        (Byte *)bitplane,
+                                        bitplane_sizes[bitplane_idx], queue_idx);
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       compressed_bitplanes[bitplane_idx] = compressed_bitplane;
       bitplane_sizes[bitplane_idx] = bitplane_sizes[bitplane_idx];
     }
@@ -134,8 +105,8 @@ public:
       // log::level = old_log_level;
       MemoryManager<DeviceType>::Copy1D(
           (uint8_t *)bitplane, compressed_bitplanes[bitplane_idx].data(),
-          compressed_bitplanes[bitplane_idx].shape(0), 0);
-      DeviceRuntime<DeviceType>::SyncQueue(0);
+          compressed_bitplanes[bitplane_idx].shape(0), queue_idx);
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     }
   }
 

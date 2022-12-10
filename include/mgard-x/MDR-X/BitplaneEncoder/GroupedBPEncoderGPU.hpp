@@ -8,14 +8,14 @@
 
 #define BINARY_TYPE BINARY
 
-#define DATA_ENCODING_ALGORITHM Bit_Transpose_Serial_All
-// #define DATA_ENCODING_ALGORITHM Bit_Transpose_Parallel_B_Serial_b
+// #define DATA_ENCODING_ALGORITHM Bit_Transpose_Serial_All
+#define DATA_ENCODING_ALGORITHM Bit_Transpose_Parallel_B_Serial_b
 // #define DATA_ENCODING_ALGORITHM Bit_Transpose_Parallel_B_Atomic_b
 // #define DATA_ENCODING_ALGORITHM Bit_Transpose_Parallel_B_Reduce_b
 // #define DATA_ENCODING_ALGORITHM Bit_Transpose_Parallel_B_Ballot_b
 
-#define DATA_DECODING_ALGORITHM Bit_Transpose_Serial_All
-// #define DATA_DECODING_ALGORITHM Bit_Transpose_Parallel_B_Serial_b
+// #define DATA_DECODING_ALGORITHM Bit_Transpose_Serial_All
+#define DATA_DECODING_ALGORITHM Bit_Transpose_Parallel_B_Serial_b
 // #define DATA_DECODING_ALGORITHM Bit_Transpose_Parallel_B_Atomic_b
 // #define DATA_DECODING_ALGORITHM Bit_Transpose_Parallel_B_Reduce_b
 // #define DATA_DECODING_ALGORITHM Bit_Transpose_Parallel_B_Ballot_b

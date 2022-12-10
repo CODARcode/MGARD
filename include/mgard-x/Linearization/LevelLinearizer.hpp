@@ -71,6 +71,8 @@ public:
       //   level = Math<DeviceType>::Max((int)level,
       //                                 Math<DeviceType>::ffsll(l_bit[d]));
       // }
+      // // convert to 0 based level
+      // level = level - 1;
 
       // Use curr_region to encode region id to distinguish different regions
       // curr_region of current level is always >=1,
@@ -79,16 +81,13 @@ public:
       // least signigiciant bit --> slowest dim
       SIZE curr_region = 0;
       // for (int d = D - 1; d >= 0; d--) {
-      //   SIZE bit = level == Math<DeviceType>::ffsll(l_bit[d]);
+      //   SIZE bit = level + 1 == Math<DeviceType>::ffsll(l_bit[d]);
       //   curr_region += bit << d;
       // }
       for (int d = D - 1; d >= 0; d--) {
         SIZE bit = level == *level_marks(d, idx[d]);
         curr_region += bit << d;
       }
-
-      // convert to 0 based level
-      // level = level - 1;
 
       // region size
       SIZE coarse_level_size[D];
