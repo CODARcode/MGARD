@@ -49,9 +49,13 @@ public:
     // since curr_region=0 refers to the next coarser level
     // most significant bit --> fastest dim
     // least signigiciant bit --> slowest dim
+    for (int d = D - 1; d >= 0; d--) {
+      level = Math<DeviceType>::Max(level, *level_marks(d, idx[d]));
+    }
+
     SIZE curr_region = 0;
     for (int d = D - 1; d >= 0; d--) {
-      SIZE bit = (level + 1) == Math<DeviceType>::ffsll(l_bit[d]);
+      SIZE bit = level == *level_marks(d, idx[d]);
       curr_region += bit << d;
     }
 
@@ -294,7 +298,6 @@ private:
   SIZE idx0[D]; // block global idx
 
   int level;
-  int l_bit[D];
 };
 
 template <DIM D, typename T, typename DeviceType>
