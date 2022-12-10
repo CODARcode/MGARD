@@ -29,7 +29,8 @@ class ComposedReconstructor
   using Decomposer = MGARDOrthoganalDecomposer<D, T_data, DeviceType>;
   using Interleaver = DirectInterleaver<D, T_data, DeviceType>;
   using Encoder = GroupedBPEncoder<D, T_data, T_bitplane, T_error, DeviceType>;
-  using Compressor = DefaultLevelCompressor<T_bitplane, DeviceType>;
+  // using Compressor = DefaultLevelCompressor<T_bitplane, DeviceType>;
+  using Compressor = NullLevelCompressor<T_bitplane, DeviceType>;
   using Retriever = ConcatLevelFileRetriever;
 
 public:

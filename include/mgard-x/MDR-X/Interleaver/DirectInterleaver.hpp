@@ -18,9 +18,11 @@ public:
   constexpr static std::string_view Name = "llk";
   MGARDX_CONT
   DirectInterleaverKernel(SubArray<2, SIZE, DeviceType> level_ranges,
+                          SubArray<2, int, DeviceType> level_marks,
                           SIZE l_target, SubArray<D, T, DeviceType> v,
                           SubArray<1, T, DeviceType> *level_v)
-      : level_ranges(level_ranges), l_target(l_target), v(v), level_v(level_v) {
+      : level_ranges(level_ranges), level_marks(level_marks),
+        l_target(l_target), v(v), level_v(level_v) {
   }
 
   template <SIZE R, SIZE C, SIZE F>
@@ -28,7 +30,7 @@ public:
   GenTask(int queue_idx) {
     using FunctorType =
         LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>;
-    FunctorType functor(level_ranges, l_target, v, level_v);
+    FunctorType functor(level_ranges, level_marks, l_target, v, level_v);
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
     int total_thread_z = v.shape(D - 3);
@@ -49,6 +51,7 @@ public:
 
 private:
   SubArray<2, SIZE, DeviceType> level_ranges;
+  SubArray<2, int, DeviceType> level_marks;
   SIZE l_target;
   SubArray<D, T, DeviceType> v;
   SubArray<1, T, DeviceType> *level_v;
@@ -90,7 +93,8 @@ public:
                                       queue_idx);
     DeviceLauncher<DeviceType>::Execute(
         DirectInterleaverKernel<D, T, Interleave, DeviceType>(
-            SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges()),
+            SubArray(hierarchy.level_ranges()),
+            SubArray(hierarchy.level_marks()),
             target_level, decomposed_data, levels_decomposed_data_device),
         queue_idx);
   }
@@ -102,7 +106,8 @@ public:
                                       queue_idx);
     DeviceLauncher<DeviceType>::Execute(
         DirectInterleaverKernel<D, T, Reposition, DeviceType>(
-            SubArray<2, SIZE, DeviceType>(hierarchy.level_ranges()),
+            SubArray(hierarchy.level_ranges()),
+            SubArray(hierarchy.level_marks()),
             target_level, decomposed_data, levels_decomposed_data_device),
         queue_idx);
   }

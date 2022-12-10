@@ -252,7 +252,7 @@ void reconstruct_subdomain(
   reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data,
                                        config.mdr_adaptive_resolution,
                                        device_subdomain_buffer, 0);
-
+  // PrintSubarray("reconstructed_data", SubArray(device_subdomain_buffer));
   domain_decomposer.copy_subdomain(
       device_subdomain_buffer, subdomain_id,
       subdomain_copy_direction::SubdomainToOriginal, 0);
