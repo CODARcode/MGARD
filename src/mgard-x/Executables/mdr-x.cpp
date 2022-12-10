@@ -436,7 +436,7 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
     srand(7117);
     T c = 0;
     for (size_t i = 0; i < original_size; i++) {
-      original_data[i] = 1; // rand() % 10 + 1;
+      original_data[i] = rand() % 10 + 1;
     }
   } else {
     in_size = readfile(input_file, original_data);
@@ -503,6 +503,7 @@ int launch_reconstruct(std::string input_file, std::string output_file,
   config.num_dev;
   config.prefetch = prefetch;
   config.mdr_adaptive_resolution = adaptive_resolution;
+  // config.collect_uncertainty = true;
 
   mgard_x::Byte *original_data;
   size_t in_size = 0;
@@ -516,14 +517,14 @@ int launch_reconstruct(std::string input_file, std::string output_file,
         original_data = (mgard_x::Byte *)new float[original_size];
         srand(7117);
         for (size_t i = 0; i < original_size; i++) {
-          ((float *)original_data)[i] = 1; // rand() % 10 + 1;
+          ((float *)original_data)[i] = rand() % 10 + 1;
         }
       } else if (dtype == mgard_x::data_type::Double) {
         in_size = original_size * sizeof(double);
         original_data = (mgard_x::Byte *)new double[original_size];
         srand(7117);
         for (size_t i = 0; i < original_size; i++) {
-          ((double *)original_data)[i] = 1; // rand() % 10 + 1;
+          ((double *)original_data)[i] = rand() % 10 + 1;
         }
       }
 

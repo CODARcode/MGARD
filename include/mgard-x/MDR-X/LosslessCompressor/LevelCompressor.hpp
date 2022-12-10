@@ -3,6 +3,6 @@
 
 // #include "AdaptiveLevelCompressor.hpp"
 #include "DefaultLevelCompressor.hpp"
-// #include "NullLevelCompressor.hpp"
+#include "NullLevelCompressor.hpp"
 
 #endif
