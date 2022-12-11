@@ -155,7 +155,7 @@ public:
     if (r_sm < r_rest && f_sm < f_rest) {
       for (SIZE i = 0; i < c_rest; i++) {
         vec_sm[get_idx(ldsm1, ldsm2, r_sm, i, f_sm + f_ghost)] =
-            *v(i, f_gl + f_ghost);
+            *v(r_sm, i, f_gl + f_ghost);
       }
       if (r_sm == 0) {
         am_sm[f_sm + f_ghost] = *am(f_gl + f_ghost);
