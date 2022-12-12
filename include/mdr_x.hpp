@@ -30,6 +30,7 @@ void MDRequest(RefactoredMetadata &refactored_metadata, Config config);
 void MDReconstruct(RefactoredMetadata &refactored_metadata,
                    RefactoredData &refactored_data,
                    ReconstructedData &reconstructed_data, Config config,
-                   bool output_pre_allocated, const void *original_data = nullptr);
+                   bool output_pre_allocated,
+                   const void *original_data = nullptr);
 } // namespace MDR
 } // namespace mgard_x

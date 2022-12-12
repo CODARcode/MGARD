@@ -5,7 +5,7 @@ env:
         MGARD_REPO_DIR: "MGARD"
 jobs:
         clang-format:
-                runs-on: ubuntu-latest
+                runs-on: ubuntu-20.04
                 steps:
                         - run: sudo apt-get install clang-format-6.0
                         - uses: actions/checkout@v2.3.4
