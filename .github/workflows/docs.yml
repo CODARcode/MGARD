@@ -2,7 +2,7 @@ name: docs
 on: [push, pull_request]
 jobs:
         doxygen:
-                runs-on: ubuntu-latest
+                runs-on: ubuntu-20.04
                 steps:
                         - run: sudo apt-get install doxygen libzstd1 libzstd-dev protobuf-compiler libprotobuf17 libprotobuf-dev
                         - name: checkout

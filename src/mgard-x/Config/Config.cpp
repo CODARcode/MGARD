@@ -5,6 +5,8 @@
  * Date: March 17, 2022
  */
 
+#include <limits>
+
 #include "mgard-x/Config/Config.h"
 
 namespace mgard_x {
