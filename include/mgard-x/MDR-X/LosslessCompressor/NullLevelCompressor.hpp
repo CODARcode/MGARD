@@ -20,7 +20,6 @@ public:
 };
 } // namespace MDR
 
-
 namespace mgard_x {
 namespace MDR {
 
@@ -56,9 +55,9 @@ public:
 
       Array<1, Byte, DeviceType> compressed_bitplane(
           {bitplane_sizes[bitplane_idx]});
-      MemoryManager<DeviceType>::Copy1D(compressed_bitplane.data(),
-                                        (Byte *)bitplane,
-                                        bitplane_sizes[bitplane_idx], queue_idx);
+      MemoryManager<DeviceType>::Copy1D(
+          compressed_bitplane.data(), (Byte *)bitplane,
+          bitplane_sizes[bitplane_idx], queue_idx);
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       compressed_bitplanes[bitplane_idx] = compressed_bitplane;
       bitplane_sizes[bitplane_idx] = bitplane_sizes[bitplane_idx];

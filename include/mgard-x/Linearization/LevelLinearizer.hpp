@@ -18,7 +18,7 @@ public:
                          SIZE l_target, SubArray<D, T, DeviceType> v,
                          SubArray<1, T, DeviceType> *level_v)
       : level_ranges(level_ranges), level_marks(level_marks),
-       l_target(l_target), v(v), level_v(level_v) {
+        l_target(l_target), v(v), level_v(level_v) {
     Functor<DeviceType>();
   }
 
@@ -237,12 +237,11 @@ public:
   constexpr static std::string_view Name = "llk";
   MGARDX_CONT
   LevelLinearizerKernel(SubArray<2, SIZE, DeviceType> level_ranges,
-                        SubArray<2, int, DeviceType> level_marks,
-                        SIZE l_target, SubArray<D, T, DeviceType> v,
+                        SubArray<2, int, DeviceType> level_marks, SIZE l_target,
+                        SubArray<D, T, DeviceType> v,
                         SubArray<1, T, DeviceType> *level_v)
       : level_ranges(level_ranges), level_marks(level_marks),
-        l_target(l_target), v(v), level_v(level_v) {
-  }
+        l_target(l_target), v(v), level_v(level_v) {}
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>>
@@ -277,7 +276,7 @@ private:
 };
 
 template <DIM D, typename T, OPTION Direction, typename DeviceType>
-void LevelLinearizer(SubArray<2, SIZE, DeviceType> level_ranges, 
+void LevelLinearizer(SubArray<2, SIZE, DeviceType> level_ranges,
                      SubArray<2, int, DeviceType> level_marks, SIZE l_target,
                      SubArray<D, T, DeviceType> v,
                      SubArray<1, T, DeviceType> linearized_v, int queue_idx) {
@@ -302,8 +301,8 @@ void LevelLinearizer(SubArray<2, SIZE, DeviceType> level_ranges,
                                     queue_idx);
   DeviceRuntime<DeviceType>::SyncDevice();
   DeviceLauncher<DeviceType>::Execute(
-      LevelLinearizerKernel<D, T, Direction, DeviceType>(level_ranges, level_marks, 
-                                                         l_target, v, d_level_v),
+      LevelLinearizerKernel<D, T, Direction, DeviceType>(
+          level_ranges, level_marks, l_target, v, d_level_v),
       queue_idx);
   DeviceRuntime<DeviceType>::SyncDevice();
   delete[] level_v;

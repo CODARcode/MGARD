@@ -22,8 +22,7 @@ public:
                           SIZE l_target, SubArray<D, T, DeviceType> v,
                           SubArray<1, T, DeviceType> *level_v)
       : level_ranges(level_ranges), level_marks(level_marks),
-        l_target(l_target), v(v), level_v(level_v) {
-  }
+        l_target(l_target), v(v), level_v(level_v) {}
 
   template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<LevelLinearizerFunctor<D, T, R, C, F, Direction, DeviceType>>
@@ -94,8 +93,8 @@ public:
     DeviceLauncher<DeviceType>::Execute(
         DirectInterleaverKernel<D, T, Interleave, DeviceType>(
             SubArray(hierarchy.level_ranges()),
-            SubArray(hierarchy.level_marks()),
-            target_level, decomposed_data, levels_decomposed_data_device),
+            SubArray(hierarchy.level_marks()), target_level, decomposed_data,
+            levels_decomposed_data_device),
         queue_idx);
   }
   void reposition(SubArray<1, T, DeviceType> *levels_decomposed_data,
@@ -107,8 +106,8 @@ public:
     DeviceLauncher<DeviceType>::Execute(
         DirectInterleaverKernel<D, T, Reposition, DeviceType>(
             SubArray(hierarchy.level_ranges()),
-            SubArray(hierarchy.level_marks()),
-            target_level, decomposed_data, levels_decomposed_data_device),
+            SubArray(hierarchy.level_marks()), target_level, decomposed_data,
+            levels_decomposed_data_device),
         queue_idx);
   }
   void print() const { std::cout << "Direct interleaver" << std::endl; }
