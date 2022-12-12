@@ -13,7 +13,7 @@ env:
         MGARD_BUILD_DIR: "${{ github.workspace }}/build"
 jobs:
         build-MOAB:
-                runs-on: ubuntu-latest
+                runs-on: ubuntu-20.04
                 steps:
                         - run: sudo apt-get install mpich libmpich-dev liblapack-dev
                         - name: cache-MOAB
@@ -33,7 +33,7 @@ jobs:
                                   cmake --install "build"
 
         build-Catch2:
-                runs-on: ubuntu-latest
+                runs-on: ubuntu-20.04
                 steps:
                         - name: cache-Catch2
                           id: cache-Catch2
@@ -52,7 +52,7 @@ jobs:
                                   cmake --install "build"
 
         build-TCLAP:
-                runs-on: ubuntu-latest
+                runs-on: ubuntu-20.04
                 steps:
                         - name: cache-TCLAP
                           id: cache-TCLAP
@@ -72,7 +72,7 @@ jobs:
 
         build-MGARD:
                 needs: [build-MOAB, build-Catch2, build-TCLAP]
-                runs-on: ubuntu-latest
+                runs-on: ubuntu-20.04
                 steps:
                         - run: sudo apt-get install mpich libmpich-dev liblapack-dev libzstd1 libzstd-dev libtclap-dev protobuf-compiler libprotobuf17 libprotobuf-dev
                         - name: checkout
