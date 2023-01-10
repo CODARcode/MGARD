@@ -19,6 +19,11 @@ num_build_procs=$1
 # Installtaion directory
 install_dir=./install-cuda-ampere
 
+export LD_LIBRARY_PATH=$(pwd)/${install_dir}/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$(pwd)/${install_dir}/lib64:$LD_LIBRARY_PATH
+export CC=gcc
+export CXX=g++
+export CUDACXX=nvcc
 
 #build NVCOMP
 nvcomp_dir=${build_dir}/nvcomp
@@ -32,7 +37,7 @@ mkdir -p ${nvcomp_build_dir}
 cmake -S ${nvcomp_src_dir} -B ${nvcomp_build_dir}\
     -DCMAKE_INSTALL_PREFIX=${nvcomp_install_dir}
 cmake --build ${nvcomp_build_dir} -j ${num_build_procs}
-cmake --install ${nvcomp_build_dir} #> /dev/null
+cmake --install ${nvcomp_build_dir}
 
 #build ZSTD
 zstd_dir=${build_dir}/zstd
@@ -48,7 +53,7 @@ cmake -S ${zstd_src_dir}/build/cmake -B ${zstd_build_dir}\
     -DCMAKE_INSTALL_LIBDIR=lib\
     -DCMAKE_INSTALL_PREFIX=${zstd_install_dir}
 cmake --build ${zstd_build_dir} -j ${num_build_procs}
-cmake --install ${zstd_build_dir} > /dev/null
+cmake --install ${zstd_build_dir}
 
 #build Protobuf
 protobuf_dir=${build_dir}/protobuf
@@ -63,7 +68,7 @@ cmake -S ${protobuf_src_dir}/cmake -B ${protobuf_build_dir}\
     -Dprotobuf_BUILD_SHARED_LIBS=ON\
     -DCMAKE_INSTALL_PREFIX=${protobuf_install_dir}
 cmake --build ${protobuf_build_dir} -j ${num_build_procs}
-cmake --install ${protobuf_build_dir} > /dev/null
+cmake --install ${protobuf_build_dir}
 
 
 #build MGARD
@@ -72,16 +77,10 @@ mgard_x_install_dir=${install_dir}
 mkdir -p ${mgard_x_build_dir}
 cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
     -DCMAKE_PREFIX_PATH="${nvcomp_install_dir};${zstd_install_dir}/lib/cmake/zstd;${protobuf_install_dir}"\
-    -DMGARD_ENABLE_SERIAL=OFF\
-    -DMGARD_ENABLE_OPENMP=OFF\
     -DMGARD_ENABLE_CUDA=ON\
-    -DMGARD_ENABLE_AUTO_TUNING=OFF\
-    -DMGARD_ENABLE_MULTI_DEVICE=OFF\
     -DCMAKE_CUDA_ARCHITECTURES="86"\
-    -DMGARD_ENABLE_OPENMP=OFF\
-    -DMGARD_ENABLE_MDR=ON\
     -DMGARD_ENABLE_DOCS=OFF\
     -DCMAKE_BUILD_TYPE=Release\
     -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}
 time cmake --build ${mgard_x_build_dir} -j ${num_build_procs}
-cmake --install ${mgard_x_build_dir} > /dev/null
+cmake --install ${mgard_x_build_dir}

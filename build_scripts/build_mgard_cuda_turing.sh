@@ -19,6 +19,11 @@ num_build_procs=$1
 # Installtaion directory
 install_dir=./install-cuda-turing
 
+export LD_LIBRARY_PATH=$(pwd)/${install_dir}/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$(pwd)/${install_dir}/lib64:$LD_LIBRARY_PATH
+export CC=gcc
+export CXX=g++
+export CUDACXX=nvcc
 
 #build NVCOMP
 nvcomp_dir=${build_dir}/nvcomp
@@ -72,12 +77,8 @@ mgard_x_install_dir=${install_dir}
 mkdir -p ${mgard_x_build_dir}
 cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
     -DCMAKE_PREFIX_PATH="${nvcomp_install_dir};${zstd_install_dir}/lib/cmake/zstd;${protobuf_install_dir}"\
-    -DMGARD_ENABLE_SERIAL=OFF\
     -DMGARD_ENABLE_CUDA=ON\
-    -DMGARD_ENABLE_AUTO_TUNING=OFF\
-    -DMGARD_ENABLE_MULTI_DEVICE=OFF\
     -DCMAKE_CUDA_ARCHITECTURES="75"\
-    -DMGARD_ENABLE_OPENMP=OFF\
     -DMGARD_ENABLE_DOCS=OFF\
     -DCMAKE_BUILD_TYPE=Release\
     -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}

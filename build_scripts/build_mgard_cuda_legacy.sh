@@ -19,6 +19,11 @@ num_build_procs=$1
 # Installtaion directory
 install_dir=./install-cuda-turing
 
+export LD_LIBRARY_PATH=$(pwd)/${install_dir}/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$(pwd)/${install_dir}/lib64:$LD_LIBRARY_PATH
+export CC=gcc
+export CXX=g++
+export CUDACXX=nvcc
 
 #build NVCOMP
 nvcomp_dir=${build_dir}/nvcomp
