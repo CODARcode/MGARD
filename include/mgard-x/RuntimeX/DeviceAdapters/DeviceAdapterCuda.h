@@ -582,11 +582,11 @@ public:
       delete[] streams[d];
     }
     delete[] streams;
-    streams = NULL;
+    streams = nullptr;
   }
 
   int NumDevices;
-  cudaStream_t **streams = NULL;
+  cudaStream_t **streams = nullptr;
 };
 
 extern int cuda_dev_id;
@@ -793,7 +793,7 @@ public:
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       DeviceRuntime<CUDA>::SyncQueue(queue_idx);
     }
-    if (ptr == NULL)
+    if (ptr == nullptr)
       return;
     gpuErrchk(cudaFree(ptr));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
@@ -865,7 +865,7 @@ public:
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       DeviceRuntime<CUDA>::SyncQueue(queue_idx);
     }
-    if (ptr == NULL)
+    if (ptr == nullptr)
       return;
     gpuErrchk(cudaFreeHost(ptr));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
@@ -2399,7 +2399,7 @@ public:
                               SubArray<1, T, CUDA> result,
                               Array<1, Byte, CUDA> &workspace, int queue_idx) {
     Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
@@ -2416,7 +2416,7 @@ public:
   AbsMax(SIZE n, SubArray<1, T, CUDA> v, SubArray<1, T, CUDA> result,
          Array<1, Byte, CUDA> &workspace, int queue_idx) {
     Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     AbsMaxOp absMaxOp;
@@ -2437,7 +2437,7 @@ public:
     cub::TransformInputIterator<T, SquareOp, T *> transformed_input_iter(
         v.data(), squareOp);
     Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
@@ -2455,7 +2455,7 @@ public:
   ScanSumInclusive(SIZE n, SubArray<1, T, CUDA> v, SubArray<1, T, CUDA> result,
                    Array<1, Byte, CUDA> &workspace, int queue_idx) {
     Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
@@ -2472,7 +2472,7 @@ public:
   ScanSumExclusive(SIZE n, SubArray<1, T, CUDA> v, SubArray<1, T, CUDA> result,
                    Array<1, Byte, CUDA> &workspace, int queue_idx) {
     Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
@@ -2489,7 +2489,7 @@ public:
   ScanSumExtended(SIZE n, SubArray<1, T, CUDA> v, SubArray<1, T, CUDA> result,
                   Array<1, Byte, CUDA> &workspace, int queue_idx) {
     Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
@@ -2513,7 +2513,7 @@ public:
                                     Array<1, Byte, CUDA> &workspace,
                                     int queue_idx) {
     Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
