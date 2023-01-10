@@ -22,6 +22,11 @@ num_build_procs=$1
 # Installtaion directory
 install_dir=./install-hip-spock
 
+export LD_LIBRARY_PATH=$(pwd)/${install_dir}/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$(pwd)/${install_dir}/lib64:$LD_LIBRARY_PATH
+export CC=amdclang
+export CXX=amdclang++
+
 #build ZSTD
 zstd_dir=${build_dir}/zstd
 zstd_src_dir=${zstd_dir}/src
@@ -33,8 +38,6 @@ fi
 mkdir -p ${zstd_build_dir}
 cmake -S ${zstd_src_dir}/build/cmake -B ${zstd_build_dir}\
     -DZSTD_MULTITHREAD_SUPPORT=ON\
-    -DCMAKE_C_COMPILER=amdclang\
-    -DCMAKE_CXX_COMPILER=amdclang++\
 		-DCMAKE_INSTALL_LIBDIR=lib\
     -DCMAKE_INSTALL_PREFIX=${zstd_install_dir}
 cmake --build ${zstd_build_dir} -j ${num_build_procs}
@@ -51,8 +54,6 @@ if [ ! -d "${protobuf_src_dir}" ]; then
 fi
 mkdir -p ${protobuf_build_dir}
 cmake -S ${protobuf_src_dir}/cmake -B ${protobuf_build_dir}\
-    -DCMAKE_C_COMPILER=amdclang\
-    -DCMAKE_CXX_COMPILER=amdclang++\
     -Dprotobuf_BUILD_SHARED_LIBS=ON\
     -DCMAKE_INSTALL_PREFIX=${protobuf_install_dir}
 cmake --build ${protobuf_build_dir} -j ${num_build_procs}
@@ -66,9 +67,7 @@ mgard_x_install_dir=${install_dir}
 mkdir -p ${mgard_x_build_dir}
 cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
     -DCMAKE_PREFIX_PATH="${zstd_install_dir}/lib/cmake/zstd;${protobuf_install_dir}"\
-    -DMGARD_ENABLE_SERIAL=ON\
     -DMGARD_ENABLE_HIP=ON\
-    -DCMAKE_CXX_COMPILER=hipcc\
     -DCMAKE_HIP_ARCHITECTURES="gfx908"\
     -DCMAKE_BUILD_TYPE=Release\
     -DCMAKE_INSTALL_PREFIX=${mgard_x_install_dir}
