@@ -494,11 +494,11 @@ public:
       delete[] streams[d];
     }
     delete[] streams;
-    streams = NULL;
+    streams = nullptr;
   }
 
   int NumDevices;
-  hipStream_t **streams = NULL;
+  hipStream_t **streams = nullptr;
 };
 
 extern int hip_dev_id;
@@ -718,7 +718,7 @@ public:
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       DeviceRuntime<HIP>::SyncQueue(queue_idx);
     }
-    if (ptr == NULL)
+    if (ptr == nullptr)
       return;
     gpuErrchk(hipFree(ptr));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
@@ -803,7 +803,7 @@ public:
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       DeviceRuntime<HIP>::SyncQueue(queue_idx);
     }
-    if (ptr == NULL)
+    if (ptr == nullptr)
       return;
     gpuErrchk(hipFreeHost(ptr));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
@@ -2235,7 +2235,7 @@ public:
                               SubArray<1, T, HIP> result,
                               Array<1, Byte, HIP> &workspace, int queue_idx) {
     Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
@@ -2252,7 +2252,7 @@ public:
   AbsMax(SIZE n, SubArray<1, T, HIP> v, SubArray<1, T, HIP> result,
          Array<1, Byte, HIP> &workspace, int queue_idx) {
     Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     AbsMaxOp absMaxOp;
@@ -2273,7 +2273,7 @@ public:
     hipcub::TransformInputIterator<T, SquareOp, T *> transformed_input_iter(
         v.data(), squareOp);
     Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
@@ -2291,7 +2291,7 @@ public:
   ScanSumInclusive(SIZE n, SubArray<1, T, HIP> v, SubArray<1, T, HIP> result,
                    Array<1, Byte, HIP> &workspace, int queue_idx) {
     Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
@@ -2308,7 +2308,7 @@ public:
   ScanSumExclusive(SIZE n, SubArray<1, T, HIP> v, SubArray<1, T, HIP> result,
                    Array<1, Byte, HIP> &workspace, int queue_idx) {
     Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
@@ -2325,7 +2325,7 @@ public:
   ScanSumExtended(SIZE n, SubArray<1, T, HIP> v, SubArray<1, T, HIP> result,
                   Array<1, Byte, HIP> &workspace, int queue_idx) {
     Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
@@ -2349,7 +2349,7 @@ public:
             SubArray<1, ValueT, HIP> out_values, Array<1, Byte, HIP> &workspace,
             int queue_idx) {
     Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : NULL;
+        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
     size_t temp_storage_bytes =
         workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);

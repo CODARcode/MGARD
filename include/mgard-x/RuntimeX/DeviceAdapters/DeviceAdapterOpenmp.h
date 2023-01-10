@@ -317,7 +317,7 @@ public:
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n * sizeof(converted_T));
-    if (ptr == NULL) {
+    if (ptr == nullptr) {
       log::err("MemoryManager<OPENMP>::Malloc1D error.");
     }
   }
@@ -330,7 +330,7 @@ public:
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n1 * n2 * sizeof(converted_T));
     ld = n1;
-    if (ptr == NULL) {
+    if (ptr == nullptr) {
       log::err("MemoryManager<OPENMP>::MallocND error.");
     }
   }
@@ -342,7 +342,7 @@ public:
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n * sizeof(converted_T));
-    if (ptr == NULL) {
+    if (ptr == nullptr) {
       log::err("MemoryManager<OPENMP>::MallocManaged1D error.");
     }
   }
@@ -351,7 +351,7 @@ public:
   MGARDX_CONT static void Free(T *ptr,
                                int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     log::dbg("Calling MemoryManager<OPENMP>::Free");
-    if (ptr == NULL)
+    if (ptr == nullptr)
       return;
     std::free(ptr);
   }
@@ -392,7 +392,7 @@ public:
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     ptr = (T *)std::malloc(n * sizeof(converted_T));
-    if (ptr == NULL) {
+    if (ptr == nullptr) {
       log::err("MemoryManager<OPENMP>::MallocHost error.");
     }
   }
@@ -401,7 +401,7 @@ public:
   MGARDX_CONT static void FreeHost(T *ptr,
                                    int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     log::dbg("Calling MemoryManager<OPENMP>::FreeHost");
-    if (ptr == NULL)
+    if (ptr == nullptr)
       return;
     std::free(ptr);
   }

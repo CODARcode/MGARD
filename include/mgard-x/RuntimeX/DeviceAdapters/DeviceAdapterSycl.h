@@ -342,11 +342,11 @@ public:
       delete[] queues[d];
     }
     delete[] queues;
-    queues = NULL;
+    queues = nullptr;
   }
 
   int NumDevices;
-  sycl::queue **queues = NULL;
+  sycl::queue **queues = nullptr;
 };
 
 extern int sycl_dev_id;
@@ -505,7 +505,7 @@ public:
       DeviceRuntime<SYCL>::SyncQueue(queue_idx);
     }
     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
-    if (ptr == NULL)
+    if (ptr == nullptr)
       return;
     sycl::free(ptr, q);
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
@@ -584,7 +584,7 @@ public:
       DeviceRuntime<SYCL>::SyncQueue(queue_idx);
     }
     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
-    if (ptr == NULL)
+    if (ptr == nullptr)
       return;
     sycl::free(ptr, q);
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {

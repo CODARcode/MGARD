@@ -80,7 +80,6 @@ mgard_x_install_dir=${install_dir}
 mkdir -p ${mgard_x_build_dir}
 cmake -S ${mgard_x_src_dir} -B ${mgard_x_build_dir} \
     -DCMAKE_PREFIX_PATH="${nvcomp_install_dir};${zstd_install_dir}/lib/cmake/zstd;${protobuf_install_dir}"\
-    -DMGARD_ENABLE_SERIAL=ON\
     -DMGARD_ENABLE_CUDA=ON\
     -DCMAKE_CUDA_ARCHITECTURES="70"\
     -DMGARD_ENABLE_DOCS=OFF\
