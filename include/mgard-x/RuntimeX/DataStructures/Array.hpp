@@ -163,16 +163,16 @@ Array<D, T, DeviceType>::Array(const Array<D, T, DeviceType> &array) {
 }
 
 template <DIM D, typename T, typename DeviceType>
-Array<D, T, DeviceType> &Array<D, T, DeviceType>::
-operator=(const Array<D, T, DeviceType> &array) {
+Array<D, T, DeviceType> &
+Array<D, T, DeviceType>::operator=(const Array<D, T, DeviceType> &array) {
   // printf("Array operator =\n");
   this->copy(array);
   return *this;
 }
 
 template <DIM D, typename T, typename DeviceType>
-Array<D, T, DeviceType> &Array<D, T, DeviceType>::
-operator=(Array<D, T, DeviceType> &&array) {
+Array<D, T, DeviceType> &
+Array<D, T, DeviceType>::operator=(Array<D, T, DeviceType> &&array) {
   // printf("Array move = \n");
   this->move(std::move(array));
   return *this;

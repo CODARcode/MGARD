@@ -832,7 +832,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   bool input_previously_pinned = true;
   if (!MemoryManager<DeviceType>::IsDevicePointer((void *)original_data)) {
     input_previously_pinned =
-      MemoryManager<DeviceType>::CheckHostRegister((void *)original_data);
+        MemoryManager<DeviceType>::CheckHostRegister((void *)original_data);
     if (!input_previously_pinned) {
       MemoryManager<DeviceType>::HostRegister((void *)original_data,
                                               total_num_elem * sizeof(T));
@@ -842,7 +842,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   bool output_previously_pinned = true;
   if (!MemoryManager<DeviceType>::IsDevicePointer((void *)compressed_data)) {
     output_previously_pinned =
-      MemoryManager<DeviceType>::CheckHostRegister((void *)compressed_data);
+        MemoryManager<DeviceType>::CheckHostRegister((void *)compressed_data);
     if (!output_previously_pinned) {
       MemoryManager<DeviceType>::HostRegister((void *)compressed_data,
                                               output_buffer_size);
@@ -1080,16 +1080,16 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
   bool input_previously_pinned = true;
   if (!MemoryManager<DeviceType>::IsDevicePointer((void *)compressed_data)) {
     input_previously_pinned =
-      MemoryManager<DeviceType>::CheckHostRegister((void *)compressed_data);
+        MemoryManager<DeviceType>::CheckHostRegister((void *)compressed_data);
     if (!input_previously_pinned) {
       MemoryManager<DeviceType>::HostRegister((void *)compressed_data,
                                               compressed_size);
     }
   }
   bool output_previously_pinned = true;
-  if (!MemoryManager<DeviceType>::IsDevicePointer((void *)decompressed_data)){
+  if (!MemoryManager<DeviceType>::IsDevicePointer((void *)decompressed_data)) {
     output_previously_pinned =
-      MemoryManager<DeviceType>::CheckHostRegister((void *)decompressed_data);
+        MemoryManager<DeviceType>::CheckHostRegister((void *)decompressed_data);
     if (!output_previously_pinned) {
       MemoryManager<DeviceType>::HostRegister((void *)decompressed_data,
                                               total_num_elem * sizeof(T));
