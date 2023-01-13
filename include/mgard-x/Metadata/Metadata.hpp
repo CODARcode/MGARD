@@ -49,7 +49,7 @@ template <typename DeviceType> struct Metadata {
 
   enum operation_type otype;
 
-  // aboue MDR
+  // about MDR
   enum bitplane_encoding_type betype;
   uint64_t number_bitplanes;
 
@@ -1084,8 +1084,12 @@ private:
       std::cout << log::log_err
                 << "buffer is too large (size would overflow.\n";
     }
+    SERIALIZED_TYPE *data_h = (SERIALIZED_TYPE *)malloc(size);
+    Mem::Copy1D(data_h, data, size, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
     uLong crc32_ = crc32_z(0, Z_NULL, 0);
-    crc32_ = crc32_z(crc32_, static_cast<const Bytef *>(data), size);
+    crc32_ = crc32_z(crc32_, static_cast<const Bytef *>(data_h), size);
+    free(data_h);
     return crc32_;
   }
 
@@ -1103,9 +1107,12 @@ private:
       std::cout << log::log_err
                 << "header is too large (size would overflow).\n";
     }
+    SERIALIZED_TYPE *header_bytes_h = (SERIALIZED_TYPE *)malloc(header_size);
+    Mem::Copy1D(header_bytes_h, header_bytes, header_size, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
     mgard::pb::Header header;
     google::protobuf::io::CodedInputStream stream(
-        static_cast<google::protobuf::uint8 const *>(header_bytes),
+        static_cast<google::protobuf::uint8 const *>(header_bytes_h),
         header_size);
     if (not header.ParseFromCodedStream(&stream)) {
       throw std::runtime_error(
@@ -1114,6 +1121,7 @@ private:
     if (not stream.ConsumedEntireMessage()) {
       throw std::runtime_error("part of header left unparsed");
     }
+    free(header_bytes_h);
     return header;
   }
 
