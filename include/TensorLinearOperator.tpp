@@ -18,8 +18,8 @@ std::size_t ConstituentLinearOperator<N, Real>::dimension() const {
 }
 
 template <std::size_t N, typename Real>
-void ConstituentLinearOperator<N, Real>::
-operator()(const std::array<std::size_t, N> multiindex, Real *const v) const {
+void ConstituentLinearOperator<N, Real>::operator()(
+    const std::array<std::size_t, N> multiindex, Real *const v) const {
   // TODO: Could be good to check that `multiindex` corresponds to a 'spear' in
   // the level. For this we'll need to have the indices in every dimension.
   if (multiindex.at(dimension_)) {

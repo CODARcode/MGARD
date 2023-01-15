@@ -30,19 +30,19 @@ IndicatorInputRange::iterator::iterator(
   reset_node_iterator_pair();
 }
 
-bool IndicatorInputRange::iterator::
-operator==(const IndicatorInputRange::iterator &other) const {
+bool IndicatorInputRange::iterator::operator==(
+    const IndicatorInputRange::iterator &other) const {
   return (&iterable == &other.iterable || iterable == other.iterable) &&
          inner_mesh == other.inner_mesh && inner_node == other.inner_node;
 }
 
-bool IndicatorInputRange::iterator::
-operator!=(const IndicatorInputRange::iterator &other) const {
+bool IndicatorInputRange::iterator::operator!=(
+    const IndicatorInputRange::iterator &other) const {
   return !operator==(other);
 }
 
-typename IndicatorInputRange::iterator &IndicatorInputRange::iterator::
-operator++() {
+typename IndicatorInputRange::iterator &
+IndicatorInputRange::iterator::operator++() {
   // First entry is the current position. Second entry is the end.
   std::array<moab::Range::const_iterator, 2> &iterators = inner_node.value();
   if (++iterators[0] == iterators[1]) {
@@ -54,8 +54,8 @@ operator++() {
   return *this;
 }
 
-typename IndicatorInputRange::iterator IndicatorInputRange::iterator::
-operator++(int) {
+typename IndicatorInputRange::iterator
+IndicatorInputRange::iterator::operator++(int) {
   const IndicatorInputRange::iterator tmp = *this;
   operator++();
   return tmp;
