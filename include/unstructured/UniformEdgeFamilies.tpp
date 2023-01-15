@@ -51,27 +51,27 @@ EdgeFamilyIterable<T>::iterator::iterator(const EdgeFamilyIterable<T> &iterable,
 // least as of this writing, edges are unique to the mesh, so it should be OK to
 // just compare the iterators.
 template <typename T>
-bool EdgeFamilyIterable<T>::iterator::
-operator==(const EdgeFamilyIterable<T>::iterator &other) const {
+bool EdgeFamilyIterable<T>::iterator::operator==(
+    const EdgeFamilyIterable<T>::iterator &other) const {
   return inner == other.inner;
 }
 
 template <typename T>
-bool EdgeFamilyIterable<T>::iterator::
-operator!=(const EdgeFamilyIterable<T>::iterator &other) const {
+bool EdgeFamilyIterable<T>::iterator::operator!=(
+    const EdgeFamilyIterable<T>::iterator &other) const {
   return !(this->operator==(other));
 }
 
 template <typename T>
-typename EdgeFamilyIterable<T>::iterator &EdgeFamilyIterable<T>::iterator::
-operator++() {
+typename EdgeFamilyIterable<T>::iterator &
+EdgeFamilyIterable<T>::iterator::operator++() {
   ++inner;
   return *this;
 }
 
 template <typename T>
-typename EdgeFamilyIterable<T>::iterator EdgeFamilyIterable<T>::iterator::
-operator++(int) {
+typename EdgeFamilyIterable<T>::iterator
+EdgeFamilyIterable<T>::iterator::operator++(int) {
   const EdgeFamilyIterable<T>::iterator tmp = *this;
   this->operator++();
   return tmp;

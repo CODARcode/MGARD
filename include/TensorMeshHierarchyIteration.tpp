@@ -69,15 +69,15 @@ UnshuffledTensorNodeRange<N, Real>::iterator::iterator(
     : iterable(&iterable), inner(inner), index(index) {}
 
 template <std::size_t N, typename Real>
-bool UnshuffledTensorNodeRange<N, Real>::iterator::
-operator==(const UnshuffledTensorNodeRange<N, Real>::iterator &other) const {
+bool UnshuffledTensorNodeRange<N, Real>::iterator::operator==(
+    const UnshuffledTensorNodeRange<N, Real>::iterator &other) const {
   return index == other.index &&
          (iterable == other.iterable || *iterable == *(other.iterable));
 }
 
 template <std::size_t N, typename Real>
-bool UnshuffledTensorNodeRange<N, Real>::iterator::
-operator!=(const UnshuffledTensorNodeRange<N, Real>::iterator &other) const {
+bool UnshuffledTensorNodeRange<N, Real>::iterator::operator!=(
+    const UnshuffledTensorNodeRange<N, Real>::iterator &other) const {
   return !operator==(other);
 }
 
@@ -172,15 +172,15 @@ ShuffledTensorNodeRange<N, Real>::iterator::iterator(
     : iterable(iterable), ell(ell), inner(inner), index(index) {}
 
 template <std::size_t N, typename Real>
-bool ShuffledTensorNodeRange<N, Real>::iterator::
-operator==(const ShuffledTensorNodeRange<N, Real>::iterator &other) const {
+bool ShuffledTensorNodeRange<N, Real>::iterator::operator==(
+    const ShuffledTensorNodeRange<N, Real>::iterator &other) const {
   return index == other.index &&
          (&iterable == &other.iterable || iterable == other.iterable);
 }
 
 template <std::size_t N, typename Real>
-bool ShuffledTensorNodeRange<N, Real>::iterator::
-operator!=(const ShuffledTensorNodeRange<N, Real>::iterator &other) const {
+bool ShuffledTensorNodeRange<N, Real>::iterator::operator!=(
+    const ShuffledTensorNodeRange<N, Real>::iterator &other) const {
   return !operator==(other);
 }
 

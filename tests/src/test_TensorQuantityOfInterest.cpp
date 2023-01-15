@@ -74,9 +74,9 @@ RieszRepresentative<N, Real>::~RieszRepresentative() {
 }
 
 template <std::size_t N, typename Real>
-Real RieszRepresentative<N, Real>::
-operator()(const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
-           Real const *const u) const {
+Real RieszRepresentative<N, Real>::operator()(
+    const mgard::TensorMeshHierarchy<N, Real> &hierarchy,
+    Real const *const u) const {
   if (hierarchy != this->hierarchy) {
     throw std::domain_error(
         "construction and calling hierarchies must be equal");

@@ -19,8 +19,8 @@ MultilinearPolynomial<Real, N>::MultilinearPolynomial(
 }
 
 template <typename Real, std::size_t N>
-Real MultilinearPolynomial<Real, N>::
-operator()(const std::array<Real, N> &coordinates) const {
+Real MultilinearPolynomial<Real, N>::operator()(
+    const std::array<Real, N> &coordinates) const {
   Real value = 0;
   //! We use `exponents` to iterate over the monomials. Its bits determine the
   //! exponents of the variables (and so the monomial).
@@ -111,8 +111,8 @@ SobolevFunction<Real, N>::SobolevFunction(
 }
 
 template <typename Real, std::size_t N>
-Real SobolevFunction<Real, N>::
-operator()(const std::array<Real, N> &coordinates) const {
+Real SobolevFunction<Real, N>::operator()(
+    const std::array<Real, N> &coordinates) const {
   Real value = 0;
   for (const auto [frequency, coefficient] : modes) {
     value +=

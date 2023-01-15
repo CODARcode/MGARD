@@ -342,8 +342,9 @@ public:
   // When `T` is `TensorIndexRange`, we just want `TensorIndexRange::iterator`.
   // But when `T` is `std::vector<int>` (as of this writing, only in testing),
   // we need `std::vector<int>::const_iterator`.
-  using T_iterator = decltype(
-      std::declval<typename std::array<T, N>::const_reference>().begin());
+  using T_iterator =
+      decltype(std::declval<typename std::array<T, N>::const_reference>()
+                   .begin());
 
   //! Category of the iterator.
   using iterator_category = std::input_iterator_tag;
