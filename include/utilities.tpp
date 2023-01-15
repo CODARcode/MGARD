@@ -61,15 +61,15 @@ Enumeration<It>::iterator::iterator(const Enumeration<It> &iterable,
     : iterable(iterable), index(index), inner(inner) {}
 
 template <typename It>
-bool Enumeration<It>::iterator::
-operator==(const Enumeration<It>::iterator &other) const {
+bool Enumeration<It>::iterator::operator==(
+    const Enumeration<It>::iterator &other) const {
   return (&iterable == &other.iterable || iterable == other.iterable) &&
          index == other.index && inner == other.inner;
 }
 
 template <typename It>
-bool Enumeration<It>::iterator::
-operator!=(const Enumeration<It>::iterator &other) const {
+bool Enumeration<It>::iterator::operator!=(
+    const Enumeration<It>::iterator &other) const {
   return !operator==(other);
 }
 
@@ -88,8 +88,8 @@ typename Enumeration<It>::iterator Enumeration<It>::iterator::operator++(int) {
 }
 
 template <typename It>
-typename Enumeration<It>::iterator::reference Enumeration<It>::iterator::
-operator*() const {
+typename Enumeration<It>::iterator::reference
+Enumeration<It>::iterator::operator*() const {
   return {index, *inner};
 }
 
@@ -136,8 +136,9 @@ ZippedRange<It, Jt>::iterator::iterator(const ZippedRange<It, Jt> &iterable,
 }
 
 template <typename It, typename Jt>
-typename ZippedRange<It, Jt>::iterator &ZippedRange<It, Jt>::iterator::
-operator=(const ZippedRange<It, Jt>::iterator &other) {
+typename ZippedRange<It, Jt>::iterator &
+ZippedRange<It, Jt>::iterator::operator=(
+    const ZippedRange<It, Jt>::iterator &other) {
   if (iterable != other.iterable) {
     throw std::domain_error(
         "can only assign to iterators to the same iterable");
@@ -149,29 +150,29 @@ operator=(const ZippedRange<It, Jt>::iterator &other) {
 
 // Iteration won't stop when only one of the iterators reaches its end.
 template <typename It, typename Jt>
-bool ZippedRange<It, Jt>::iterator::
-operator==(const ZippedRange<It, Jt>::iterator &other) const {
+bool ZippedRange<It, Jt>::iterator::operator==(
+    const ZippedRange<It, Jt>::iterator &other) const {
   return (&iterable == &other.iterable || iterable == other.iterable) &&
          inner_first == other.inner_first && inner_second == other.inner_second;
 }
 
 template <typename It, typename Jt>
-bool ZippedRange<It, Jt>::iterator::
-operator!=(const ZippedRange<It, Jt>::iterator &other) const {
+bool ZippedRange<It, Jt>::iterator::operator!=(
+    const ZippedRange<It, Jt>::iterator &other) const {
   return !operator==(other);
 }
 
 template <typename It, typename Jt>
-typename ZippedRange<It, Jt>::iterator &ZippedRange<It, Jt>::iterator::
-operator++() {
+typename ZippedRange<It, Jt>::iterator &
+ZippedRange<It, Jt>::iterator::operator++() {
   ++inner_first;
   ++inner_second;
   return *this;
 }
 
 template <typename It, typename Jt>
-typename ZippedRange<It, Jt>::iterator ZippedRange<It, Jt>::iterator::
-operator++(int) {
+typename ZippedRange<It, Jt>::iterator
+ZippedRange<It, Jt>::iterator::operator++(int) {
   const ZippedRange<It, Jt>::iterator tmp = *this;
   operator++();
   return tmp;
@@ -179,7 +180,7 @@ operator++(int) {
 
 template <typename It, typename Jt>
 typename ZippedRange<It, Jt>::iterator::reference
-    ZippedRange<It, Jt>::iterator::operator*() const {
+ZippedRange<It, Jt>::iterator::operator*() const {
   return {*inner_first, *inner_second};
 }
 
@@ -251,21 +252,21 @@ CartesianProduct<T, N>::iterator::iterator(
     : iterable(&iterable), inner(inner) {}
 
 template <typename T, std::size_t N>
-bool CartesianProduct<T, N>::iterator::
-operator==(const CartesianProduct<T, N>::iterator &other) const {
+bool CartesianProduct<T, N>::iterator::operator==(
+    const CartesianProduct<T, N>::iterator &other) const {
   return (iterable == other.iterable || *iterable == *(other.iterable)) &&
          inner == other.inner;
 }
 
 template <typename T, std::size_t N>
-bool CartesianProduct<T, N>::iterator::
-operator!=(const CartesianProduct<T, N>::iterator &other) const {
+bool CartesianProduct<T, N>::iterator::operator!=(
+    const CartesianProduct<T, N>::iterator &other) const {
   return !operator==(other);
 }
 
 template <typename T, std::size_t N>
-typename CartesianProduct<T, N>::iterator &CartesianProduct<T, N>::iterator::
-operator++() {
+typename CartesianProduct<T, N>::iterator &
+CartesianProduct<T, N>::iterator::operator++() {
   for (std::size_t i = N; i != 0; --i) {
     const std::size_t j = i - 1;
     const T &factor = iterable->factors.at(j);
@@ -284,8 +285,8 @@ operator++() {
 }
 
 template <typename T, std::size_t N>
-typename CartesianProduct<T, N>::iterator CartesianProduct<T, N>::iterator::
-operator++(int) {
+typename CartesianProduct<T, N>::iterator
+CartesianProduct<T, N>::iterator::operator++(int) {
   const iterator tmp = *this;
   operator++();
   return tmp;
@@ -317,7 +318,7 @@ CartesianProduct<T, N>::iterator::successor(const std::size_t i) const {
 
 template <typename T, std::size_t N>
 typename CartesianProduct<T, N>::iterator::reference
-    CartesianProduct<T, N>::iterator::operator*() const {
+CartesianProduct<T, N>::iterator::operator*() const {
   reference value;
   for (std::size_t i = 0; i < N; ++i) {
     value.at(i) = *inner.at(i);

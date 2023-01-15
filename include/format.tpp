@@ -58,7 +58,7 @@ template <typename Int> bool big_endian() {
   static_assert(std::is_integral<Int>::value,
                 "can only check endianness of integral types");
   const Int n = 1;
-  return not*reinterpret_cast<unsigned char const *>(&n);
+  return not *reinterpret_cast<unsigned char const *>(&n);
 }
 
 } // namespace mgard

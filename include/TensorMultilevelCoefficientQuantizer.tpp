@@ -76,8 +76,8 @@ Int Qntzr<N, Real, Int>::operator()(const TensorNode<N> node,
 }
 
 template <std::size_t N, typename Real, typename Int>
-RangeSlice<typename Qntzr<N, Real, Int>::iterator> Qntzr<N, Real, Int>::
-operator()(Real const *const u) const {
+RangeSlice<typename Qntzr<N, Real, Int>::iterator>
+Qntzr<N, Real, Int>::operator()(Real const *const u) const {
   return {.begin_ = iterator(*this, nodes.begin(), u),
           .end_ = iterator(*this, nodes.end(), u + hierarchy.ndof())};
 }
@@ -100,29 +100,29 @@ Qntzr<N, Real, Int>::iterator::iterator(
     : quantizer(quantizer), inner_node(inner_node), inner_coeff(inner_coeff) {}
 
 template <std::size_t N, typename Real, typename Int>
-bool Qntzr<N, Real, Int>::iterator::
-operator==(const typename Qntzr<N, Real, Int>::iterator &other) const {
+bool Qntzr<N, Real, Int>::iterator::operator==(
+    const typename Qntzr<N, Real, Int>::iterator &other) const {
   return (&quantizer == &other.quantizer || quantizer == other.quantizer) &&
          inner_node == other.inner_node && inner_coeff == other.inner_coeff;
 }
 
 template <std::size_t N, typename Real, typename Int>
-bool Qntzr<N, Real, Int>::iterator::
-operator!=(const typename Qntzr<N, Real, Int>::iterator &other) const {
+bool Qntzr<N, Real, Int>::iterator::operator!=(
+    const typename Qntzr<N, Real, Int>::iterator &other) const {
   return !operator==(other);
 }
 
 template <std::size_t N, typename Real, typename Int>
-typename Qntzr<N, Real, Int>::iterator &Qntzr<N, Real, Int>::iterator::
-operator++() {
+typename Qntzr<N, Real, Int>::iterator &
+Qntzr<N, Real, Int>::iterator::operator++() {
   ++inner_node;
   ++inner_coeff;
   return *this;
 }
 
 template <std::size_t N, typename Real, typename Int>
-typename Qntzr<N, Real, Int>::iterator Qntzr<N, Real, Int>::iterator::
-operator++(int) {
+typename Qntzr<N, Real, Int>::iterator
+Qntzr<N, Real, Int>::iterator::operator++(int) {
   const iterator tmp = *this;
   operator++();
   return tmp;

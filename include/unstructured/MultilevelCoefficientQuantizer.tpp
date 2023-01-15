@@ -45,8 +45,8 @@ Int Qntzr<Real, Int>::operator()(const IndicatorInput input,
 }
 
 template <typename Real, typename Int>
-RangeSlice<typename Qntzr<Real, Int>::iterator> Qntzr<Real, Int>::
-operator()(const MultilevelCoefficients<Real> u) const {
+RangeSlice<typename Qntzr<Real, Int>::iterator>
+Qntzr<Real, Int>::operator()(const MultilevelCoefficients<Real> u) const {
   Real const *const begin_mc = u.data;
   Real const *const end_mc = begin_mc + hierarchy.ndof();
   return {iterator(*this, indicator_input_range.begin(), begin_mc),
@@ -60,15 +60,15 @@ Qntzr<Real, Int>::iterator::iterator(
     : quantizer(quantizer), inner_input(inner_input), inner_mc(inner_mc) {}
 
 template <typename Real, typename Int>
-bool Qntzr<Real, Int>::iterator::
-operator==(const Qntzr<Real, Int>::iterator &other) const {
+bool Qntzr<Real, Int>::iterator::operator==(
+    const Qntzr<Real, Int>::iterator &other) const {
   return (&quantizer == &other.quantizer || quantizer == other.quantizer) &&
          inner_input == other.inner_input && inner_mc == other.inner_mc;
 }
 
 template <typename Real, typename Int>
-bool Qntzr<Real, Int>::iterator::
-operator!=(const Qntzr<Real, Int>::iterator &other) const {
+bool Qntzr<Real, Int>::iterator::operator!=(
+    const Qntzr<Real, Int>::iterator &other) const {
   return !operator==(other);
 }
 
@@ -80,8 +80,8 @@ typename Qntzr<Real, Int>::iterator &Qntzr<Real, Int>::iterator::operator++() {
 }
 
 template <typename Real, typename Int>
-typename Qntzr<Real, Int>::iterator Qntzr<Real, Int>::iterator::
-operator++(int) {
+typename Qntzr<Real, Int>::iterator
+Qntzr<Real, Int>::iterator::operator++(int) {
   const iterator tmp = *this;
   operator++();
   return tmp;
@@ -132,8 +132,8 @@ Dqntzr<Int, Real>::iterator<It>::iterator(
 
 template <typename Int, typename Real>
 template <typename It>
-bool Dqntzr<Int, Real>::iterator<It>::
-operator==(const Dqntzr<Int, Real>::iterator<It> &other) const {
+bool Dqntzr<Int, Real>::iterator<It>::operator==(
+    const Dqntzr<Int, Real>::iterator<It> &other) const {
   return (&dequantizer == &other.dequantizer ||
           dequantizer == other.dequantizer) &&
          inner_input == other.inner_input && inner_qc == other.inner_qc;
@@ -141,8 +141,8 @@ operator==(const Dqntzr<Int, Real>::iterator<It> &other) const {
 
 template <typename Int, typename Real>
 template <typename It>
-bool Dqntzr<Int, Real>::iterator<It>::
-operator!=(const Dqntzr<Int, Real>::iterator<It> &other) const {
+bool Dqntzr<Int, Real>::iterator<It>::operator!=(
+    const Dqntzr<Int, Real>::iterator<It> &other) const {
   return !operator==(other);
 }
 
