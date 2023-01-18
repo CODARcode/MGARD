@@ -9,11 +9,19 @@
 // clang-format off
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace single_dimension {
+
 template void CoefficientsRestore<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     DIM current_dim, SubArray<1, @DATA_TYPE@, @DEVICE_TYPE@> ratio,
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> v,
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> coarse,
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> coeff, int queue_idx);
+
+} // namespace single_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 // clang-format on

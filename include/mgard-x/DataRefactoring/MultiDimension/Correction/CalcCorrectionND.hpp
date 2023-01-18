@@ -18,6 +18,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace multi_dimension {
+
 template <DIM D, typename T, typename DeviceType>
 void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
                       SubArray<D, T, DeviceType> dcoeff,
@@ -255,6 +259,10 @@ void CalcCorrectionND(Hierarchy<D, T, DeviceType> &hierarchy,
 
   dcorrection = dw_out;
 }
+
+} // namespace multi_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 

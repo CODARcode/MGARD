@@ -7,12 +7,15 @@
 
 #include "DataRefactorInterface.hpp"
 // #include "DataRefactoringWorkspace.hpp"
+#include "InCacheBlock/DataRefactoring.h"
 #include "MultiDimension/DataRefactoring.h"
 #include "SingleDimension/DataRefactoring.h"
 
 #ifndef MGARD_X_DATA_REFACTOROR_HPP
 #define MGARD_X_DATA_REFACTOROR_HPP
 namespace mgard_x {
+
+namespace data_refactoring {
 
 template <DIM D, typename T, typename DeviceType>
 class DataRefactor : public DataRefactorInterface<D, T, DeviceType> {
@@ -65,12 +68,16 @@ public:
     }
 
     if (config.decomposition == decomposition_type::MultiDim) {
-      decompose<D, T, DeviceType>(hierarchy, data_subarray, w_subarray,
-                                  b_subarray, start_level, stop_level,
-                                  queue_idx);
+      multi_dimension::decompose<D, T, DeviceType>(
+          hierarchy, data_subarray, w_subarray, b_subarray, start_level,
+          stop_level, queue_idx);
     } else if (config.decomposition == decomposition_type::SingleDim) {
-      decompose_single<D, T, DeviceType>(hierarchy, data_subarray, start_level,
-                                         stop_level, queue_idx);
+      single_dimension::decompose<D, T, DeviceType>(
+          hierarchy, data_subarray, start_level, stop_level, queue_idx);
+    } else if (config.decomposition == decomposition_type::InCacheBlock) {
+      in_cache_block::decompose<D, T, DeviceType>(
+          hierarchy, data_subarray, w_subarray, b_subarray, start_level,
+          stop_level, queue_idx);
     }
     if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
@@ -95,12 +102,16 @@ public:
     if (D > 3)
       b_subarray = SubArray<D, T, DeviceType>(b_array);
     if (config.decomposition == decomposition_type::MultiDim) {
-      recompose<D, T, DeviceType>(hierarchy, data_subarray, w_subarray,
-                                  b_subarray, start_level, stop_level,
-                                  queue_idx);
+      multi_dimension::recompose<D, T, DeviceType>(
+          hierarchy, data_subarray, w_subarray, b_subarray, start_level,
+          stop_level, queue_idx);
     } else if (config.decomposition == decomposition_type::SingleDim) {
-      recompose_single<D, T, DeviceType>(hierarchy, data_subarray, start_level,
-                                         stop_level, queue_idx);
+      single_dimension::recompose<D, T, DeviceType>(
+          hierarchy, data_subarray, start_level, stop_level, queue_idx);
+    } else if (config.decomposition == decomposition_type::InCacheBlock) {
+      in_cache_block::recompose<D, T, DeviceType>(
+          hierarchy, data_subarray, w_subarray, b_subarray, start_level,
+          stop_level, queue_idx);
     }
     if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
@@ -128,6 +139,8 @@ public:
   Array<D, T, DeviceType> w_array;
   Array<D, T, DeviceType> b_array;
 };
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 

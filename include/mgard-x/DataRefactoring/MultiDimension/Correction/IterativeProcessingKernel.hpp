@@ -13,6 +13,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace multi_dimension {
+
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, SIZE G,
           typename DeviceType>
 class Ipk1ReoFunctor : public IterFunctor<DeviceType> {
@@ -1979,6 +1983,10 @@ private:
   SubArray<1, T, DeviceType> am, bm;
   SubArray<D, T, DeviceType> v;
 };
+
+} // namespace multi_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 

@@ -12,14 +12,18 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace single_dimension {
+
 static bool store = false;
 static bool verify = false;
 static bool debug_print = false;
 
 template <DIM D, typename T, typename DeviceType>
-void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
-                      SubArray<D, T, DeviceType> &v, int start_level,
-                      int stop_level, int queue_idx) {
+void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
+               SubArray<D, T, DeviceType> &v, int start_level, int stop_level,
+               int queue_idx) {
 
   if (stop_level < 0) {
     std::cout << log::log_err << "decompose: stop_level out of bound.\n";
@@ -75,7 +79,7 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
       SubArray<D, T, DeviceType> correction = w;
       correction.resize(coarse_shape);
 
-      CopyND(v_fine, w_fine, queue_idx);
+      multi_dimension::CopyND(v_fine, w_fine, queue_idx);
 
       if (singledim_refactoring_debug_print) {
         PrintSubarray("COPY", w_fine);
@@ -92,7 +96,7 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
 
       CalcCorrection(hierarchy, coeff, correction, curr_dim, l, queue_idx);
 
-      AddND(correction, coarse, queue_idx);
+      multi_dimension::AddND(correction, coarse, queue_idx);
 
       if (singledim_refactoring_debug_print) {
         PrintSubarray("ADD", coarse);
@@ -103,9 +107,9 @@ void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
 }
 
 template <DIM D, typename T, typename DeviceType>
-void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
-                      SubArray<D, T, DeviceType> &v, int start_level,
-                      int stop_level, int queue_idx) {
+void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
+               SubArray<D, T, DeviceType> &v, int start_level, int stop_level,
+               int queue_idx) {
 
   if (stop_level < 0 || stop_level > hierarchy.l_target()) {
     std::cout << log::log_err << "recompose: stop_level out of bound.\n";
@@ -163,7 +167,7 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
 
       CalcCorrection(hierarchy, coeff, correction, curr_dim, l + 1, queue_idx);
 
-      SubtractND(correction, coarse, queue_idx);
+      multi_dimension::SubtractND(correction, coarse, queue_idx);
 
       if (singledim_refactoring_debug_print) {
         PrintSubarray("SUBTRACT", coarse);
@@ -178,7 +182,7 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
         PrintSubarray("SingleDimensionCoefficient - coeff", coeff);
       }
 
-      CopyND(w_fine, v_fine, queue_idx);
+      multi_dimension::CopyND(w_fine, v_fine, queue_idx);
 
       if (singledim_refactoring_debug_print) {
         PrintSubarray("COPY", v_fine);
@@ -187,5 +191,9 @@ void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
     } // loop dimensions
   }   // loop levels
 }
+
+} // namespace single_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x

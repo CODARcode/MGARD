@@ -14,6 +14,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace single_dimension {
+
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class SingleDimensionMassTransFunctor : public Functor<DeviceType> {
 public:
@@ -177,6 +181,10 @@ private:
   SubArray<D, T, DeviceType> coeff;
   SubArray<D, T, DeviceType> v;
 };
+
+} // namespace single_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 

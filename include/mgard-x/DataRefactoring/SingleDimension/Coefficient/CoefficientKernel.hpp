@@ -17,6 +17,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace single_dimension {
+
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, OPTION OP,
           typename DeviceType>
 class SingleDimensionCoefficientFunctor : public Functor<DeviceType> {
@@ -205,6 +209,10 @@ private:
   SubArray<D, T, DeviceType> coarse;
   SubArray<D, T, DeviceType> coeff;
 };
+
+} // namespace single_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 

@@ -17,6 +17,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace multi_dimension {
+
 template <DIM D, typename T, typename DeviceType>
 void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
                SubArray<D, T, DeviceType> &v, SubArray<D, T, DeviceType> w,
@@ -295,6 +299,10 @@ void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
   }   // D > 3
   // DeviceRuntime<DeviceType>::SyncDevice();
 }
+
+} // namespace multi_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 
