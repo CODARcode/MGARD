@@ -27,7 +27,7 @@ namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType>
 class Compressor : public LossyCompressorInterface<D, T, DeviceType> {
-  using DataRefactorType = DataRefactor<D, T, DeviceType>;
+  using DataRefactorType = data_refactoring::DataRefactor<D, T, DeviceType>;
   using LosslessCompressorType =
       ComposedLosslessCompressor<QUANTIZED_UNSIGNED_INT, HUFFMAN_CODE,
                                  DeviceType>;

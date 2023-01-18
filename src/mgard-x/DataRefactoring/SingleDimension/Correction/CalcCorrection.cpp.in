@@ -9,11 +9,19 @@
 // clang-format off
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace single_dimension {
+
 template void CalcCorrection<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &coeff,
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &correction,
     SIZE curr_dim, SIZE l, int queue_idx);
+
+} // namespace single_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 // clang-format off

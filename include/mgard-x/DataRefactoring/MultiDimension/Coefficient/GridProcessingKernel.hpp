@@ -15,6 +15,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace multi_dimension {
+
 template <DIM D_GLOBAL, DIM D_LOCAL, typename T, SIZE R, SIZE C, SIZE F,
           bool INTERPOLATION, bool CALC_COEFF, int TYPE, typename DeviceType>
 class GpkReoFunctor : public Functor<DeviceType> {
@@ -4647,6 +4651,10 @@ private:
   DIM curr_dim_f;
   SIZE svr, svc, svf, nvr, nvc, nvf;
 };
+
+} // namespace multi_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 

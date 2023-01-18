@@ -1,6 +1,5 @@
-add_subdirectory (MultiDimension)
-add_subdirectory (SingleDimension)
-add_subdirectory (InCacheBlock)
+MgardXGenerateSourceAllCombinations("Decompose")
+MgardXGenerateSourceAllCombinations("Recompose")
 set(MGARD_X_SERIAL_SRC ${MGARD_X_SERIAL_SRC} PARENT_SCOPE)
 set(MGARD_X_OPENMP_SRC ${MGARD_X_OPENMP_SRC} PARENT_SCOPE)
 set(MGARD_X_CUDA_SRC ${MGARD_X_CUDA_SRC} PARENT_SCOPE)

@@ -9,11 +9,19 @@
 // clang-format off
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace multi_dimension {
+
 template void CoefficientsRestore3D<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> dinput,
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &doutput, SIZE l,
     int queue_idx);
+
+} // namespace multi_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 // clang-format on

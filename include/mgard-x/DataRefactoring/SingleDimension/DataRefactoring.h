@@ -13,6 +13,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace single_dimension {
+
 static bool singledim_refactoring_store = false;
 static bool singledim_refactoring_verify = false;
 static bool singledim_refactoring_debug_print = false;
@@ -36,6 +40,20 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
                     SIZE l, int queue_idx);
 
 template <DIM D, typename T, typename DeviceType>
+void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
+               SubArray<D, T, DeviceType> &v, int start_level, int stop_level,
+               int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
+void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
+               SubArray<D, T, DeviceType> &v, int start_level, int stop_level,
+               int queue_idx);
+
+} // namespace single_dimension
+
+namespace multi_dimension {
+
+template <DIM D, typename T, typename DeviceType>
 void CopyND(SubArray<D, T, DeviceType> dinput,
             SubArray<D, T, DeviceType> doutput, int queue_idx);
 
@@ -47,15 +65,9 @@ template <DIM D, typename T, typename DeviceType>
 void SubtractND(SubArray<D, T, DeviceType> dinput,
                 SubArray<D, T, DeviceType> doutput, int queue_idx);
 
-template <DIM D, typename T, typename DeviceType>
-void decompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
-                      SubArray<D, T, DeviceType> &v, int start_level,
-                      int stop_level, int queue_idx);
+} // namespace multi_dimension
 
-template <DIM D, typename T, typename DeviceType>
-void recompose_single(Hierarchy<D, T, DeviceType> &hierarchy,
-                      SubArray<D, T, DeviceType> &v, int start_level,
-                      int stop_level, int queue_idx);
+} // namespace data_refactoring
 
 } // namespace mgard_x
 

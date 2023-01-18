@@ -5,22 +5,22 @@
  * Date: March 17, 2022
  */
 
-#include "mgard-x/DataRefactoring/MultiDimension/DataRefactoring.hpp"
+#include "mgard-x/DataRefactoring/InCacheBlock/DataRefactoring.hpp"
 // clang-format off
 namespace mgard_x {
 
 namespace data_refactoring {
 
-namespace multi_dimension {
+namespace in_cache_block {
 
-template void decompose<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
+template void recompose<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
-    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v, 
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v,
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> w,
-    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> b,
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> b, 
     int start_level, int stop_level, int queue_idx);
 
-} // namespace multi_dimension
+} // namespace in_cache_block
 
 } // namespace data_refactoring
 
