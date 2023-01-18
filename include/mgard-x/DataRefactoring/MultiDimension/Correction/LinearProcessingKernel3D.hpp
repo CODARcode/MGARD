@@ -19,6 +19,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace multi_dimension {
+
 template <DIM D, typename T, SIZE R, SIZE C, SIZE F, typename DeviceType>
 class Lpk1Reo3DFunctor : public Functor<DeviceType> {
 public:
@@ -1084,6 +1088,10 @@ private:
   SubArray<1, T, DeviceType> dratio_r;
   SubArray<D, T, DeviceType> dv1, dv2, dw;
 };
+
+} // namespace multi_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 

@@ -17,6 +17,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace multi_dimension {
+
 template <DIM D, typename T, typename DeviceType>
 void CoefficientsRestore3D(Hierarchy<D, T, DeviceType> &hierarchy,
                            SubArray<D, T, DeviceType> dinput,
@@ -85,6 +89,10 @@ void CoefficientsRestore3D(Hierarchy<D, T, DeviceType> &hierarchy,
     PrintSubarray("after coeff-restore", doutput);
   }
 }
+
+} // namespace multi_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 

@@ -8,6 +8,9 @@
 #ifndef MGARD_X_DATA_REFACTOR_INTERFACE_HPP
 #define MGARD_X_DATA_REFACTOR_INTERFACE_HPP
 namespace mgard_x {
+
+namespace data_refactoring {
+
 template <DIM D, typename T, typename DeviceType> class DataRefactorInterface {
   virtual void Decompose(Array<D, T, DeviceType> &data, int start_level,
                          int stop_level, int queue_idx) = 0;
@@ -16,6 +19,9 @@ template <DIM D, typename T, typename DeviceType> class DataRefactorInterface {
   virtual void Decompose(Array<D, T, DeviceType> &data, int queue_idx) = 0;
   virtual void Recompose(Array<D, T, DeviceType> &data, int queue_idx) = 0;
 };
+
+} // namespace data_refactoring
+
 } // namespace mgard_x
 
 #endif

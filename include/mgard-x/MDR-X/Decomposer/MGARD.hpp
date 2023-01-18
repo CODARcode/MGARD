@@ -93,7 +93,7 @@ public:
 
 private:
   Hierarchy<D, T, DeviceType> hierarchy;
-  DataRefactor<D, T, DeviceType> refactor;
+  data_refactoring::DataRefactor<D, T, DeviceType> refactor;
 };
 
 } // namespace MDR

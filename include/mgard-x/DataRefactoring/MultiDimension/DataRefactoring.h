@@ -14,6 +14,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace multi_dimension {
+
 static bool multidim_refactoring_store = false;
 static bool multidim_refactoring_verify = false;
 static bool multidim_refactoring_debug_print = false;
@@ -128,6 +132,10 @@ void CoefficientRetriever(Hierarchy<D, T, DeviceType> &hierarchy,
                           SubArray<D, SIZE, DeviceType> refinement_flag,
                           SubArray<D, T, DeviceType> &doutput, SIZE l,
                           int queue_idx);
+
+} // namespace multi_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 

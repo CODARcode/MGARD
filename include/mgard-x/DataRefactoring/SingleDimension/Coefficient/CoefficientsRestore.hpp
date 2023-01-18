@@ -17,6 +17,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace single_dimension {
+
 template <DIM D, typename T, typename DeviceType>
 void CoefficientsRestore(DIM current_dim, SubArray<1, T, DeviceType> ratio,
                          SubArray<D, T, DeviceType> v,
@@ -28,6 +32,10 @@ void CoefficientsRestore(DIM current_dim, SubArray<1, T, DeviceType> ratio,
           current_dim, ratio, v, coarse, coeff),
       queue_idx);
 }
+
+} // namespace single_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 

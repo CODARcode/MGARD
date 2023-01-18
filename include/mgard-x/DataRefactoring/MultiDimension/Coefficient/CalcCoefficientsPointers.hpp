@@ -13,6 +13,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace multi_dimension {
+
 template <DIM D, typename T, typename DeviceType>
 void CalcCoefficientsPointers(
     Hierarchy<D, T, DeviceType> &hierarchy, DIM curr_dims[3], DIM l,
@@ -82,6 +86,10 @@ void CalcCoefficientsPointers(
   dcoeff_rcf.resize(curr_dims[1], n[1] - nn[1]);
   dcoeff_rcf.resize(curr_dims[2], n[2] - nn[2]);
 }
+
+} // namespace multi_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 

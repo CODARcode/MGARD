@@ -20,6 +20,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace single_dimension {
+
 template <DIM D, typename T, typename DeviceType>
 void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
                     SubArray<D, T, DeviceType> &coeff,
@@ -41,10 +45,10 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
     curr_dim_r = D - 3, curr_dim_c = D - 2, curr_dim_f = D - 1;
     correction.project(curr_dim_r, curr_dim_c, curr_dim_f);
     DeviceLauncher<DeviceType>::Execute(
-        Ipk1ReoKernel<D, T, DeviceType>(curr_dim_r, curr_dim_c, curr_dim_f,
-                                        SubArray(hierarchy.am(l - 1, D - 1)),
-                                        SubArray(hierarchy.bm(l - 1, D - 1)),
-                                        correction),
+        multi_dimension::Ipk1ReoKernel<D, T, DeviceType>(
+            curr_dim_r, curr_dim_c, curr_dim_f,
+            SubArray(hierarchy.am(l - 1, D - 1)),
+            SubArray(hierarchy.bm(l - 1, D - 1)), correction),
         queue_idx);
     if (singledim_refactoring_debug_print) {
       PrintSubarray("Ipk1Reo", correction);
@@ -54,10 +58,10 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
     curr_dim_r = D - 3, curr_dim_c = D - 2, curr_dim_f = D - 1;
     correction.project(curr_dim_r, curr_dim_c, curr_dim_f);
     DeviceLauncher<DeviceType>::Execute(
-        Ipk2ReoKernel<D, T, DeviceType>(curr_dim_r, curr_dim_c, curr_dim_f,
-                                        SubArray(hierarchy.am(l - 1, D - 2)),
-                                        SubArray(hierarchy.bm(l - 1, D - 2)),
-                                        correction),
+        multi_dimension::Ipk2ReoKernel<D, T, DeviceType>(
+            curr_dim_r, curr_dim_c, curr_dim_f,
+            SubArray(hierarchy.am(l - 1, D - 2)),
+            SubArray(hierarchy.bm(l - 1, D - 2)), correction),
         queue_idx);
     if (singledim_refactoring_debug_print) {
       PrintSubarray("Ipk2Reo", correction);
@@ -66,10 +70,10 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
     curr_dim_r = D - 3, curr_dim_c = D - 2, curr_dim_f = D - 1;
     correction.project(curr_dim_r, curr_dim_c, curr_dim_f);
     DeviceLauncher<DeviceType>::Execute(
-        Ipk3ReoKernel<D, T, DeviceType>(curr_dim_r, curr_dim_c, curr_dim_f,
-                                        SubArray(hierarchy.am(l - 1, D - 3)),
-                                        SubArray(hierarchy.bm(l - 1, D - 3)),
-                                        correction),
+        multi_dimension::Ipk3ReoKernel<D, T, DeviceType>(
+            curr_dim_r, curr_dim_c, curr_dim_f,
+            SubArray(hierarchy.am(l - 1, D - 3)),
+            SubArray(hierarchy.bm(l - 1, D - 3)), correction),
         queue_idx);
     if (singledim_refactoring_debug_print) {
       PrintSubarray("Ipk3Reo", correction);
@@ -78,16 +82,20 @@ void CalcCorrection(Hierarchy<D, T, DeviceType> &hierarchy,
     curr_dim_r = curr_dim, curr_dim_c = D - 2, curr_dim_f = D - 1;
     correction.project(curr_dim_r, curr_dim_c, curr_dim_f);
     DeviceLauncher<DeviceType>::Execute(
-        Ipk3ReoKernel<D, T, DeviceType>(curr_dim_r, curr_dim_c, curr_dim_f,
-                                        SubArray(hierarchy.am(l - 1, curr_dim)),
-                                        SubArray(hierarchy.bm(l - 1, curr_dim)),
-                                        correction),
+        multi_dimension::Ipk3ReoKernel<D, T, DeviceType>(
+            curr_dim_r, curr_dim_c, curr_dim_f,
+            SubArray(hierarchy.am(l - 1, curr_dim)),
+            SubArray(hierarchy.bm(l - 1, curr_dim)), correction),
         queue_idx);
     if (singledim_refactoring_debug_print) {
       PrintSubarray("Ipk3Reo", correction);
     }
   }
 }
+
+} // namespace single_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 

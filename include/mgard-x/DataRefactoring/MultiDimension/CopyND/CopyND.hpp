@@ -17,6 +17,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace multi_dimension {
+
 template <DIM D, typename T, typename DeviceType>
 void CopyND(SubArray<D, T, DeviceType> dinput,
             SubArray<D, T, DeviceType> doutput, int queue_idx) {
@@ -24,6 +28,10 @@ void CopyND(SubArray<D, T, DeviceType> dinput,
   DeviceLauncher<DeviceType>::Execute(
       LwpkReoKernel<D, T, COPY, DeviceType>(dinput, doutput), queue_idx);
 }
+
+} // namespace multi_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 

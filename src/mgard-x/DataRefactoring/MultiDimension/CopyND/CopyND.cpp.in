@@ -9,9 +9,17 @@
 // clang-format off
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace multi_dimension {
+
 template void CopyND<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> dinput,
     SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> doutput, int queue_idx);
+
+} // namespace multi_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 // clang-format on

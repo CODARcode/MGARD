@@ -18,6 +18,10 @@
 
 namespace mgard_x {
 
+namespace data_refactoring {
+
+namespace multi_dimension {
+
 template <DIM D, typename T, typename DeviceType>
 void CalcCoefficients3D(Hierarchy<D, T, DeviceType> &hierarchy,
                         SubArray<D, T, DeviceType> dinput,
@@ -87,6 +91,10 @@ void CalcCoefficients3D(Hierarchy<D, T, DeviceType> &hierarchy,
     PrintSubarray("after pi_Ql_reo", doutput);
   }
 }
+
+} // namespace multi_dimension
+
+} // namespace data_refactoring
 
 } // namespace mgard_x
 
