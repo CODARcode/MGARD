@@ -721,8 +721,8 @@ public:
 private:
   SubArray<D, T, DeviceType> v;
   T *sm_v, *sm_x, *sm_y, *sm_z, *sm_c8, *sm_c5, *sm_c3, *sm_c2;
-  const int ld1 = X;
-  const int ld2 = Y;
+  int ld1 = X;
+  int ld2 = Y;
   int z, y, x, z_gl, y_gl, x_gl;
   int tid, op_tid;
   T left, right, middle;
