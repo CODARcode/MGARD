@@ -732,6 +732,26 @@ public:
     my_functor.Operation9();
     i.barrier();
     my_functor.Operation10();
+    i.barrier();
+    my_functor.Operation11();
+    i.barrier();
+    my_functor.Operation12();
+    i.barrier();
+    my_functor.Operation13();
+    i.barrier();
+    my_functor.Operation14();
+    i.barrier();
+    my_functor.Operation15();
+    i.barrier();
+    my_functor.Operation16();
+    i.barrier();
+    my_functor.Operation17();
+    i.barrier();
+    my_functor.Operation18();
+    i.barrier();
+    my_functor.Operation19();
+    i.barrier();
+    my_functor.Operation20();
   }
 
 private:

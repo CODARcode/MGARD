@@ -132,6 +132,46 @@ public:
   MGARDX_EXEC void Operation9() {}
 
   MGARDX_EXEC void Operation10() {}
+
+  MGARDX_EXEC void Operation11() {}
+
+  MGARDX_EXEC void Operation12() {}
+
+  MGARDX_EXEC void Operation13() {}
+
+  MGARDX_EXEC void Operation14() {}
+
+  MGARDX_EXEC void Operation15() {}
+
+  MGARDX_EXEC void Operation16() {}
+
+  MGARDX_EXEC void Operation17() {}
+
+  MGARDX_EXEC void Operation18() {}
+
+  MGARDX_EXEC void Operation19() {}
+
+  MGARDX_EXEC void Operation20() {}
+
+  MGARDX_EXEC void Operation21() {}
+
+  MGARDX_EXEC void Operation22() {}
+
+  MGARDX_EXEC void Operation23() {}
+
+  MGARDX_EXEC void Operation24() {}
+
+  MGARDX_EXEC void Operation25() {}
+
+  MGARDX_EXEC void Operation26() {}
+
+  MGARDX_EXEC void Operation27() {}
+
+  MGARDX_EXEC void Operation28() {}
+
+  MGARDX_EXEC void Operation29() {}
+
+  MGARDX_EXEC void Operation30() {}
 };
 
 template <typename DeviceType>

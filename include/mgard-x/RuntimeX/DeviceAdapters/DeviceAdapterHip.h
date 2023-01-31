@@ -171,6 +171,26 @@ template <typename Task> MGARDX_KERL void HipKernel(Task task) {
   task.GetFunctor().Operation9();
   SyncBlock<HIP>::Sync();
   task.GetFunctor().Operation10();
+  SyncBlock<HIP>::Sync();
+  task.GetFunctor().Operation11();
+  SyncBlock<HIP>::Sync();
+  task.GetFunctor().Operation12();
+  SyncBlock<HIP>::Sync();
+  task.GetFunctor().Operation13();
+  SyncBlock<HIP>::Sync();
+  task.GetFunctor().Operation14();
+  SyncBlock<HIP>::Sync();
+  task.GetFunctor().Operation15();
+  SyncBlock<HIP>::Sync();
+  task.GetFunctor().Operation16();
+  SyncBlock<HIP>::Sync();
+  task.GetFunctor().Operation17();
+  SyncBlock<HIP>::Sync();
+  task.GetFunctor().Operation18();
+  SyncBlock<HIP>::Sync();
+  task.GetFunctor().Operation19();
+  SyncBlock<HIP>::Sync();
+  task.GetFunctor().Operation20();
 }
 
 template <typename Task> MGARDX_KERL void HipIterKernel(Task task) {
