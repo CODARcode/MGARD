@@ -766,17 +766,17 @@ MGARDX_EXEC int const *TriDiag_Z_Offset_5x5x5(SIZE i) {
 
 MGARDX_EXEC int Coarse_Offset_5x5x5(SIZE i) {
   static constexpr int offset[27] = {
-    offset8x8x8(0, 0, 0, 5, 5), offset8x8x8(0, 0, 2, 5, 5), offset8x8x8(0, 0, 4, 5, 5), 
-    offset8x8x8(0, 2, 0, 5, 5), offset8x8x8(0, 2, 2, 5, 5), offset8x8x8(0, 2, 4, 5, 5), 
-    offset8x8x8(0, 4, 0, 5, 5), offset8x8x8(0, 4, 2, 5, 5), offset8x8x8(0, 4, 4, 5, 5), 
+    offset5x5x5(0, 0, 0, 5, 5), offset5x5x5(0, 0, 2, 5, 5), offset5x5x5(0, 0, 4, 5, 5), 
+    offset5x5x5(0, 2, 0, 5, 5), offset5x5x5(0, 2, 2, 5, 5), offset5x5x5(0, 2, 4, 5, 5), 
+    offset5x5x5(0, 4, 0, 5, 5), offset5x5x5(0, 4, 2, 5, 5), offset5x5x5(0, 4, 4, 5, 5), 
 
-    offset8x8x8(2, 0, 0, 5, 5), offset8x8x8(2, 0, 2, 5, 5), offset8x8x8(2, 0, 4, 5, 5), 
-    offset8x8x8(2, 2, 0, 5, 5), offset8x8x8(2, 2, 2, 5, 5), offset8x8x8(2, 2, 4, 5, 5), 
-    offset8x8x8(2, 4, 0, 5, 5), offset8x8x8(2, 4, 2, 5, 5), offset8x8x8(2, 4, 4, 5, 5), 
+    offset5x5x5(2, 0, 0, 5, 5), offset5x5x5(2, 0, 2, 5, 5), offset5x5x5(2, 0, 4, 5, 5), 
+    offset5x5x5(2, 2, 0, 5, 5), offset5x5x5(2, 2, 2, 5, 5), offset5x5x5(2, 2, 4, 5, 5), 
+    offset5x5x5(2, 4, 0, 5, 5), offset5x5x5(2, 4, 2, 5, 5), offset5x5x5(2, 4, 4, 5, 5), 
 
-    offset8x8x8(4, 0, 0, 5, 5), offset8x8x8(4, 0, 2, 5, 5), offset8x8x8(4, 0, 4, 5, 5), 
-    offset8x8x8(4, 2, 0, 5, 5), offset8x8x8(4, 2, 2, 5, 5), offset8x8x8(4, 2, 4, 5, 5), 
-    offset8x8x8(4, 4, 0, 5, 5), offset8x8x8(4, 4, 2, 5, 5), offset8x8x8(4, 4, 4, 5, 5), 
+    offset5x5x5(4, 0, 0, 5, 5), offset5x5x5(4, 0, 2, 5, 5), offset5x5x5(4, 0, 4, 5, 5), 
+    offset5x5x5(4, 2, 0, 5, 5), offset5x5x5(4, 2, 2, 5, 5), offset5x5x5(4, 2, 4, 5, 5), 
+    offset5x5x5(4, 4, 0, 5, 5), offset5x5x5(4, 4, 2, 5, 5), offset5x5x5(4, 4, 4, 5, 5), 
 
   };
   return offset[i];

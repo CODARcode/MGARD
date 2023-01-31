@@ -353,11 +353,11 @@ MGARDX_EXEC int const *TriDiag_Z_Offset_3x3x3(SIZE i) {
 
 MGARDX_EXEC int Coarse_Offset_3x3x3(SIZE i) {
   static constexpr int offset[8] = {
-    offset8x8x8(0, 0, 0, 3, 3), offset8x8x8(0, 0, 2, 3, 3),
-    offset8x8x8(0, 2, 0, 3, 3), offset8x8x8(0, 2, 2, 3, 3),
+    offset3x3x3(0, 0, 0, 3, 3), offset3x3x3(0, 0, 2, 3, 3),
+    offset3x3x3(0, 2, 0, 3, 3), offset3x3x3(0, 2, 2, 3, 3),
 
-    offset8x8x8(2, 0, 0, 3, 3), offset8x8x8(2, 0, 2, 3, 3),
-    offset8x8x8(2, 2, 0, 3, 3), offset8x8x8(2, 2, 2, 3, 3)
+    offset3x3x3(2, 0, 0, 3, 3), offset3x3x3(2, 0, 2, 3, 3),
+    offset3x3x3(2, 2, 0, 3, 3), offset3x3x3(2, 2, 2, 3, 3)
   };
   return offset[i];
 }
