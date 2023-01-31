@@ -90,6 +90,11 @@ public:
           " GB/s");
       timer.clear();
     }
+
+    if (config.decomposition == decomposition_type::InCacheBlock) {
+      log::err("InCacheBlock is in development. Exiting...\n");
+      exit(0);
+    }
   }
   void Recompose(Array<D, T, DeviceType> &data, int start_level, int stop_level,
                  int queue_idx) {
