@@ -29,7 +29,7 @@ Config::Config() {
 #endif
   lossless = lossless_type::Huffman;
   reorder = 0;
-  log_level = log::ERR | log::INFO | log::TIME;
+  log_level = log::ERR;
   max_larget_level = 0; // no limit
   prefetch = true;
   max_memory_footprint = std::numeric_limits<SIZE>::max(); // no limit
