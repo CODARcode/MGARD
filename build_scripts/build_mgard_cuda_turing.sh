@@ -66,6 +66,7 @@ fi
 mkdir -p ${protobuf_build_dir}
 cmake -S ${protobuf_src_dir}/cmake -B ${protobuf_build_dir}\
     -Dprotobuf_BUILD_SHARED_LIBS=ON\
+    -Dprotobuf_BUILD_TESTS=OFF\
     -DCMAKE_INSTALL_PREFIX=${protobuf_install_dir}
 cmake --build ${protobuf_build_dir} -j ${num_build_procs}
 cmake --install ${protobuf_build_dir}
