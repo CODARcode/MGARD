@@ -674,17 +674,9 @@ template <typename TaskType> MGARDX_KERL void OpenmpKernel(TaskType task) {
       for (SIZE blockx = 0; blockx < task.GetGridDimX(); blockx++) {
         // timer_init.start();
         INIT_BLOCK;
-        // timer_init.end();
-        // timer_op.start();
-        // timer_op1.start();
         COMPUTE_BLOCK(Operation1);
-        // timer_op1.end();
-        // timer_op2.start();
         COMPUTE_BLOCK(Operation2);
-        // timer_op2.end();
-        // timer_op3.start();
         COMPUTE_BLOCK(Operation3);
-        // timer_op3.end();
         COMPUTE_BLOCK(Operation4);
         COMPUTE_BLOCK(Operation5);
         COMPUTE_BLOCK(Operation6);
@@ -692,7 +684,16 @@ template <typename TaskType> MGARDX_KERL void OpenmpKernel(TaskType task) {
         COMPUTE_BLOCK(Operation8);
         COMPUTE_BLOCK(Operation9);
         COMPUTE_BLOCK(Operation10);
-        // timer_op.end();
+        COMPUTE_BLOCK(Operation11);
+        COMPUTE_BLOCK(Operation12);
+        COMPUTE_BLOCK(Operation13);
+        COMPUTE_BLOCK(Operation14);
+        COMPUTE_BLOCK(Operation15);
+        COMPUTE_BLOCK(Operation16);
+        COMPUTE_BLOCK(Operation17);
+        COMPUTE_BLOCK(Operation18);
+        COMPUTE_BLOCK(Operation19);
+        COMPUTE_BLOCK(Operation20);
       }
     }
   }
