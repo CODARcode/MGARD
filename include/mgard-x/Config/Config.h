@@ -29,6 +29,7 @@ struct Config {
   SIZE block_size;
   bool mdr_adaptive_resolution;
   bool collect_uncertainty;
+  bool adjust_shape;
 
   Config();
   void apply();
