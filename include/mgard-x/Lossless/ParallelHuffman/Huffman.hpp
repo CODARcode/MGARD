@@ -76,7 +76,7 @@ public:
     }
 
     DeviceLauncher<DeviceType>::Execute(
-        EncodeFixedLenKernel<unsigned int, H, DeviceType>(
+        EncodeFixedLenKernel<Q, H, DeviceType>(
             primary_subarray, workspace.huff_subarray,
             workspace.codebook_subarray),
         queue_idx);
