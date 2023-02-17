@@ -790,6 +790,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
   T local_tol = tol;
   enum error_bound_type local_ebtype;
 
+  log::info("adjust shape: " + std::to_string(config.adjust_shape));
   log::info("tol: " + std::to_string(tol));
   log::info("s: " + std::to_string(s));
   log::info("coordinate normalization: " +

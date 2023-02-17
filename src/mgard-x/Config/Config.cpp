@@ -37,6 +37,7 @@ Config::Config() {
   block_size = 256;
   mdr_adaptive_resolution = false;
   collect_uncertainty = false;
+  adjust_shape = false;
 }
 
 void Config::apply() { log::level = log_level; }
