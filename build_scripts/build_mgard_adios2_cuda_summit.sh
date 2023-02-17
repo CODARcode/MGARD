@@ -102,7 +102,7 @@ cmake -S ${adios2_src_dir} -B ${adios2_build_dir}\
       -DADIOS2_USE_CUDA=ON \
       -DADIOS2_USE_MGARD=ON \
       -DCMAKE_CUDA_ARCHITECTURES=70 \
-      -DMGARD_ROOT=${mgard_x_install_dir} \
+      -DCMAKE_PREFIX_PATH=${mgard_x_install_dir} \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_TESTING=ON \
       -DADIOS2_USE_MPI=ON \
