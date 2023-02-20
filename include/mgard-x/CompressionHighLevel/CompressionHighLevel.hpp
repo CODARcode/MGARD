@@ -749,7 +749,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
 
   if (0) {
     char *data = (char *)original_data;
-    std::ofstream f("input.bin", std::ios::out | std::ios::binary);
+    std::ofstream f("iter0.bin", std::ios::out | std::ios::binary);
     f.write(data, total_num_elem * sizeof(T));
   }
 
@@ -840,6 +840,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
     // compressed_size stores pre-allocated buffer size
     output_buffer_size = compressed_size;
   }
+  log::info("Output preallocated: " + std::to_string(output_pre_allocated));
 
   bool input_previously_pinned = true;
   if (!MemoryManager<DeviceType>::IsDevicePointer((void *)original_data)) {
@@ -849,6 +850,10 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
       MemoryManager<DeviceType>::HostRegister((void *)original_data,
                                               total_num_elem * sizeof(T));
     }
+    log::info("Input previously pinned: " +
+            std::to_string(input_previously_pinned));
+  } else {
+    log::info("Input on device");
   }
 
   bool output_previously_pinned = true;
@@ -859,13 +864,11 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
       MemoryManager<DeviceType>::HostRegister((void *)compressed_data,
                                               output_buffer_size);
     }
-  }
-
-  log::info("Output preallocated: " + std::to_string(output_pre_allocated));
-  log::info("Input previously pinned: " +
-            std::to_string(input_previously_pinned));
-  log::info("Output previously pinned: " +
+    log::info("Output previously pinned: " +
             std::to_string(output_previously_pinned));
+  } else {
+    log::info("Output on device");
+  }
 
   // Estimate metadata size
   Metadata<DeviceType> m;
@@ -1088,6 +1091,8 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       decompressed_data = (void *)malloc(total_num_elem * sizeof(T));
     }
   }
+  log::info("Output preallocated: " + std::to_string(output_pre_allocated));
+
   bool input_previously_pinned = true;
   if (!MemoryManager<DeviceType>::IsDevicePointer((void *)compressed_data)) {
     input_previously_pinned =
@@ -1096,6 +1101,10 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       MemoryManager<DeviceType>::HostRegister((void *)compressed_data,
                                               compressed_size);
     }
+    log::info("Input previously pinned: " +
+            std::to_string(input_previously_pinned));
+  } else {
+    log::info("Input on device");
   }
   bool output_previously_pinned = true;
   if (!MemoryManager<DeviceType>::IsDevicePointer((void *)decompressed_data)) {
@@ -1105,13 +1114,11 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
       MemoryManager<DeviceType>::HostRegister((void *)decompressed_data,
                                               total_num_elem * sizeof(T));
     }
-  }
-
-  log::info("Output preallocated: " + std::to_string(output_pre_allocated));
-  log::info("Input previously pinned: " +
-            std::to_string(input_previously_pinned));
-  log::info("Output previously pinned: " +
+    log::info("Output previously pinned: " +
             std::to_string(output_previously_pinned));
+  } else {
+    log::info("Output on device");
+  }
 
   if (log::level & log::TIME) {
     timer_each.end();
