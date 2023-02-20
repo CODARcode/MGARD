@@ -76,9 +76,9 @@ public:
     }
 
     DeviceLauncher<DeviceType>::Execute(
-        EncodeFixedLenKernel<Q, H, DeviceType>(
-            primary_subarray, workspace.huff_subarray,
-            workspace.codebook_subarray),
+        EncodeFixedLenKernel<Q, H, DeviceType>(primary_subarray,
+                                               workspace.huff_subarray,
+                                               workspace.codebook_subarray),
         queue_idx);
 
     if (debug_print_huffman) {

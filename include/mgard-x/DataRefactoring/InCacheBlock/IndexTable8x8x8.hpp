@@ -1868,64 +1868,158 @@ MGARDX_EXEC int Coeff3D_RRR_Offset_8x8x8(SIZE i) {
   return offset[i];
 }
 
-MGARDX_EXEC int const *MassTrans_X_Offset_8x8x8(SIZE i) {
-  static constexpr int zero_offset = 8*8*8 + 8*8*5 + 8*5*5 + 5*5*5;
-  #define OFFSET(Z, Y)                               \
-  {                                                  \
-      zero_offset,                                   \
-      zero_offset,                                   \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[0],   8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[0]+1, 8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[0]+2, 8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[0],   5, 8)   \
-    },                                               \
-    {                                                \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[1]-2, 8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[1]-1, 8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[1],   8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[1]+1, 8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[1]+2, 8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[1],   5, 8)   \
-    },                                               \
-    {                                                \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[2]-2, 8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[2]-1, 8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[2],   8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[2]+1, 8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[2]+2, 8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[2],   5, 8)   \
-    },                                               \
-    {                                                \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[3]-2, 8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[3]-1, 8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[3],   8, 8),  \
-      zero_offset,                                   \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[3]+1, 8, 8),  \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[3],   5, 8)   \
-    },                                               \
-    {                                                \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[4]-1, 8, 8),  \
-      zero_offset,                                   \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[4],   8, 8),  \
-      zero_offset,                                   \
-      zero_offset,                                   \
-      offset8x8x8(Z, Y, coarse_x_8x8x8[4],   5, 8)   \
-    }
+MGARDX_EXEC int MassTrans_X_DistCase_8x8x8(SIZE i) {
+  #define DIST(Z, Y) 0, 1, 1, 2, 3
 
-  static constexpr int offset[320][6] = {
-    OFFSET(0, 0), OFFSET(0, 1), OFFSET(0, 2), OFFSET(0, 3), OFFSET(0, 4), OFFSET(0, 5), OFFSET(0, 6), OFFSET(0, 7),
-    OFFSET(1, 0), OFFSET(1, 1), OFFSET(1, 2), OFFSET(1, 3), OFFSET(1, 4), OFFSET(1, 5), OFFSET(1, 6), OFFSET(1, 7),
-    OFFSET(2, 0), OFFSET(2, 1), OFFSET(2, 2), OFFSET(2, 3), OFFSET(2, 4), OFFSET(2, 5), OFFSET(2, 6), OFFSET(2, 7),
-    OFFSET(3, 0), OFFSET(3, 1), OFFSET(3, 2), OFFSET(3, 3), OFFSET(3, 4), OFFSET(3, 5), OFFSET(3, 6), OFFSET(3, 7),
-    OFFSET(4, 0), OFFSET(4, 1), OFFSET(4, 2), OFFSET(4, 3), OFFSET(4, 4), OFFSET(4, 5), OFFSET(4, 6), OFFSET(4, 7),
-    OFFSET(5, 0), OFFSET(5, 1), OFFSET(5, 2), OFFSET(5, 3), OFFSET(5, 4), OFFSET(5, 5), OFFSET(5, 6), OFFSET(5, 7),
-    OFFSET(6, 0), OFFSET(6, 1), OFFSET(6, 2), OFFSET(6, 3), OFFSET(6, 4), OFFSET(6, 5), OFFSET(6, 6), OFFSET(6, 7),
-    OFFSET(7, 0), OFFSET(7, 1), OFFSET(7, 2), OFFSET(7, 3), OFFSET(7, 4), OFFSET(7, 5), OFFSET(7, 6), OFFSET(7, 7)
+  static constexpr int offset[320] = {
+    DIST(0, 0), DIST(0, 1), DIST(0, 2), DIST(0, 3), DIST(0, 4), DIST(0, 5), DIST(0, 6), DIST(0, 7),
+    DIST(1, 0), DIST(1, 1), DIST(1, 2), DIST(1, 3), DIST(1, 4), DIST(1, 5), DIST(1, 6), DIST(1, 7),
+    DIST(2, 0), DIST(2, 1), DIST(2, 2), DIST(2, 3), DIST(2, 4), DIST(2, 5), DIST(2, 6), DIST(2, 7),
+    DIST(3, 0), DIST(3, 1), DIST(3, 2), DIST(3, 3), DIST(3, 4), DIST(3, 5), DIST(3, 6), DIST(3, 7),
+    DIST(4, 0), DIST(4, 1), DIST(4, 2), DIST(4, 3), DIST(4, 4), DIST(4, 5), DIST(4, 6), DIST(4, 7),
+    DIST(5, 0), DIST(5, 1), DIST(5, 2), DIST(5, 3), DIST(5, 4), DIST(5, 5), DIST(5, 6), DIST(5, 7),
+    DIST(6, 0), DIST(6, 1), DIST(6, 2), DIST(6, 3), DIST(6, 4), DIST(6, 5), DIST(6, 6), DIST(6, 7),
+    DIST(7, 0), DIST(7, 1), DIST(7, 2), DIST(7, 3), DIST(7, 4), DIST(7, 5), DIST(7, 6), DIST(7, 7)
   };
-  #undef OFFSET
+  #undef DIST
   return offset[i];
 }
 
+MGARDX_EXEC float const *MassTrans_X_Dist_8x8x8(SIZE i) {
+  #define DIST(Z, Y) {0.0, 0.0, 1.0, 1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0, 0.5, 0.5}, {0.5, 0.5, 0.0, 0.0}
+
+  static constexpr float offset[320][4] = {
+    DIST(0, 0), DIST(0, 1), DIST(0, 2), DIST(0, 3), DIST(0, 4), DIST(0, 5), DIST(0, 6), DIST(0, 7),
+    DIST(1, 0), DIST(1, 1), DIST(1, 2), DIST(1, 3), DIST(1, 4), DIST(1, 5), DIST(1, 6), DIST(1, 7),
+    DIST(2, 0), DIST(2, 1), DIST(2, 2), DIST(2, 3), DIST(2, 4), DIST(2, 5), DIST(2, 6), DIST(2, 7),
+    DIST(3, 0), DIST(3, 1), DIST(3, 2), DIST(3, 3), DIST(3, 4), DIST(3, 5), DIST(3, 6), DIST(3, 7),
+    DIST(4, 0), DIST(4, 1), DIST(4, 2), DIST(4, 3), DIST(4, 4), DIST(4, 5), DIST(4, 6), DIST(4, 7),
+    DIST(5, 0), DIST(5, 1), DIST(5, 2), DIST(5, 3), DIST(5, 4), DIST(5, 5), DIST(5, 6), DIST(5, 7),
+    DIST(6, 0), DIST(6, 1), DIST(6, 2), DIST(6, 3), DIST(6, 4), DIST(6, 5), DIST(6, 6), DIST(6, 7),
+    DIST(7, 0), DIST(7, 1), DIST(7, 2), DIST(7, 3), DIST(7, 4), DIST(7, 5), DIST(7, 6), DIST(7, 7)
+  };
+  #undef DIST
+  return offset[i];
+}
+
+MGARDX_EXEC int const *MassTrans_X_Offset_8x8x8(SIZE i) {
+  static constexpr int zero_offset = 8*8*8 + 8*8*5 + 8*5*5 + 5*5*5;
+  #define OFFSET1(Z, Y)                            \
+  {                                                \
+    zero_offset,                                   \
+    zero_offset,                                   \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[0]+1, 8, 8),  \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, 0,                   5, 8)   \
+  },                                               \
+  {                                                \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[1]-1, 8, 8),  \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[1]+1, 8, 8),  \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, 1,                   5, 8)   \
+  },                                               \
+  {                                                \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[2]-1, 8, 8),  \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[2]+1, 8, 8),  \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, 2,                   5, 8)   \
+  },                                               \
+  {                                                \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[3]-1, 8, 8),  \
+    zero_offset,                                   \
+    zero_offset,                                   \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, 3,                   5, 8)   \
+  },                                               \
+  {                                                \
+    zero_offset,                                   \
+    zero_offset,                                   \
+    zero_offset,                                   \
+    zero_offset,                                   \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, 4,                   5, 8)   \
+  }
+
+  #define OFFSET2(Z, Y)                            \
+  {                                                \
+    zero_offset,                                   \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[0],   8, 8),  \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[0]+1, 8, 8),  \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[0]+2, 8, 8),  \
+    offset8x8x8(Z, Y, 0,                   5, 8)   \
+  },                                               \
+  {                                                \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[1]-2, 8, 8),  \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[1]-1, 8, 8),  \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[1],   8, 8),  \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[1]+1, 8, 8),  \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[1]+2, 8, 8),  \
+    offset8x8x8(Z, Y, 1,                   5, 8)   \
+  },                                               \
+  {                                                \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[2]-2, 8, 8),  \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[2]-1, 8, 8),  \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[2],   8, 8),  \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[2]+1, 8, 8),  \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[2]+2, 8, 8),  \
+    offset8x8x8(Z, Y, 2,                   5, 8)   \
+  },                                               \
+  {                                                \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[3]-2, 8, 8),  \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[3]-1, 8, 8),  \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[3],   8, 8),  \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[3]+1, 8, 8),  \
+    offset8x8x8(Z, Y, 3,                   5, 8)   \
+  },                                               \
+  {                                                \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[4]-1, 8, 8),  \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, coarse_x_8x8x8[4],   8, 8),  \
+    zero_offset,                                   \
+    zero_offset,                                   \
+    offset8x8x8(Z, Y, 4,                   5, 8)   \
+  }
+
+  static constexpr int offset[320][6] = {
+    OFFSET1(0, 0), OFFSET2(0, 1), OFFSET1(0, 2), OFFSET2(0, 3), OFFSET1(0, 4), OFFSET2(0, 5), OFFSET1(0, 6), OFFSET1(0, 7),
+    OFFSET2(1, 0), OFFSET2(1, 1), OFFSET2(1, 2), OFFSET2(1, 3), OFFSET2(1, 4), OFFSET2(1, 5), OFFSET2(1, 6), OFFSET2(1, 7),
+    OFFSET1(2, 0), OFFSET2(2, 1), OFFSET1(2, 2), OFFSET2(2, 3), OFFSET1(2, 4), OFFSET2(2, 5), OFFSET1(2, 6), OFFSET1(2, 7),
+    OFFSET2(3, 0), OFFSET2(3, 1), OFFSET2(3, 2), OFFSET2(3, 3), OFFSET2(3, 4), OFFSET2(3, 5), OFFSET2(3, 6), OFFSET2(3, 7),
+    OFFSET1(4, 0), OFFSET2(4, 1), OFFSET1(4, 2), OFFSET2(4, 3), OFFSET1(4, 4), OFFSET2(4, 5), OFFSET1(4, 6), OFFSET1(4, 7),
+    OFFSET2(5, 0), OFFSET2(5, 1), OFFSET2(5, 2), OFFSET2(5, 3), OFFSET2(5, 4), OFFSET2(5, 5), OFFSET2(5, 6), OFFSET2(5, 7),
+    OFFSET1(6, 0), OFFSET2(6, 1), OFFSET1(6, 2), OFFSET2(6, 3), OFFSET1(6, 4), OFFSET2(6, 5), OFFSET1(6, 6), OFFSET1(6, 7),
+    OFFSET1(7, 0), OFFSET2(7, 1), OFFSET1(7, 2), OFFSET2(7, 3), OFFSET1(7, 4), OFFSET2(7, 5), OFFSET1(7, 6), OFFSET1(7, 7)
+  };
+  #undef OFFSET1
+  #undef OFFSET2
+  return offset[i];
+}
+
+
+MGARDX_EXEC float const *MassTrans_Y_Dist_8x8x8(SIZE i) {
+  #define DIST(Z, X) {0.0, 0.0, 1.0, 1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0, 0.5, 0.5}, {0.5, 0.5, 0.0, 0.0}
+
+  static constexpr float offset[200][4] = {
+    DIST(0, 0), DIST(0, 1), DIST(0, 2), DIST(0, 3), DIST(0, 4),
+    DIST(1, 0), DIST(1, 1), DIST(1, 2), DIST(1, 3), DIST(1, 4),
+    DIST(2, 0), DIST(2, 1), DIST(2, 2), DIST(2, 3), DIST(2, 4),
+    DIST(3, 0), DIST(3, 1), DIST(3, 2), DIST(3, 3), DIST(3, 4),
+    DIST(4, 0), DIST(4, 1), DIST(4, 2), DIST(4, 3), DIST(4, 4),
+    DIST(5, 0), DIST(5, 1), DIST(5, 2), DIST(5, 3), DIST(5, 4),
+    DIST(6, 0), DIST(6, 1), DIST(6, 2), DIST(6, 3), DIST(6, 4),
+    DIST(7, 0), DIST(7, 1), DIST(7, 2), DIST(7, 3), DIST(7, 4)
+  };
+  #undef DIST
+  return offset[i];
+}
 
 MGARDX_EXEC int const *MassTrans_Y_Offset_8x8x8(SIZE i) {
   static constexpr int zero_offset = 8*8*5 + 8*5*5 + 5*5*5;
@@ -1936,7 +2030,7 @@ MGARDX_EXEC int const *MassTrans_Y_Offset_8x8x8(SIZE i) {
       offset8x8x8(Z, coarse_y_8x8x8[0],   X, 5, 8),  \
       offset8x8x8(Z, coarse_y_8x8x8[0]+1, X, 5, 8),  \
       offset8x8x8(Z, coarse_y_8x8x8[0]+2, X, 5, 8),  \
-      offset8x8x8(Z, coarse_y_8x8x8[0],   X, 5, 5)   \
+      offset8x8x8(Z, 0,                   X, 5, 5)   \
     },                                               \
     {                                                \
       offset8x8x8(Z, coarse_y_8x8x8[1]-2, X, 5, 8),  \
@@ -1944,7 +2038,7 @@ MGARDX_EXEC int const *MassTrans_Y_Offset_8x8x8(SIZE i) {
       offset8x8x8(Z, coarse_y_8x8x8[1],   X, 5, 8),  \
       offset8x8x8(Z, coarse_y_8x8x8[1]+1, X, 5, 8),  \
       offset8x8x8(Z, coarse_y_8x8x8[1]+2, X, 5, 8),  \
-      offset8x8x8(Z, coarse_y_8x8x8[1],   X, 5, 5)   \
+      offset8x8x8(Z, 1,                   X, 5, 5)   \
     },                                               \
     {                                                \
       offset8x8x8(Z, coarse_y_8x8x8[2]-2, X, 5, 8),  \
@@ -1952,7 +2046,7 @@ MGARDX_EXEC int const *MassTrans_Y_Offset_8x8x8(SIZE i) {
       offset8x8x8(Z, coarse_y_8x8x8[2],   X, 5, 8),  \
       offset8x8x8(Z, coarse_y_8x8x8[2]+1, X, 5, 8),  \
       offset8x8x8(Z, coarse_y_8x8x8[2]+2, X, 5, 8),  \
-      offset8x8x8(Z, coarse_y_8x8x8[2],   X, 5, 5)   \
+      offset8x8x8(Z, 2,                   X, 5, 5)   \
     },                                               \
     {                                                \
       offset8x8x8(Z, coarse_y_8x8x8[3]-2, X, 5, 8),  \
@@ -1960,7 +2054,7 @@ MGARDX_EXEC int const *MassTrans_Y_Offset_8x8x8(SIZE i) {
       offset8x8x8(Z, coarse_y_8x8x8[3],   X, 5, 8),  \
       zero_offset,                                   \
       offset8x8x8(Z, coarse_y_8x8x8[3]+1, X, 5, 8),  \
-      offset8x8x8(Z, coarse_y_8x8x8[3],   X, 5, 5)   \
+      offset8x8x8(Z, 3,                   X, 5, 5)   \
     },                                               \
     {                                                \
       offset8x8x8(Z, coarse_y_8x8x8[4]-1, X, 5, 8),  \
@@ -1968,7 +2062,7 @@ MGARDX_EXEC int const *MassTrans_Y_Offset_8x8x8(SIZE i) {
       offset8x8x8(Z, coarse_y_8x8x8[4],   X, 5, 8),  \
       zero_offset,                                   \
       zero_offset,                                   \
-      offset8x8x8(Z, coarse_y_8x8x8[4],   X, 5, 5)   \
+      offset8x8x8(Z, 4,                   X, 5, 5)   \
     }
 
   static constexpr int offset[200][6] = {
@@ -1985,6 +2079,20 @@ MGARDX_EXEC int const *MassTrans_Y_Offset_8x8x8(SIZE i) {
   return offset[i];
 }
 
+MGARDX_EXEC float const *MassTrans_Z_Dist_8x8x8(SIZE i) {
+  #define DIST(Y, X) {0.0, 0.0, 1.0, 1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0, 0.5, 0.5}, {0.5, 0.5, 0.0, 0.0}
+
+  static constexpr float offset[125][4] = {
+    DIST(0, 0), DIST(0, 1), DIST(0, 2), DIST(0, 3), DIST(0, 4),
+    DIST(1, 0), DIST(1, 1), DIST(1, 2), DIST(1, 3), DIST(1, 4),
+    DIST(2, 0), DIST(2, 1), DIST(2, 2), DIST(2, 3), DIST(2, 4),
+    DIST(3, 0), DIST(3, 1), DIST(3, 2), DIST(3, 3), DIST(3, 4),
+    DIST(4, 0), DIST(4, 1), DIST(4, 2), DIST(4, 3), DIST(4, 4)
+  };
+  #undef DIST
+  return offset[i];
+}
+
 MGARDX_EXEC int const *MassTrans_Z_Offset_8x8x8(SIZE i) {
   static constexpr int zero_offset = 8*5*5 + 5*5*5;
   #define OFFSET(Y, X)                               \
@@ -1994,7 +2102,7 @@ MGARDX_EXEC int const *MassTrans_Z_Offset_8x8x8(SIZE i) {
       offset8x8x8(coarse_z_8x8x8[0],   Y, X, 5, 5),  \
       offset8x8x8(coarse_z_8x8x8[0]+1, Y, X, 5, 5),  \
       offset8x8x8(coarse_z_8x8x8[0]+2, Y, X, 5, 5),  \
-      offset8x8x8(coarse_z_8x8x8[0],   Y, X, 5, 5)   \
+      offset8x8x8(0,                   Y, X, 5, 5)   \
     },                                               \
     {                                                \
       offset8x8x8(coarse_z_8x8x8[1]-2, Y, X, 5, 5),  \
@@ -2002,7 +2110,7 @@ MGARDX_EXEC int const *MassTrans_Z_Offset_8x8x8(SIZE i) {
       offset8x8x8(coarse_z_8x8x8[1],   Y, X, 5, 5),  \
       offset8x8x8(coarse_z_8x8x8[1]+1, Y, X, 5, 5),  \
       offset8x8x8(coarse_z_8x8x8[1]+2, Y, X, 5, 5),  \
-      offset8x8x8(coarse_z_8x8x8[1],   Y, X, 5, 5)   \
+      offset8x8x8(1,                   Y, X, 5, 5)   \
     },                                               \
     {                                                \
       offset8x8x8(coarse_z_8x8x8[2]-2, Y, X, 5, 5),  \
@@ -2010,7 +2118,7 @@ MGARDX_EXEC int const *MassTrans_Z_Offset_8x8x8(SIZE i) {
       offset8x8x8(coarse_z_8x8x8[2],   Y, X, 5, 5),  \
       offset8x8x8(coarse_z_8x8x8[2]+1, Y, X, 5, 5),  \
       offset8x8x8(coarse_z_8x8x8[2]+2, Y, X, 5, 5),  \
-      offset8x8x8(coarse_z_8x8x8[2],   Y, X, 5, 5)   \
+      offset8x8x8(2                ,   Y, X, 5, 5)   \
     },                                               \
     {                                                \
       offset8x8x8(coarse_z_8x8x8[3]-2, Y, X, 5, 5),  \
@@ -2018,7 +2126,7 @@ MGARDX_EXEC int const *MassTrans_Z_Offset_8x8x8(SIZE i) {
       offset8x8x8(coarse_z_8x8x8[3],   Y, X, 5, 5),  \
       zero_offset,                                   \
       offset8x8x8(coarse_z_8x8x8[3]+1, Y, X, 5, 5),  \
-      offset8x8x8(coarse_z_8x8x8[3],   Y, X, 5, 5)   \
+      offset8x8x8(3,                   Y, X, 5, 5)   \
     },                                               \
     {                                                \
       offset8x8x8(coarse_z_8x8x8[4]-1, Y, X, 5, 5),  \
@@ -2026,7 +2134,7 @@ MGARDX_EXEC int const *MassTrans_Z_Offset_8x8x8(SIZE i) {
       offset8x8x8(coarse_z_8x8x8[4],   Y, X, 5, 5),  \
       zero_offset,                                   \
       zero_offset,                                   \
-      offset8x8x8(coarse_z_8x8x8[4],   Y, X, 5, 5)  \
+      offset8x8x8(4,                   Y, X, 5, 5)  \
     }
 
   static constexpr int offset[125][6] = {
