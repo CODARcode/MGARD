@@ -501,10 +501,10 @@ private:
 template <DIM D, typename T, typename DeviceType>
 class Lpk1ReoKernel : public Kernel {
 public:
-  MGARDX_CONT
   constexpr static DIM NumDim = D;
   using DataType = T;
   constexpr static std::string_view Name = "lpk1_nd";
+  MGARDX_CONT
   Lpk1ReoKernel(SubArray<1, SIZE, DeviceType> shape,
                 SubArray<1, SIZE, DeviceType> shape_c, DIM processed_n,
                 SubArray<1, DIM, DeviceType> processed_dims, DIM curr_dim_r,
