@@ -151,6 +151,10 @@ void Compressor<D, T, DeviceType>::Compress(
   Decompose(original_data, queue_idx);
   Quantize(original_data, ebtype, tol, s, norm, queue_idx);
   LosslessCompress(compressed_data, queue_idx);
+  if (config.compress_with_dryrun) {
+    Dequantize(original_data, ebtype, tol, s, norm, queue_idx);
+    Recompose(original_data, queue_idx);
+  }
 
   if (log::level & log::TIME) {
     DeviceRuntime<DeviceType>::SyncQueue(0);
