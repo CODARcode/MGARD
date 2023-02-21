@@ -38,6 +38,7 @@ Config::Config() {
   mdr_adaptive_resolution = false;
   collect_uncertainty = false;
   adjust_shape = false;
+  compress_with_dryrun = false;
 }
 
 void Config::apply() { log::level = log_level; }
