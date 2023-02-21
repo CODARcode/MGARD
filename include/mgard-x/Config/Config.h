@@ -30,6 +30,7 @@ struct Config {
   bool mdr_adaptive_resolution;
   bool collect_uncertainty;
   bool adjust_shape;
+  bool compress_with_dryrun;
 
   Config();
   void apply();

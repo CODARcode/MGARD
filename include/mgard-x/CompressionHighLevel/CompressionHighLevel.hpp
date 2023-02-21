@@ -305,6 +305,11 @@ void compress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>,
                               device_compressed_buffer.data(),
                               device_compressed_buffer.shape(0), byte_offset,
                               0);
+  if (config.compress_with_dryrun) {
+    domain_decomposer.copy_subdomain(
+        device_subdomain_buffer, subdomain_id,
+        subdomain_copy_direction::SubdomainToOriginal, 0);
+  }
   DeviceRuntime<DeviceType>::SyncQueue(0);
   compressed_subdomain_size[dev_id] =
       device_compressed_buffer.shape(0) + sizeof(SIZE);
@@ -365,6 +370,11 @@ void compress_subdomain_series(
                                 device_compressed_buffer.data(),
                                 device_compressed_buffer.shape(0), byte_offset,
                                 0);
+    if (config.compress_with_dryrun) {
+      domain_decomposer.copy_subdomain(
+        device_subdomain_buffer, subdomain_id,
+        subdomain_copy_direction::SubdomainToOriginal, 0);
+    }
     DeviceRuntime<DeviceType>::SyncQueue(0);
     compressed_subdomain_size[dev_id] +=
         device_compressed_buffer.shape(0) + sizeof(SIZE);
@@ -445,12 +455,9 @@ void compress_subdomain_series_w_prefetch(
     }
     log::info("Compressing subdomain " + std::to_string(curr_subdomain_id) +
               " with shape: " + ss.str());
-    compressor.Decompose(device_subdomain_buffer[current_buffer],
-                         current_queue);
-    compressor.Quantize(device_subdomain_buffer[current_buffer], local_ebtype,
-                        local_tol, s, norm, current_queue);
-    compressor.LosslessCompress(device_compressed_buffer[current_buffer],
-                                current_queue);
+    compressor.Compress(
+        device_subdomain_buffer[current_buffer], local_ebtype, local_tol, s,
+        norm, device_compressed_buffer[current_buffer], current_queue);
 
     if (device_compressed_buffer[current_buffer].shape(0) >
         hierarchy.total_num_elems() * sizeof(T)) {
@@ -469,7 +476,11 @@ void compress_subdomain_series_w_prefetch(
         current_queue);
     compressed_subdomain_size[dev_id] +=
         device_compressed_buffer[current_buffer].shape(0) + sizeof(SIZE);
-
+    if (config.compress_with_dryrun) {
+      domain_decomposer.copy_subdomain(
+        device_subdomain_buffer[current_buffer], curr_subdomain_id,
+        subdomain_copy_direction::SubdomainToOriginal, current_queue);
+    }
     current_buffer = next_buffer;
     current_queue = next_queue;
   }
@@ -851,7 +862,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
                                               total_num_elem * sizeof(T));
     }
     log::info("Input previously pinned: " +
-            std::to_string(input_previously_pinned));
+              std::to_string(input_previously_pinned));
   } else {
     log::info("Input on device");
   }
@@ -865,7 +876,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
                                               output_buffer_size);
     }
     log::info("Output previously pinned: " +
-            std::to_string(output_previously_pinned));
+              std::to_string(output_previously_pinned));
   } else {
     log::info("Output on device");
   }
@@ -1102,7 +1113,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
                                               compressed_size);
     }
     log::info("Input previously pinned: " +
-            std::to_string(input_previously_pinned));
+              std::to_string(input_previously_pinned));
   } else {
     log::info("Input on device");
   }
@@ -1115,7 +1126,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
                                               total_num_elem * sizeof(T));
     }
     log::info("Output previously pinned: " +
-            std::to_string(output_previously_pinned));
+              std::to_string(output_previously_pinned));
   } else {
     log::info("Output on device");
   }
