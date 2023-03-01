@@ -47,10 +47,14 @@ public:
                       int level, SubArray<1, T_data, DeviceType> v,
                       int queue_idx) = 0;
 
-  virtual void progressive_decode(
-      SIZE n, SIZE starting_bitplanes, SIZE num_bitplanes, int32_t exp,
-      SubArray<2, T_bitplane, DeviceType> encoded_bitplanes, int level,
-      SubArray<1, T_data, DeviceType> v, int queue_idx) = 0;
+  virtual void
+  progressive_decode(SIZE n, SIZE starting_bitplanes, SIZE num_bitplanes,
+                     int32_t exp,
+                     SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
+                     SubArray<1, bool, DeviceType> level_signs, int level,
+                     SubArray<1, T_data, DeviceType> v,
+
+                     int queue_idx) = 0;
 
   virtual void print() const = 0;
 };

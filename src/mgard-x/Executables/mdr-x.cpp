@@ -129,6 +129,31 @@ std::vector<mgard_x::SIZE> get_arg_dims(int argc, char *argv[],
   return shape;
 }
 
+std::vector<double> get_arg_tols(int argc, char *argv[], std::string option) {
+  std::vector<double> tols;
+  if (require_arg(argc, argv, option)) {
+    std::string arg;
+    int arg_idx = 0, i;
+    for (i = 0; i < argc; i++) {
+      if (option.compare(std::string(argv[i])) == 0) {
+        arg = std::string(argv[i + 1]);
+        arg_idx = i + 1;
+      }
+    }
+    try {
+      int d = std::stoi(arg);
+      for (int i = 0; i < d; i++) {
+        tols.push_back(std::stod(argv[arg_idx + 1 + i]));
+      }
+      return tols;
+    } catch (std::invalid_argument const &e) {
+      print_usage_message("illegal argument for option " + option + ".");
+      return tols;
+    }
+  }
+  return tols;
+}
+
 double get_arg_double(int argc, char *argv[], std::string option) {
   if (require_arg(argc, argv, option)) {
     std::string arg;
@@ -338,32 +363,36 @@ void write_mdr(mgard_x::MDR::RefactoredMetadata &refactored_metadata,
   }
 }
 
-void read_mdr(mgard_x::MDR::RefactoredMetadata &refactored_metadata,
-              mgard_x::MDR::RefactoredData &refactored_data,
-              std::string input) {
+void read_mdr_metadata(mgard_x::MDR::RefactoredMetadata &refactored_metadata,
+                       mgard_x::MDR::RefactoredData &refactored_data,
+                       std::string input) {
 
   readfile(input + "/header", refactored_metadata.header);
   std::vector<mgard_x::Byte> serialized_metadata;
   readfile(input + "/metadata", serialized_metadata);
   refactored_metadata.Deserialize(serialized_metadata);
-  refactored_data.Initialize(refactored_metadata.num_subdomains);
-  for (int subdomain_id = 0; subdomain_id < refactored_metadata.metadata.size();
-       subdomain_id++) {
-    refactored_data.data[subdomain_id].resize(
-        refactored_metadata.metadata[subdomain_id].level_sizes.size());
-    for (int level_idx = 0;
-         level_idx <
-         refactored_metadata.metadata[subdomain_id].level_sizes.size();
-         level_idx++) {
-      refactored_data.data[subdomain_id][level_idx].resize(
-          refactored_metadata.metadata[subdomain_id]
-              .level_sizes[level_idx]
-              .size());
-      for (int bitplane_idx = 0;
-           bitplane_idx < refactored_metadata.metadata[subdomain_id]
-                              .level_sizes[level_idx]
-                              .size();
-           bitplane_idx++) {
+  refactored_metadata.InitializeForReconstruction();
+  refactored_data.InitializeForReconstruction(refactored_metadata);
+}
+
+void read_mdr(mgard_x::MDR::RefactoredMetadata &refactored_metadata,
+              mgard_x::MDR::RefactoredData &refactored_data,
+              std::string input) {
+
+  int num_subdomains = refactored_metadata.metadata.size();
+  for (int subdomain_id = 0; subdomain_id < num_subdomains; subdomain_id++) {
+    mgard_x::MDR::MDRMetadata metadata =
+        refactored_metadata.metadata[subdomain_id];
+    int num_levels = metadata.level_sizes.size();
+    for (int level_idx = 0; level_idx < num_levels; level_idx++) {
+      int num_bitplanes = metadata.level_sizes[level_idx].size();
+      int loaded_bitplanes = metadata.loaded_level_num_bitplanes[level_idx];
+      int reqested_bitplanes =
+          metadata.requested_level_num_bitplanes[level_idx];
+      for (int bitplane_idx = loaded_bitplanes;
+           bitplane_idx < reqested_bitplanes; bitplane_idx++) {
+        // for (int bitplane_idx = 0; bitplane_idx < num_bitplanes;
+        // bitplane_idx++) {
         std::string filename = "component_" + std::to_string(subdomain_id) +
                                "_" + std::to_string(level_idx) + "_" +
                                std::to_string(bitplane_idx);
@@ -376,6 +405,11 @@ void read_mdr(mgard_x::MDR::RefactoredMetadata &refactored_metadata,
           exit(-1);
         }
       }
+      // level sign
+      refactored_data.level_signs[subdomain_id][level_idx] =
+          (bool *)malloc(sizeof(bool) * metadata.level_num_elems[level_idx]);
+      memset(refactored_data.level_signs[subdomain_id][level_idx], 0,
+             sizeof(bool) * metadata.level_num_elems[level_idx]);
     }
   }
 }
@@ -414,6 +448,11 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
   config.num_dev = num_dev;
   config.prefetch = prefetch;
   config.max_memory_footprint = max_memory_footprint;
+  if (dtype == mgard_x::data_type::Float) {
+    config.total_num_bitplanes = 32;
+  } else if (dtype == mgard_x::data_type::Double) {
+    config.total_num_bitplanes = 64;
+  }
 
   if (lossless == 0) {
     config.lossless = mgard_x::lossless_type::Huffman;
@@ -469,20 +508,6 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   write_mdr(refactored_metadata, refactored_data, output_file);
 
-  // read_mdr(refactored_metadata, refactored_data, output_file);
-  // refactored_metadata.InitializeForReconstruction();
-  // mgard_x::MDR::MDRequest(refactored_metadata, 201667.424,
-  // std::numeric_limits<double>::infinity(),
-  //           mgard_x::error_bound_type::ABS, config);
-  // for (auto metadata : refactored_metadata.metadata) {
-  //   metadata.PrintStatus();
-  // }
-
-  // mgard_x::MDR::ReconstructedData reconstructed_data;
-
-  // mgard_x::MDR::MDReconstruct(refactored_metadata,refactored_data,
-  //                             reconstructed_data, config, false);
-
   mgard_x::unpin_memory(original_data, config);
   delete[](T *) original_data;
 
@@ -491,7 +516,8 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
 int launch_reconstruct(std::string input_file, std::string output_file,
                        std::string original_file, enum mgard_x::data_type dtype,
-                       std::vector<mgard_x::SIZE> shape, double tol, double s,
+                       std::vector<mgard_x::SIZE> shape,
+                       std::vector<double> tols, double s,
                        enum mgard_x::error_bound_type mode,
                        bool adaptive_resolution,
                        enum mgard_x::device_type dev_type, int num_dev,
@@ -535,45 +561,47 @@ int launch_reconstruct(std::string input_file, std::string output_file,
 
   mgard_x::MDR::RefactoredMetadata refactored_metadata;
   mgard_x::MDR::RefactoredData refactored_data;
-  read_mdr(refactored_metadata, refactored_data, input_file);
-  refactored_metadata.InitializeForReconstruction();
-  for (auto &metadata : refactored_metadata.metadata) {
-    metadata.requested_tol = tol;
-    metadata.requested_s = s;
-  }
-  mgard_x::MDR::MDRequest(refactored_metadata, config);
-  for (auto &metadata : refactored_metadata.metadata) {
-    metadata.PrintStatus();
-  }
-
   mgard_x::MDR::ReconstructedData reconstructed_data;
-
-  mgard_x::MDR::MDReconstruct(refactored_metadata, refactored_data,
-                              reconstructed_data, config, false, original_data);
-  int subdomain_id = 0;
-
-  for (int subdomain_id = 0; subdomain_id < reconstructed_data.data.size();
-       subdomain_id++) {
-    std::cout << "reconstructed_data " << subdomain_id << " : offset(";
-    for (auto n : reconstructed_data.offset[subdomain_id]) {
-      std::cout << n << " ";
+  read_mdr_metadata(refactored_metadata, refactored_data, input_file);
+  for (double tol : tols) {
+    for (auto &metadata : refactored_metadata.metadata) {
+      metadata.requested_tol = tol;
+      metadata.requested_s = s;
     }
-    std::cout << ") shape(";
-    for (auto n : reconstructed_data.shape[subdomain_id]) {
-      std::cout << n << " ";
+    mgard_x::MDR::MDRequest(refactored_metadata, config);
+    for (auto &metadata : refactored_metadata.metadata) {
+      metadata.PrintStatus();
     }
-    std::cout << ")\n";
-  }
+    read_mdr(refactored_metadata, refactored_data, input_file);
 
-  if (input_file.compare("none") != 0 && !config.mdr_adaptive_resolution) {
-    if (dtype == mgard_x::data_type::Float) {
-      print_statistics<float>(s, mode, shape, (float *)original_data,
-                              (float *)reconstructed_data.data[0], tol,
-                              config.normalize_coordinates);
-    } else if (dtype == mgard_x::data_type::Double) {
-      print_statistics<double>(s, mode, shape, (double *)original_data,
-                               (double *)reconstructed_data.data[0], tol,
-                               config.normalize_coordinates);
+    mgard_x::MDR::MDReconstruct(refactored_metadata, refactored_data,
+                                reconstructed_data, config, false,
+                                original_data);
+    int subdomain_id = 0;
+
+    for (int subdomain_id = 0; subdomain_id < reconstructed_data.data.size();
+         subdomain_id++) {
+      std::cout << "reconstructed_data " << subdomain_id << " : offset(";
+      for (auto n : reconstructed_data.offset[subdomain_id]) {
+        std::cout << n << " ";
+      }
+      std::cout << ") shape(";
+      for (auto n : reconstructed_data.shape[subdomain_id]) {
+        std::cout << n << " ";
+      }
+      std::cout << ")\n";
+    }
+
+    if (input_file.compare("none") != 0 && !config.mdr_adaptive_resolution) {
+      if (dtype == mgard_x::data_type::Float) {
+        print_statistics<float>(s, mode, shape, (float *)original_data,
+                                (float *)reconstructed_data.data[0], tol,
+                                config.normalize_coordinates);
+      } else if (dtype == mgard_x::data_type::Double) {
+        print_statistics<double>(s, mode, shape, (double *)original_data,
+                                 (double *)reconstructed_data.data[0], tol,
+                                 config.normalize_coordinates);
+      }
     }
   }
   return 0;
@@ -747,11 +775,15 @@ bool try_reconstruction(int argc, char *argv[]) {
   } else
     print_usage_message("wrong error bound mode.");
 
-  double tol = get_arg_double(argc, argv, "-e");
+  std::vector<double> tols = get_arg_tols(argc, argv, "-e");
   double s = get_arg_double(argc, argv, "-s");
 
   std::cout << std::scientific;
-  std::cout << mgard_x::log::log_info << "error bound: " << tol << "\n";
+  std::cout << mgard_x::log::log_info << "error bounds: ";
+  for (double tol : tols) {
+    std::cout << tol << " ";
+  }
+  std::cout << std::endl;
   std::cout << std::defaultfloat;
   std::cout << mgard_x::log::log_info << "s: " << s << "\n";
 
@@ -808,7 +840,7 @@ bool try_reconstruction(int argc, char *argv[]) {
     std::cout << mgard_x::log::log_info << "verbose: enabled.\n";
   for (int repeat_iter = 0; repeat_iter < repeat; repeat_iter++) {
     launch_reconstruct(input_file, output_file, original_file, dtype, shape,
-                       tol, s, mode, adaptive_resolution, dev_type, num_dev,
+                       tols, s, mode, adaptive_resolution, dev_type, num_dev,
                        verbose, prefetch);
   }
   return true;
