@@ -32,16 +32,6 @@ class ReconstructorInterface {
 public:
   virtual ~ReconstructorInterface() = default;
 
-  virtual void
-  reconstruct(double tolerance, double s,
-              Array<D, T_data, DeviceType> &reconstructed_data) = 0;
-
-  virtual void
-  progressive_reconstruct(double tolerance, double s,
-                          Array<D, T_data, DeviceType> &reconstructed_data) = 0;
-
-  virtual void load_metadata() = 0;
-
   virtual void print() const = 0;
 };
 } // namespace concepts

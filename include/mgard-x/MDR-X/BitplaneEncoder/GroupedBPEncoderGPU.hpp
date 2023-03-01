@@ -6,7 +6,8 @@
 #include "BitplaneEncoderInterface.hpp"
 #include <string.h>
 
-#define BINARY_TYPE BINARY
+// #define BINARY_TYPE BINARY
+#define BINARY_TYPE NEGABINARY
 
 // #define DATA_ENCODING_ALGORITHM Bit_Transpose_Serial_All
 #define DATA_ENCODING_ALGORITHM Bit_Transpose_Parallel_B_Serial_b
@@ -451,7 +452,8 @@ public:
       for (SIZE batch_idx = FunctorBase<DeviceType>::GetThreadIdX();
            batch_idx < num_batches_per_TB; batch_idx += 32) {
         sm_bitplanes[batch_idx * num_bitplanes + bitplane_idx] =
-            *encoded_bitplanes(bitplane_idx, block_offset + batch_idx);
+            *encoded_bitplanes(bitplane_idx + starting_bitplane,
+                               block_offset + batch_idx);
       }
     }
 
@@ -717,13 +719,6 @@ public:
     DeviceCollective<DeviceType>::Sum(
         num_blocks(max_level_num_elems), SubArray<1, T_error, DeviceType>(),
         SubArray<1, T_error, DeviceType>(), level_error_sum_work_array, 0);
-
-    level_signs =
-        std::vector<Array<1, bool, DeviceType>>(hierarchy.l_target() + 1);
-    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
-      level_signs[level_idx] =
-          Array<1, bool, DeviceType>({hierarchy.level_num_elems(level_idx)});
-    }
   }
 
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape) {
@@ -777,15 +772,14 @@ public:
   void progressive_decode(SIZE n, SIZE starting_bitplane, SIZE num_bitplanes,
                           int32_t exp,
                           SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
-                          int level, SubArray<1, T_data, DeviceType> v,
-                          int queue_idx) {
-    SubArray<1, bool, DeviceType> signs_subarray(level_signs[level]);
+                          SubArray<1, bool, DeviceType> level_signs, int level,
+                          SubArray<1, T_data, DeviceType> v, int queue_idx) {
     if (num_bitplanes > 0) {
       DeviceLauncher<DeviceType>::Execute(
           GroupedDecoderKernel<T_data, T_bitplane, BINARY_TYPE,
                                DATA_DECODING_ALGORITHM, DeviceType>(
               n, num_batches_per_TB, starting_bitplane, num_bitplanes, exp,
-              encoded_bitplanes, signs_subarray, v),
+              encoded_bitplanes, level_signs, v),
           queue_idx);
     }
   }
@@ -812,8 +806,6 @@ private:
   static constexpr SIZE num_batches_per_TB = 2;
   Array<2, T_error, DeviceType> level_errors_work_array;
   Array<1, Byte, DeviceType> level_error_sum_work_array;
-
-  std::vector<Array<1, bool, DeviceType>> level_signs;
   std::vector<std::vector<uint8_t>> level_recording_bitplanes;
 };
 } // namespace MDR

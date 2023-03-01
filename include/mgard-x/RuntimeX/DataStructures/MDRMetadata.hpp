@@ -21,6 +21,7 @@ public:
     level_error_bounds.resize(num_levels);
     level_squared_errors.resize(num_levels);
     level_sizes.resize(num_levels);
+    level_num_elems.resize(num_levels);
     for (int i = 0; i < num_levels; i++) {
       level_squared_errors[i].resize(num_bitplanes + 1);
       level_sizes[i].resize(num_bitplanes);
@@ -38,6 +39,7 @@ public:
   std::vector<T_error> level_error_bounds;
   std::vector<std::vector<T_error>> level_squared_errors;
   std::vector<std::vector<SIZE>> level_sizes;
+  std::vector<SIZE> level_num_elems;
 
   // For progressive reconstruction
   T_error loaded_tol, loaded_s;
@@ -68,12 +70,16 @@ public:
   void PrintStatus() {
     printf("Request tol: %f, s: %f\n", requested_tol, requested_s);
     for (int level_idx = 0; level_idx < num_levels; level_idx++) {
-      printf("Request %d (%d more) bitplans from level %d\n",
-             requested_level_num_bitplanes[level_idx],
-             requested_level_num_bitplanes[level_idx] -
-                 loaded_level_num_bitplanes[level_idx],
-             level_idx);
+      printf("Level %d bitplanes: used [%2d] loaded [%2d] requested [%2d]\n",
+             level_idx, prev_used_level_num_bitplanes[level_idx],
+             loaded_level_num_bitplanes[level_idx],
+             requested_level_num_bitplanes[level_idx]);
     }
+    printf("level_num_elems: ");
+    for (int level_idx = 0; level_idx < num_levels; level_idx++) {
+      printf("%llu ", level_num_elems[level_idx]);
+    }
+    printf("\n");
   }
 
   void DoneLoadingBitplans() {
@@ -125,6 +131,7 @@ public:
     metadata_size += sizeof(T_error) * num_levels;
     metadata_size += sizeof(T_error) * num_levels * (num_bitplanes + 1);
     metadata_size += sizeof(SIZE) * num_levels * num_bitplanes;
+    metadata_size += sizeof(SIZE) * num_levels;
     return metadata_size;
   }
 
@@ -151,6 +158,7 @@ public:
     for (int i = 0; i < num_levels; i++) {
       Serialize(ptr, level_sizes[i].data(), sizeof(SIZE) * (num_bitplanes));
     }
+    Serialize(ptr, level_num_elems.data(), sizeof(SIZE) * num_levels);
     return serialize_metadata;
   }
 
@@ -167,6 +175,7 @@ public:
     for (int i = 0; i < num_levels; i++) {
       Deserialize(ptr, level_sizes[i].data(), sizeof(SIZE) * (num_bitplanes));
     }
+    Deserialize(ptr, level_num_elems.data(), sizeof(SIZE) * num_levels);
   }
 };
 

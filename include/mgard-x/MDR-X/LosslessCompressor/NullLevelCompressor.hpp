@@ -74,7 +74,10 @@ public:
 
     SubArray<2, T, DeviceType> encoded_bitplanes_subarray(encoded_bitplanes);
 
-    for (SIZE bitplane_idx = 0; bitplane_idx < num_bitplanes; bitplane_idx++) {
+    for (SIZE bitplane_idx = starting_bitplane;
+         bitplane_idx < starting_bitplane + num_bitplanes; bitplane_idx++) {
+      // std::cout << "decompress level: " << bitplane_idx << " " <<
+      // (int)num_bitplanes << "\n";
       T *bitplane = encoded_bitplanes_subarray(bitplane_idx, 0);
       // MDR::Zstd
       // SIZE compressed_size = bitplane_sizes[starting_bitplane +

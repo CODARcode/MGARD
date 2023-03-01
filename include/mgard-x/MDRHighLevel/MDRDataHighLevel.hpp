@@ -13,19 +13,9 @@
 namespace mgard_x {
 namespace MDR {
 
-class RefactoredData {
-public:
-  void Initialize(SIZE num_subdomains) {
-    this->num_subdomains = num_subdomains;
-    data.resize(num_subdomains);
-  }
-  std::vector<std::vector<std::vector<Byte *>>> data;
-  SIZE num_subdomains;
-};
-
 class RefactoredMetadata {
 public:
-  void Initialize(SIZE num_subdomains) {
+  void InitializeForRefactor(SIZE num_subdomains) {
     this->num_subdomains = num_subdomains;
     metadata.resize(num_subdomains);
   }
@@ -75,7 +65,8 @@ public:
   void Deserialize(std::vector<Byte> serialize_metadata) {
     Byte *ptr = serialize_metadata.data();
     Deserialize(ptr, &num_subdomains, sizeof(SIZE));
-    Initialize(num_subdomains);
+    this->num_subdomains = num_subdomains;
+    metadata.resize(num_subdomains);
     for (SIZE subdomain_id = 0; subdomain_id < num_subdomains; subdomain_id++) {
       SIZE serialized_MDRMetadata_size;
       Deserialize(ptr, &serialized_MDRMetadata_size, sizeof(SIZE));
@@ -85,6 +76,34 @@ public:
       metadata[subdomain_id].Deserialize(serialized_MDRMetadata);
     }
   }
+};
+
+class RefactoredData {
+public:
+  void InitializeForRefactor(SIZE num_subdomains) {
+    this->num_subdomains = num_subdomains;
+    data.resize(num_subdomains);
+  }
+  void InitializeForReconstruction(RefactoredMetadata &refactored_metadata) {
+    int num_subdomains = refactored_metadata.metadata.size();
+    this->num_subdomains = num_subdomains;
+    data.resize(num_subdomains);
+    level_signs.resize(num_subdomains);
+    for (int subdomain_id = 0; subdomain_id < num_subdomains; subdomain_id++) {
+      MDRMetadata metadata = refactored_metadata.metadata[subdomain_id];
+      int num_levels = metadata.level_sizes.size();
+      data[subdomain_id].resize(num_levels);
+      level_signs[subdomain_id].resize(num_levels);
+      for (int level_idx = 0; level_idx < num_levels; level_idx++) {
+        int num_bitplanes = metadata.level_sizes[level_idx].size();
+        data[subdomain_id][level_idx].resize(num_bitplanes);
+      }
+    }
+  }
+
+  std::vector<std::vector<std::vector<Byte *>>> data;
+  std::vector<std::vector<bool *>> level_signs;
+  SIZE num_subdomains;
 };
 
 class ReconstructedData {

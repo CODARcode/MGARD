@@ -90,7 +90,8 @@ public:
 
     SubArray<2, T, DeviceType> encoded_bitplanes_subarray(encoded_bitplanes);
 
-    for (SIZE bitplane_idx = 0; bitplane_idx < num_bitplanes; bitplane_idx++) {
+    for (SIZE bitplane_idx = starting_bitplane; bitplane_idx < num_bitplanes;
+         bitplane_idx++) {
       T *bitplane = encoded_bitplanes_subarray(bitplane_idx, 0);
       // MDR::Zstd
       // SIZE compressed_size = bitplane_sizes[starting_bitplane +
@@ -114,6 +115,7 @@ public:
       // encoded_bitplane({encoded_bitplanes_subarray.shape(1)}, bitplane);
       // huffman.Decompress(compressed_bitplanes[bitplane_idx],
       // encoded_bitplane, queue_idx);
+      std::cout << "decompress level: " << bitplane_idx << "\n";
       int old_log_level = log::level;
       log::level = log::ERR;
       ZstdDecompress(compressed_bitplanes[bitplane_idx]);
