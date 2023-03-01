@@ -372,8 +372,8 @@ void compress_subdomain_series(
                                 0);
     if (config.compress_with_dryrun) {
       domain_decomposer.copy_subdomain(
-        device_subdomain_buffer, subdomain_id,
-        subdomain_copy_direction::SubdomainToOriginal, 0);
+          device_subdomain_buffer, subdomain_id,
+          subdomain_copy_direction::SubdomainToOriginal, 0);
     }
     DeviceRuntime<DeviceType>::SyncQueue(0);
     compressed_subdomain_size[dev_id] +=
@@ -478,8 +478,8 @@ void compress_subdomain_series_w_prefetch(
         device_compressed_buffer[current_buffer].shape(0) + sizeof(SIZE);
     if (config.compress_with_dryrun) {
       domain_decomposer.copy_subdomain(
-        device_subdomain_buffer[current_buffer], curr_subdomain_id,
-        subdomain_copy_direction::SubdomainToOriginal, current_queue);
+          device_subdomain_buffer[current_buffer], curr_subdomain_id,
+          subdomain_copy_direction::SubdomainToOriginal, current_queue);
     }
     current_buffer = next_buffer;
     current_queue = next_queue;

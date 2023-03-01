@@ -76,7 +76,8 @@ public:
     size_t size = 0;
     Hierarchy<D, T, DeviceType> hierarchy;
     size += hierarchy.estimate_memory_usgae(shape);
-    size += DataRefactor<D, T, DeviceType>::EstimateMemoryFootprint(shape);
+    size += data_refactoring::DataRefactor<
+        D, T, DeviceType>::EstimateMemoryFootprint(shape);
     return size;
   }
   void decompose(Array<D, T, DeviceType> &v, int start_level, int stop_level,

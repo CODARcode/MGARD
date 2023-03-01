@@ -233,12 +233,16 @@ void reconstruct_subdomain(
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
 
-  MDRMetadata mdr_metadata = refactored_metadata.metadata[subdomain_id];
+  MDRMetadata &mdr_metadata = refactored_metadata.metadata[subdomain_id];
   MDRData<DeviceType> mdr_data;
   mdr_data.Resize(mdr_metadata);
 
+  // Copy refactored data
   mdr_data.CopyFromRefactoredData(mdr_metadata,
                                   refactored_data.data[subdomain_id], 0);
+  // Copy signs
+  mdr_data.CopyFromRefactoredSigns(
+      mdr_metadata, refactored_data.level_signs[subdomain_id], 0);
 
   ComposedReconstructor<D, T, DeviceType> reconstructor(hierarchy, config);
 
@@ -249,10 +253,20 @@ void reconstruct_subdomain(
   log::info("Reconstruct subdomain " + std::to_string(subdomain_id) +
             " with shape: " + ss.str());
   device_subdomain_buffer.resize(hierarchy.level_shape(hierarchy.l_target()));
+  device_subdomain_buffer.memset(0, 0);
+  // Load previously reconstructred data
+  domain_decomposer.copy_subdomain(
+      device_subdomain_buffer, subdomain_id,
+      subdomain_copy_direction::OriginalToSubdomain, 0);
+  // Reconstruct
   reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data,
                                        config.mdr_adaptive_resolution,
                                        device_subdomain_buffer, 0);
-  // PrintSubarray("reconstructed_data", SubArray(device_subdomain_buffer));
+
+  // Update level signs for future progressive reconstruction
+  mdr_data.CopyToRefactoredSigns(mdr_metadata,
+                                 refactored_data.level_signs[subdomain_id], 0);
+  // Update reconstructed data
   domain_decomposer.copy_subdomain(
       device_subdomain_buffer, subdomain_id,
       subdomain_copy_direction::SubdomainToOriginal, 0);
@@ -317,12 +331,16 @@ void reconstruct_subdomain_series(
     Hierarchy<D, T, DeviceType> hierarchy =
         domain_decomposer.subdomain_hierarchy(subdomain_id);
 
-    MDRMetadata mdr_metadata = refactored_metadata.metadata[subdomain_id];
+    MDRMetadata &mdr_metadata = refactored_metadata.metadata[subdomain_id];
     MDRData<DeviceType> mdr_data;
     mdr_data.Resize(mdr_metadata);
 
+    // Copy refactored data
     mdr_data.CopyFromRefactoredData(mdr_metadata,
                                     refactored_data.data[subdomain_id], 0);
+    // Copy signs
+    mdr_data.CopyFromRefactoredSigns(
+        mdr_metadata, refactored_data.level_signs[subdomain_id], 0);
 
     ComposedReconstructor<D, T, DeviceType> reconstructor(hierarchy, config);
 
@@ -342,6 +360,10 @@ void reconstruct_subdomain_series(
     reconstructor.ProgressiveReconstruct(mdr_metadata, mdr_data,
                                          config.mdr_adaptive_resolution,
                                          device_subdomain_buffer, 0);
+
+    // Update level signs for future progressive reconstruction
+    mdr_data.CopyToRefactoredSigns(
+        mdr_metadata, refactored_data.level_signs[subdomain_id], 0);
     // Update reconstructed data
     domain_decomposer.copy_subdomain(
         device_subdomain_buffer, subdomain_id,
@@ -439,7 +461,11 @@ void reconstruct_subdomain_series_w_prefetch(
       next_subdomain_id = subdomain_ids[i + 1];
       mdr_data[next_buffer].CopyFromRefactoredData(
           refactored_metadata.metadata[next_subdomain_id],
-          refactored_data.data[next_subdomain_id], current_queue);
+          refactored_data.data[next_subdomain_id], next_queue);
+      // Copy signs
+      mdr_data[next_buffer].CopyFromRefactoredSigns(
+          refactored_metadata.metadata[next_subdomain_id],
+          refactored_data.level_signs[next_subdomain_id], next_queue);
     }
 
     // Check if we can reuse the existing objects
@@ -467,6 +493,10 @@ void reconstruct_subdomain_series_w_prefetch(
         refactored_metadata.metadata[curr_subdomain_id],
         mdr_data[current_buffer], config.mdr_adaptive_resolution,
         device_subdomain_buffer[current_buffer], current_queue);
+    // Update level signs for future progressive reconstruction
+    mdr_data[current_buffer].CopyToRefactoredSigns(
+        refactored_metadata.metadata[curr_subdomain_id],
+        refactored_data.level_signs[curr_subdomain_id], current_queue);
     // Update reconstructed data
     domain_decomposer.copy_subdomain(
         device_subdomain_buffer[current_buffer], curr_subdomain_id,
@@ -582,8 +612,8 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
                                             total_num_elem * sizeof(T));
   }
 
-  refactored_metadata.Initialize(domain_decomposer.num_subdomains());
-  refactored_data.Initialize(domain_decomposer.num_subdomains());
+  refactored_metadata.InitializeForRefactor(domain_decomposer.num_subdomains());
+  refactored_data.InitializeForRefactor(domain_decomposer.num_subdomains());
 
   log::info("Output preallocated: " + std::to_string(output_pre_allocated));
   log::info("Input previously pinned: " +
@@ -804,6 +834,7 @@ void MDReconstruct(std::vector<SIZE> shape,
       // First time reconstruction
       reconstructed_data.Initialize(1);
       reconstructed_data.data[0] = (Byte *)malloc(total_num_elem * sizeof(T));
+      memset(reconstructed_data.data[0], 0, total_num_elem * sizeof(T));
       reconstructed_data.offset[0] = std::vector<SIZE>(D, 0);
       reconstructed_data.shape[0] = shape;
     }
@@ -820,6 +851,7 @@ void MDReconstruct(std::vector<SIZE> shape,
           n *= domain_decomposer.subdomain_shape(subdomain_id)[i];
         }
         reconstructed_data.data[subdomain_id] = (Byte *)malloc(n * sizeof(T));
+        memset(reconstructed_data.data[subdomain_id], 0, n * sizeof(T));
       }
     }
     std::vector<T *> decomposed_original_data(

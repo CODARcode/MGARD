@@ -819,13 +819,6 @@ public:
     DeviceCollective<DeviceType>::Sum(
         MGARDX_NUM_SMs, SubArray<1, T_error, DeviceType>(),
         SubArray<1, T_error, DeviceType>(), level_error_sum_work_array, 0);
-
-    level_signs =
-        std::vector<Array<1, bool, DeviceType>>(hierarchy.l_target() + 1);
-    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
-      level_signs[level_idx] =
-          Array<1, bool, DeviceType>({hierarchy.level_num_elems(level_idx)});
-    }
   }
 
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape) {
@@ -950,10 +943,8 @@ public:
   void progressive_decode(SIZE n, SIZE starting_bitplane, SIZE num_bitplanes,
                           int32_t exp,
                           SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
-                          int level, SubArray<1, T_data, DeviceType> v,
-                          int queue_idx) {
-
-    SubArray<1, bool, DeviceType> signs_subarray(level_signs[level]);
+                          SubArray<1, bool, DeviceType> level_signs, int level,
+                          SubArray<1, T_data, DeviceType> v, int queue_idx) {
 
     if (num_bitplanes > 0) {
 #define DECODE(NumDecodingBitplanes)                                           \
@@ -963,7 +954,7 @@ public:
                                  NUM_GROUPS_PER_WARP_PER_ITER,                 \
                                  NUM_WARP_PER_TB, BINARY_TYPE,                 \
                                  DATA_DECODING_ALGORITHM, DeviceType>(         \
-            n, starting_bitplane, exp, encoded_bitplanes, signs_subarray, v),  \
+            n, starting_bitplane, exp, encoded_bitplanes, level_signs, v),     \
         queue_idx);                                                            \
   }
 
@@ -1054,7 +1045,6 @@ private:
   Hierarchy<D, T_data, DeviceType> hierarchy;
   Array<2, T_error, DeviceType> level_errors_work_array;
   Array<1, Byte, DeviceType> level_error_sum_work_array;
-  std::vector<Array<1, bool, DeviceType>> level_signs;
   std::vector<std::vector<uint8_t>> level_recording_bitplanes;
 };
 } // namespace MDR
