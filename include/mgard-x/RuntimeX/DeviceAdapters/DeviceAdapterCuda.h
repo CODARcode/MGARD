@@ -2443,7 +2443,8 @@ public:
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(),
-                              result.data(), n, absMaxOp, 0, stream, debug);
+                              result.data(), n, absMaxOp, static_cast<T>(0),
+                              stream, debug);
     if (!workspace.hasDeviceAllocation()) {
       workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
     }
