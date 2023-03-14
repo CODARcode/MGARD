@@ -22,6 +22,9 @@ template <typename T> T L_inf_norm(size_t n, const T *data) {
     if (temp > L_inf)
       L_inf = temp;
   }
+  // Avoiding issue with norm == 0
+  if (L_inf == 0)
+    L_inf = std::numeric_limits<T>::epsilon();
   return L_inf;
 }
 
@@ -35,7 +38,9 @@ T L_2_norm(std::vector<SIZE> shape, const T *data, bool normalize_coordinates) {
     T temp = fabs(data[i]);
     L_2 += temp * temp;
   }
-
+  // Avoiding issue with norm == 0
+  if (L_2 == 0)
+    L_2 = std::numeric_limits<T>::epsilon();
   if (!normalize_coordinates) {
     return std::sqrt(L_2);
   } else {

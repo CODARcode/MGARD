@@ -368,10 +368,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   writefile(output_file, compressed_size, compressed_data);
 
   std::cout << mgard_x::log::log_info << "Compression ratio: "
-            << (double)original_size * sizeof(T) / compressed_size << "\n";
-  // printf("In size:  %10ld  Out size: %10ld  Compression ratio: %f \n",
-  //        original_size * sizeof(T), compressed_size,
-  //        (double)original_size * sizeof(T) / compressed_size);
+            << (double)original_size * sizeof(T) / compressed_size << "("
+            << original_size * sizeof(T) << "/" << compressed_size << ")\n";
 
   if (verbose) {
     config.log_level = verbose_to_log_level(verbose);
