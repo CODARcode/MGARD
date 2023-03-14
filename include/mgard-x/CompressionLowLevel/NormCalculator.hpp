@@ -47,6 +47,9 @@ T norm_calculator(Array<D, T, DeviceType> &original_array,
                                          norm_subarray, abs_max_workspace, 0);
     MemoryManager<DeviceType>::Copy1D(&norm, norm_subarray.data(), 1, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
+    // Avoiding issue with norm == 0
+    if (norm == 0)
+      norm = std::numeric_limits<T>::epsilon();
     log::info("L_inf norm: " + std::to_string(norm));
   } else {
     Array<1, Byte, DeviceType> square_sum_workspace;
@@ -61,6 +64,9 @@ T norm_calculator(Array<D, T, DeviceType> &original_array,
     } else {
       norm = std::sqrt(norm / total_elems);
     }
+    // Avoiding issue with norm == 0
+    if (norm == 0)
+      norm = std::numeric_limits<T>::epsilon();
     log::info("L_2 norm: " + std::to_string(norm));
   }
   if (log::level & log::TIME) {
