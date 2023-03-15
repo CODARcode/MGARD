@@ -52,6 +52,14 @@ enum class domain_decomposition_type : uint8_t { MaxDim, Block };
 enum class operation_type : uint8_t { Compression, MDR };
 
 enum class bitplane_encoding_type : uint8_t { GroupedBitplaneEncoding };
+
+enum class compress_status_type : uint8_t {
+  Success,
+  OutputTooLargeFailure,
+  NotSupportHigherNumberOfDimensionsFailure,
+  NotSupportDataTypeFailure,
+  BackendNotAvailableFailure
+};
 } // namespace mgard_x
 
 #include <iostream>

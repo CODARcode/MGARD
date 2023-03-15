@@ -349,9 +349,10 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   mgard_x::pin_memory(original_data, original_size * sizeof(T), config);
   mgard_x::pin_memory(compressed_data, compressed_size, config);
   std::vector<const mgard_x::Byte *> coords_byte;
+  mgard_x::compress_status_type status;
   if (!non_uniform) {
-    mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
-                      compressed_data, compressed_size, config, true);
+    status = mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
+                               compressed_data, compressed_size, config, true);
   } else {
     std::vector<T *> coords;
     if (non_uniform) {
@@ -360,9 +361,15 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     for (auto &coord : coords) {
       coords_byte.push_back((const mgard_x::Byte *)coord);
     }
-    mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
-                      compressed_data, compressed_size, coords_byte, config,
-                      true);
+    status = mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
+                               compressed_data, compressed_size, coords_byte,
+                               config, true);
+  }
+
+  if (status == mgard_x::compress_status_type::OutputTooLargeFailure) {
+    std::cout << mgard_x::log::log_err
+              << "Compression failed: output too large\n";
+    exit(-1);
   }
 
   writefile(output_file, compressed_size, compressed_data);
