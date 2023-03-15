@@ -262,13 +262,13 @@ bool is_same(Hierarchy<D, T, DeviceType> &hierarchy1,
 }
 
 template <DIM D, typename T, typename DeviceType>
-void compress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>,
-                                         DeviceType> &domain_decomposer,
-                        SIZE subdomain_id, T local_tol, T s, T &norm,
-                        enum error_bound_type local_ebtype, Config &config,
-                        std::vector<Byte *> &compressed_subdomain_data,
-                        std::vector<SIZE> &compressed_subdomain_size,
-                        int dev_id) {
+enum compress_status_type
+compress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>,
+                                    DeviceType> &domain_decomposer,
+                   SIZE subdomain_id, T local_tol, T s, T &norm,
+                   enum error_bound_type local_ebtype, Config &config,
+                   std::vector<Byte *> &compressed_subdomain_data,
+                   std::vector<SIZE> &compressed_subdomain_size, int dev_id) {
 
   Timer timer_series;
   if (log::level & log::TIME)
@@ -294,8 +294,7 @@ void compress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>,
                       device_compressed_buffer, 0);
   if (device_compressed_buffer.shape(0) >
       hierarchy.total_num_elems() * sizeof(T) + OUTPUT_SAFTY_OVERHEAD) {
-    log::err("Compression failed. Output larger than input.");
-    exit(-1);
+    return compress_status_type::OutputTooLargeFailure;
   }
   SIZE byte_offset = 0;
   Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
@@ -319,10 +318,11 @@ void compress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>,
     timer_series.clear();
   }
   DeviceRuntime<DeviceType>::SyncDevice();
+  return compress_status_type::Success;
 }
 
 template <DIM D, typename T, typename DeviceType>
-void compress_subdomain_series(
+enum compress_status_type compress_subdomain_series(
     DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>
         &domain_decomposer,
     std::vector<SIZE> &subdomain_ids, T local_tol, T s, T &norm,
@@ -360,8 +360,7 @@ void compress_subdomain_series(
 
     if (device_compressed_buffer.shape(0) >
         hierarchy.total_num_elems() * sizeof(T)) {
-      log::err("Compression failed. Output larger than input.");
-      exit(-1);
+      return compress_status_type::OutputTooLargeFailure;
     }
     Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
                                 &device_compressed_buffer.shape(0), 1,
@@ -386,10 +385,11 @@ void compress_subdomain_series(
   }
 
   DeviceRuntime<DeviceType>::SyncDevice();
+  return compress_status_type::Success;
 }
 
 template <DIM D, typename T, typename DeviceType>
-void compress_subdomain_series_w_prefetch(
+enum compress_status_type compress_subdomain_series_w_prefetch(
     DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>
         &domain_decomposer,
     std::vector<SIZE> &subdomain_ids, T local_tol, T s, T &norm,
@@ -461,8 +461,7 @@ void compress_subdomain_series_w_prefetch(
 
     if (device_compressed_buffer[current_buffer].shape(0) >
         hierarchy.total_num_elems() * sizeof(T)) {
-      log::err("Compression failed. Output larger than input.");
-      exit(-1);
+      return compress_status_type::OutputTooLargeFailure;
     }
 
     Serialize<SIZE, DeviceType>(
@@ -491,16 +490,17 @@ void compress_subdomain_series_w_prefetch(
   }
 
   DeviceRuntime<DeviceType>::SyncDevice();
+  return compress_status_type::Success;
 }
 
 template <DIM D, typename T, typename DeviceType>
-void decompress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>,
-                                           DeviceType> &domain_decomposer,
-                          SIZE subdomain_id, T local_tol, T s, T norm,
-                          enum error_bound_type local_ebtype, Config &config,
-                          std::vector<Byte *> &compressed_subdomain_data,
-                          std::vector<SIZE> &compressed_subdomain_size,
-                          int dev_id) {
+enum compress_status_type
+decompress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>,
+                                      DeviceType> &domain_decomposer,
+                     SIZE subdomain_id, T local_tol, T s, T norm,
+                     enum error_bound_type local_ebtype, Config &config,
+                     std::vector<Byte *> &compressed_subdomain_data,
+                     std::vector<SIZE> &compressed_subdomain_size, int dev_id) {
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
@@ -548,10 +548,11 @@ void decompress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>,
     timer_series.clear();
   }
   DeviceRuntime<DeviceType>::SyncDevice();
+  return compress_status_type::Success;
 }
 
 template <DIM D, typename T, typename DeviceType>
-void decompress_subdomain_series(
+enum compress_status_type decompress_subdomain_series(
     DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>
         &domain_decomposer,
     std::vector<SIZE> &subdomain_ids, T local_tol, T s, T norm,
@@ -613,10 +614,11 @@ void decompress_subdomain_series(
     timer_series.clear();
   }
   DeviceRuntime<DeviceType>::SyncDevice();
+  return compress_status_type::Success;
 }
 
 template <DIM D, typename T, typename DeviceType>
-void decompress_subdomain_series_w_prefetch(
+enum compress_status_type decompress_subdomain_series_w_prefetch(
     DomainDecomposer<D, T, Compressor<D, T, DeviceType>, DeviceType>
         &domain_decomposer,
     std::vector<SIZE> &subdomain_ids, T local_tol, T s, T norm,
@@ -745,14 +747,16 @@ void decompress_subdomain_series_w_prefetch(
     timer_series.print("Decompress subdomains series with prefetch");
     timer_series.clear();
   }
+  return compress_status_type::Success;
 }
 
 template <DIM D, typename T, typename DeviceType>
-void general_compress(std::vector<SIZE> shape, T tol, T s,
-                      enum error_bound_type ebtype, const void *original_data,
-                      void *&compressed_data, size_t &compressed_size,
-                      Config config, bool uniform, std::vector<T *> coords,
-                      bool output_pre_allocated) {
+enum compress_status_type
+general_compress(std::vector<SIZE> shape, T tol, T s,
+                 enum error_bound_type ebtype, const void *original_data,
+                 void *&compressed_data, size_t &compressed_size, Config config,
+                 bool uniform, std::vector<T *> coords,
+                 bool output_pre_allocated) {
 
   size_t total_num_elem = 1;
   for (int i = 0; i < D; i++)
@@ -931,6 +935,7 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
     timer_each.clear();
   }
 
+  enum compress_status_type all_status[adjusted_num_dev];
   if (log::level & log::TIME)
     timer_each.start();
     // Set the number of threads equal to the number of devices
@@ -948,22 +953,37 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
     std::vector<SIZE> subdomain_ids =
         domain_decomposer.subdomain_ids_for_device(dev_id);
     if (subdomain_ids.size() == 1) {
-      compress_subdomain(domain_decomposer, subdomain_ids[0], local_tol, s,
-                         norm, local_ebtype, config, compressed_subdomain_data,
-                         compressed_subdomain_size, dev_id);
+      enum compress_status_type status = compress_subdomain(
+          domain_decomposer, subdomain_ids[0], local_tol, s, norm, local_ebtype,
+          config, compressed_subdomain_data, compressed_subdomain_size, dev_id);
+      if (status == compress_status_type::OutputTooLargeFailure) {
+        all_status[dev_id] = compress_status_type::OutputTooLargeFailure;
+      }
     } else {
       // Compress a series of subdomains according to the subdomain id list
       if (!config.prefetch) {
-        compress_subdomain_series(domain_decomposer, subdomain_ids, local_tol,
-                                  s, norm, local_ebtype, config,
-                                  compressed_subdomain_data,
-                                  compressed_subdomain_size, dev_id);
+        enum compress_status_type status = compress_subdomain_series(
+            domain_decomposer, subdomain_ids, local_tol, s, norm, local_ebtype,
+            config, compressed_subdomain_data, compressed_subdomain_size,
+            dev_id);
+        if (status == compress_status_type::OutputTooLargeFailure) {
+          all_status[dev_id] = compress_status_type::OutputTooLargeFailure;
+        }
       } else {
-        compress_subdomain_series_w_prefetch(domain_decomposer, subdomain_ids,
-                                             local_tol, s, norm, local_ebtype,
-                                             config, compressed_subdomain_data,
-                                             compressed_subdomain_size, dev_id);
+        enum compress_status_type status = compress_subdomain_series_w_prefetch(
+            domain_decomposer, subdomain_ids, local_tol, s, norm, local_ebtype,
+            config, compressed_subdomain_data, compressed_subdomain_size,
+            dev_id);
+        if (status == compress_status_type::OutputTooLargeFailure) {
+          all_status[dev_id] = compress_status_type::OutputTooLargeFailure;
+        }
       }
+    }
+  }
+
+  for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
+    if (all_status[dev_id] == compress_status_type::OutputTooLargeFailure) {
+      return compress_status_type::OutputTooLargeFailure;
     }
   }
 
@@ -1039,32 +1059,35 @@ void general_compress(std::vector<SIZE> shape, T tol, T s,
               " GB/s");
     timer_total.clear();
   }
+  return compress_status_type::Success;
 }
 
 template <DIM D, typename T, typename DeviceType>
-void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type ebtype,
-              const void *original_data, void *&compressed_data,
-              size_t &compressed_size, Config config,
-              bool output_pre_allocated) {
-  general_compress<D, T, DeviceType>(
+enum compress_status_type
+compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type ebtype,
+         const void *original_data, void *&compressed_data,
+         size_t &compressed_size, Config config, bool output_pre_allocated) {
+  return general_compress<D, T, DeviceType>(
       shape, tol, s, ebtype, original_data, compressed_data, compressed_size,
       config, true, std::vector<T *>(0), output_pre_allocated);
 }
 
 template <DIM D, typename T, typename DeviceType>
-void compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type ebtype,
-              const void *original_data, void *&compressed_data,
-              size_t &compressed_size, Config config, std::vector<T *> coords,
-              bool output_pre_allocated) {
-  general_compress<D, T, DeviceType>(shape, tol, s, ebtype, original_data,
-                                     compressed_data, compressed_size, config,
-                                     false, coords, output_pre_allocated);
+enum compress_status_type
+compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type ebtype,
+         const void *original_data, void *&compressed_data,
+         size_t &compressed_size, Config config, std::vector<T *> coords,
+         bool output_pre_allocated) {
+  return general_compress<D, T, DeviceType>(
+      shape, tol, s, ebtype, original_data, compressed_data, compressed_size,
+      config, false, coords, output_pre_allocated);
 }
 
 template <DIM D, typename T, typename DeviceType>
-void decompress(std::vector<SIZE> shape, const void *compressed_data,
-                size_t compressed_size, void *&decompressed_data, Config config,
-                bool output_pre_allocated) {
+enum compress_status_type
+decompress(std::vector<SIZE> shape, const void *compressed_data,
+           size_t compressed_size, void *&decompressed_data, Config config,
+           bool output_pre_allocated) {
   size_t total_num_elem = 1;
   for (int i = 0; i < D; i++)
     total_num_elem *= shape[i];
@@ -1215,7 +1238,7 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     timer_each.print("Deserialization");
     timer_each.clear();
   }
-
+  enum compress_status_type all_status[adjusted_num_dev];
   if (log::level & log::TIME)
     timer_each.start();
     // decompress
@@ -1234,23 +1257,39 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
     std::vector<SIZE> subdomain_ids =
         domain_decomposer.subdomain_ids_for_device(dev_id);
     if (subdomain_ids.size() == 1) {
-      decompress_subdomain(domain_decomposer, subdomain_ids[0], local_tol,
-                           (T)m.s, (T)m.norm, local_ebtype, config,
-                           compressed_subdomain_data, compressed_subdomain_size,
-                           dev_id);
+      enum compress_status_type status = decompress_subdomain(
+          domain_decomposer, subdomain_ids[0], local_tol, (T)m.s, (T)m.norm,
+          local_ebtype, config, compressed_subdomain_data,
+          compressed_subdomain_size, dev_id);
+      if (status == compress_status_type::OutputTooLargeFailure) {
+        all_status[dev_id] = compress_status_type::OutputTooLargeFailure;
+      }
     } else {
       // Decompress a series of subdomains according to the subdomain id list
       if (!config.prefetch) {
-        decompress_subdomain_series(domain_decomposer, subdomain_ids, local_tol,
-                                    (T)m.s, (T)m.norm, local_ebtype, config,
-                                    compressed_subdomain_data,
-                                    compressed_subdomain_size, dev_id);
-      } else {
-        decompress_subdomain_series_w_prefetch(
+        enum compress_status_type status = decompress_subdomain_series(
             domain_decomposer, subdomain_ids, local_tol, (T)m.s, (T)m.norm,
             local_ebtype, config, compressed_subdomain_data,
             compressed_subdomain_size, dev_id);
+        if (status == compress_status_type::OutputTooLargeFailure) {
+          all_status[dev_id] = compress_status_type::OutputTooLargeFailure;
+        }
+      } else {
+        enum compress_status_type status =
+            decompress_subdomain_series_w_prefetch(
+                domain_decomposer, subdomain_ids, local_tol, (T)m.s, (T)m.norm,
+                local_ebtype, config, compressed_subdomain_data,
+                compressed_subdomain_size, dev_id);
+        if (status == compress_status_type::OutputTooLargeFailure) {
+          all_status[dev_id] = compress_status_type::OutputTooLargeFailure;
+        }
       }
+    }
+  }
+
+  for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
+    if (all_status[dev_id] == compress_status_type::OutputTooLargeFailure) {
+      return compress_status_type::OutputTooLargeFailure;
     }
   }
 
@@ -1285,165 +1324,164 @@ void decompress(std::vector<SIZE> shape, const void *compressed_data,
               " GB/s");
     timer_total.clear();
   }
+  return compress_status_type::Success;
 }
 
 template <typename DeviceType>
-void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
-              double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size, Config config,
-              bool output_pre_allocated) {
+enum compress_status_type
+compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol, double s,
+         enum error_bound_type mode, const void *original_data,
+         void *&compressed_data, size_t &compressed_size, Config config,
+         bool output_pre_allocated) {
   if (dtype == data_type::Float) {
     if (D == 1) {
-      compress<1, float, DeviceType>(shape, tol, s, mode, original_data,
-                                     compressed_data, compressed_size, config,
-                                     output_pre_allocated);
+      return compress<1, float, DeviceType>(shape, tol, s, mode, original_data,
+                                            compressed_data, compressed_size,
+                                            config, output_pre_allocated);
     } else if (D == 2) {
-      compress<2, float, DeviceType>(shape, tol, s, mode, original_data,
-                                     compressed_data, compressed_size, config,
-                                     output_pre_allocated);
+      return compress<2, float, DeviceType>(shape, tol, s, mode, original_data,
+                                            compressed_data, compressed_size,
+                                            config, output_pre_allocated);
     } else if (D == 3) {
-      compress<3, float, DeviceType>(shape, tol, s, mode, original_data,
-                                     compressed_data, compressed_size, config,
-                                     output_pre_allocated);
+      return compress<3, float, DeviceType>(shape, tol, s, mode, original_data,
+                                            compressed_data, compressed_size,
+                                            config, output_pre_allocated);
     } else if (D == 4) {
-      compress<4, float, DeviceType>(shape, tol, s, mode, original_data,
-                                     compressed_data, compressed_size, config,
-                                     output_pre_allocated);
+      return compress<4, float, DeviceType>(shape, tol, s, mode, original_data,
+                                            compressed_data, compressed_size,
+                                            config, output_pre_allocated);
     } else if (D == 5) {
-      compress<5, float, DeviceType>(shape, tol, s, mode, original_data,
-                                     compressed_data, compressed_size, config,
-                                     output_pre_allocated);
+      return compress<5, float, DeviceType>(shape, tol, s, mode, original_data,
+                                            compressed_data, compressed_size,
+                                            config, output_pre_allocated);
     } else {
-      log::err("do not support higher than five dimentions");
-      exit(-1);
+      return compress_status_type::NotSupportHigherNumberOfDimensionsFailure;
     }
   } else if (dtype == data_type::Double) {
     if (D == 1) {
-      compress<1, double, DeviceType>(shape, tol, s, mode, original_data,
-                                      compressed_data, compressed_size, config,
-                                      output_pre_allocated);
+      return compress<1, double, DeviceType>(shape, tol, s, mode, original_data,
+                                             compressed_data, compressed_size,
+                                             config, output_pre_allocated);
     } else if (D == 2) {
-      compress<2, double, DeviceType>(shape, tol, s, mode, original_data,
-                                      compressed_data, compressed_size, config,
-                                      output_pre_allocated);
+      return compress<2, double, DeviceType>(shape, tol, s, mode, original_data,
+                                             compressed_data, compressed_size,
+                                             config, output_pre_allocated);
     } else if (D == 3) {
-      compress<3, double, DeviceType>(shape, tol, s, mode, original_data,
-                                      compressed_data, compressed_size, config,
-                                      output_pre_allocated);
+      return compress<3, double, DeviceType>(shape, tol, s, mode, original_data,
+                                             compressed_data, compressed_size,
+                                             config, output_pre_allocated);
     } else if (D == 4) {
-      compress<4, double, DeviceType>(shape, tol, s, mode, original_data,
-                                      compressed_data, compressed_size, config,
-                                      output_pre_allocated);
+      return compress<4, double, DeviceType>(shape, tol, s, mode, original_data,
+                                             compressed_data, compressed_size,
+                                             config, output_pre_allocated);
     } else if (D == 5) {
-      compress<5, double, DeviceType>(shape, tol, s, mode, original_data,
-                                      compressed_data, compressed_size, config,
-                                      output_pre_allocated);
+      return compress<5, double, DeviceType>(shape, tol, s, mode, original_data,
+                                             compressed_data, compressed_size,
+                                             config, output_pre_allocated);
     } else {
-      log::err("do not support higher than five dimentions");
-      exit(-1);
+      return compress_status_type::NotSupportHigherNumberOfDimensionsFailure;
     }
   } else {
-    log::err("do not support types other than double and float!");
-    exit(-1);
+    return compress_status_type::NotSupportDataTypeFailure;
   }
 }
 
 template <typename DeviceType>
-void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
-              double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size,
-              bool output_pre_allocated) {
+enum compress_status_type
+compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol, double s,
+         enum error_bound_type mode, const void *original_data,
+         void *&compressed_data, size_t &compressed_size,
+         bool output_pre_allocated) {
 
   Config config;
-  compress<DeviceType>(D, dtype, shape, tol, s, mode, original_data,
-                       compressed_data, compressed_size, config,
-                       output_pre_allocated);
+  return compress<DeviceType>(D, dtype, shape, tol, s, mode, original_data,
+                              compressed_data, compressed_size, config,
+                              output_pre_allocated);
 }
 
 template <typename DeviceType>
-void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
-              double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size,
-              std::vector<const Byte *> coords, Config config,
-              bool output_pre_allocated) {
+enum compress_status_type
+compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol, double s,
+         enum error_bound_type mode, const void *original_data,
+         void *&compressed_data, size_t &compressed_size,
+         std::vector<const Byte *> coords, Config config,
+         bool output_pre_allocated) {
 
   if (dtype == data_type::Float) {
     std::vector<float *> float_coords;
     for (auto &coord : coords)
       float_coords.push_back((float *)coord);
     if (D == 1) {
-      compress<1, float, DeviceType>(shape, tol, s, mode, original_data,
-                                     compressed_data, compressed_size, config,
-                                     float_coords, output_pre_allocated);
+      return compress<1, float, DeviceType>(
+          shape, tol, s, mode, original_data, compressed_data, compressed_size,
+          config, float_coords, output_pre_allocated);
     } else if (D == 2) {
-      compress<2, float, DeviceType>(shape, tol, s, mode, original_data,
-                                     compressed_data, compressed_size, config,
-                                     float_coords, output_pre_allocated);
+      return compress<2, float, DeviceType>(
+          shape, tol, s, mode, original_data, compressed_data, compressed_size,
+          config, float_coords, output_pre_allocated);
     } else if (D == 3) {
-      compress<3, float, DeviceType>(shape, tol, s, mode, original_data,
-                                     compressed_data, compressed_size, config,
-                                     float_coords, output_pre_allocated);
+      return compress<3, float, DeviceType>(
+          shape, tol, s, mode, original_data, compressed_data, compressed_size,
+          config, float_coords, output_pre_allocated);
     } else if (D == 4) {
-      compress<4, float, DeviceType>(shape, tol, s, mode, original_data,
-                                     compressed_data, compressed_size, config,
-                                     float_coords, output_pre_allocated);
+      return compress<4, float, DeviceType>(
+          shape, tol, s, mode, original_data, compressed_data, compressed_size,
+          config, float_coords, output_pre_allocated);
     } else if (D == 5) {
-      compress<5, float, DeviceType>(shape, tol, s, mode, original_data,
-                                     compressed_data, compressed_size, config,
-                                     float_coords, output_pre_allocated);
+      return compress<5, float, DeviceType>(
+          shape, tol, s, mode, original_data, compressed_data, compressed_size,
+          config, float_coords, output_pre_allocated);
     } else {
-      log::err("do not support higher than five dimentions");
-      exit(-1);
+      return compress_status_type::NotSupportHigherNumberOfDimensionsFailure;
     }
   } else if (dtype == data_type::Double) {
     std::vector<double *> double_coords;
     for (auto &coord : coords)
       double_coords.push_back((double *)coord);
     if (D == 1) {
-      compress<1, double, DeviceType>(shape, tol, s, mode, original_data,
-                                      compressed_data, compressed_size, config,
-                                      double_coords, output_pre_allocated);
+      return compress<1, double, DeviceType>(
+          shape, tol, s, mode, original_data, compressed_data, compressed_size,
+          config, double_coords, output_pre_allocated);
     } else if (D == 2) {
-      compress<2, double, DeviceType>(shape, tol, s, mode, original_data,
-                                      compressed_data, compressed_size, config,
-                                      double_coords, output_pre_allocated);
+      return compress<2, double, DeviceType>(
+          shape, tol, s, mode, original_data, compressed_data, compressed_size,
+          config, double_coords, output_pre_allocated);
     } else if (D == 3) {
-      compress<3, double, DeviceType>(shape, tol, s, mode, original_data,
-                                      compressed_data, compressed_size, config,
-                                      double_coords, output_pre_allocated);
+      return compress<3, double, DeviceType>(
+          shape, tol, s, mode, original_data, compressed_data, compressed_size,
+          config, double_coords, output_pre_allocated);
     } else if (D == 4) {
-      compress<4, double, DeviceType>(shape, tol, s, mode, original_data,
-                                      compressed_data, compressed_size, config,
-                                      double_coords, output_pre_allocated);
+      return compress<4, double, DeviceType>(
+          shape, tol, s, mode, original_data, compressed_data, compressed_size,
+          config, double_coords, output_pre_allocated);
     } else if (D == 5) {
-      compress<5, double, DeviceType>(shape, tol, s, mode, original_data,
-                                      compressed_data, compressed_size, config,
-                                      double_coords, output_pre_allocated);
+      return compress<5, double, DeviceType>(
+          shape, tol, s, mode, original_data, compressed_data, compressed_size,
+          config, double_coords, output_pre_allocated);
     } else {
-      log::err("do not support higher than five dimentions");
-      exit(-1);
+      return compress_status_type::NotSupportHigherNumberOfDimensionsFailure;
     }
   } else {
-    log::err("do not support types other than double and float!");
-    exit(-1);
+    return compress_status_type::NotSupportDataTypeFailure;
   }
 }
 
 template <typename DeviceType>
-void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
-              double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size,
-              std::vector<const Byte *> coords, bool output_pre_allocated) {
+enum compress_status_type
+compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol, double s,
+         enum error_bound_type mode, const void *original_data,
+         void *&compressed_data, size_t &compressed_size,
+         std::vector<const Byte *> coords, bool output_pre_allocated) {
   Config config;
-  compress<DeviceType>(D, dtype, shape, tol, s, mode, original_data,
-                       compressed_data, compressed_size, coords, config,
-                       output_pre_allocated);
+  return compress<DeviceType>(D, dtype, shape, tol, s, mode, original_data,
+                              compressed_data, compressed_size, coords, config,
+                              output_pre_allocated);
 }
 
 template <typename DeviceType>
-void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, Config config,
-                bool output_pre_allocated) {
+enum compress_status_type
+decompress(const void *compressed_data, size_t compressed_size,
+           void *&decompressed_data, Config config, bool output_pre_allocated) {
   Metadata<DeviceType> meta;
   meta.Deserialize((SERIALIZED_TYPE *)compressed_data);
 
@@ -1453,73 +1491,74 @@ void decompress(const void *compressed_data, size_t compressed_size,
   data_type dtype = meta.dtype;
   if (dtype == data_type::Float) {
     if (shape.size() == 1) {
-      decompress<1, float, DeviceType>(shape, compressed_data, compressed_size,
-                                       decompressed_data, config,
-                                       output_pre_allocated);
+      return decompress<1, float, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 2) {
-      decompress<2, float, DeviceType>(shape, compressed_data, compressed_size,
-                                       decompressed_data, config,
-                                       output_pre_allocated);
+      return decompress<2, float, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 3) {
-      decompress<3, float, DeviceType>(shape, compressed_data, compressed_size,
-                                       decompressed_data, config,
-                                       output_pre_allocated);
+      return decompress<3, float, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 4) {
-      decompress<4, float, DeviceType>(shape, compressed_data, compressed_size,
-                                       decompressed_data, config,
-                                       output_pre_allocated);
+      return decompress<4, float, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 5) {
-      decompress<5, float, DeviceType>(shape, compressed_data, compressed_size,
-                                       decompressed_data, config,
-                                       output_pre_allocated);
+      return decompress<5, float, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else {
-      log::err("do not support higher than five dimentions");
-      exit(-1);
+      return compress_status_type::NotSupportHigherNumberOfDimensionsFailure;
     }
   } else if (dtype == data_type::Double) {
     if (shape.size() == 1) {
-      decompress<1, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, config,
-                                        output_pre_allocated);
+      enum compress_status_type s = decompress<1, double, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
+      return s;
     } else if (shape.size() == 2) {
-      decompress<2, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, config,
-                                        output_pre_allocated);
+      return decompress<2, double, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 3) {
-      decompress<3, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, config,
-                                        output_pre_allocated);
+      return decompress<3, double, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 4) {
-      decompress<4, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, config,
-                                        output_pre_allocated);
+      return decompress<4, double, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 5) {
-      decompress<5, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, config,
-                                        output_pre_allocated);
+      return decompress<5, double, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else {
-      log::err("do not support higher than five dimentions");
-      exit(-1);
+      return compress_status_type::NotSupportHigherNumberOfDimensionsFailure;
     }
   } else {
-    log::err("do not support types other than double and float!");
-    exit(-1);
+    return compress_status_type::NotSupportDataTypeFailure;
   }
 }
 
 template <typename DeviceType>
-void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, bool output_pre_allocated) {
+enum compress_status_type
+decompress(const void *compressed_data, size_t compressed_size,
+           void *&decompressed_data, bool output_pre_allocated) {
   Config config;
-  decompress<DeviceType>(compressed_data, compressed_size, decompressed_data,
-                         config, output_pre_allocated);
+  return decompress<DeviceType>(compressed_data, compressed_size,
+                                decompressed_data, config,
+                                output_pre_allocated);
 }
 
 template <typename DeviceType>
-void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, data_type &dtype,
-                std::vector<mgard_x::SIZE> &shape, Config config,
-                bool output_pre_allocated) {
+enum compress_status_type decompress(const void *compressed_data,
+                                     size_t compressed_size,
+                                     void *&decompressed_data, data_type &dtype,
+                                     std::vector<mgard_x::SIZE> &shape,
+                                     Config config, bool output_pre_allocated) {
   Metadata<DeviceType> meta;
   meta.Deserialize((SERIALIZED_TYPE *)compressed_data);
 
@@ -1530,67 +1569,66 @@ void decompress(const void *compressed_data, size_t compressed_size,
 
   if (dtype == data_type::Float) {
     if (shape.size() == 1) {
-      decompress<1, float, DeviceType>(shape, compressed_data, compressed_size,
-                                       decompressed_data, config,
-                                       output_pre_allocated);
+      return decompress<1, float, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 2) {
-      decompress<2, float, DeviceType>(shape, compressed_data, compressed_size,
-                                       decompressed_data, config,
-                                       output_pre_allocated);
+      return decompress<2, float, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 3) {
-      decompress<3, float, DeviceType>(shape, compressed_data, compressed_size,
-                                       decompressed_data, config,
-                                       output_pre_allocated);
+      return decompress<3, float, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 4) {
-      decompress<4, float, DeviceType>(shape, compressed_data, compressed_size,
-                                       decompressed_data, config,
-                                       output_pre_allocated);
+      return decompress<4, float, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 5) {
-      decompress<5, float, DeviceType>(shape, compressed_data, compressed_size,
-                                       decompressed_data, config,
-                                       output_pre_allocated);
+      return decompress<5, float, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else {
-      log::err("do not support higher than five dimentions");
-      exit(-1);
+      return compress_status_type::NotSupportHigherNumberOfDimensionsFailure;
     }
   } else if (dtype == data_type::Double) {
     if (shape.size() == 1) {
-      decompress<1, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, config,
-                                        output_pre_allocated);
+      return decompress<1, double, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 2) {
-      decompress<2, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, config,
-                                        output_pre_allocated);
+      return decompress<2, double, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 3) {
-      decompress<3, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, config,
-                                        output_pre_allocated);
+      return decompress<3, double, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 4) {
-      decompress<4, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, config,
-                                        output_pre_allocated);
+      return decompress<4, double, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else if (shape.size() == 5) {
-      decompress<5, double, DeviceType>(shape, compressed_data, compressed_size,
-                                        decompressed_data, config,
-                                        output_pre_allocated);
+      return decompress<5, double, DeviceType>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
     } else {
-      log::err("do not support higher than five dimentions");
-      exit(-1);
+      return compress_status_type::NotSupportHigherNumberOfDimensionsFailure;
     }
   } else {
-    log::err("do not support types other than double and float!");
-    exit(-1);
+    return compress_status_type::NotSupportDataTypeFailure;
   }
 }
 
 template <typename DeviceType>
-void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, data_type &dtype,
-                std::vector<mgard_x::SIZE> &shape, bool output_pre_allocated) {
+enum compress_status_type
+decompress(const void *compressed_data, size_t compressed_size,
+           void *&decompressed_data, data_type &dtype,
+           std::vector<mgard_x::SIZE> &shape, bool output_pre_allocated) {
   Config config;
-  decompress<DeviceType>(compressed_data, compressed_size, decompressed_data,
-                         dtype, shape, config, output_pre_allocated);
+  return decompress<DeviceType>(compressed_data, compressed_size,
+                                decompressed_data, dtype, shape, config,
+                                output_pre_allocated);
 }
 
 template <typename DeviceType> void pin_memory(void *ptr, SIZE num_bytes) {
