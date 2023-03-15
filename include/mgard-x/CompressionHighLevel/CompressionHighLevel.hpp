@@ -981,12 +981,6 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
     }
   }
 
-  for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
-    if (all_status[dev_id] == compress_status_type::OutputTooLargeFailure) {
-      return compress_status_type::OutputTooLargeFailure;
-    }
-  }
-
   if (log::level & log::TIME) {
     timer_each.end();
     timer_each.print("Aggregated low-level compression");
@@ -1058,6 +1052,12 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
                              timer_total.get() / 1e9) +
               " GB/s");
     timer_total.clear();
+  }
+
+  for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
+    if (all_status[dev_id] == compress_status_type::OutputTooLargeFailure) {
+      return compress_status_type::OutputTooLargeFailure;
+    }
   }
   return compress_status_type::Success;
 }
@@ -1261,8 +1261,8 @@ decompress(std::vector<SIZE> shape, const void *compressed_data,
           domain_decomposer, subdomain_ids[0], local_tol, (T)m.s, (T)m.norm,
           local_ebtype, config, compressed_subdomain_data,
           compressed_subdomain_size, dev_id);
-      if (status == compress_status_type::OutputTooLargeFailure) {
-        all_status[dev_id] = compress_status_type::OutputTooLargeFailure;
+      if (status == compress_status_type::Failure) {
+        all_status[dev_id] = compress_status_type::Failure;
       }
     } else {
       // Decompress a series of subdomains according to the subdomain id list
@@ -1271,8 +1271,8 @@ decompress(std::vector<SIZE> shape, const void *compressed_data,
             domain_decomposer, subdomain_ids, local_tol, (T)m.s, (T)m.norm,
             local_ebtype, config, compressed_subdomain_data,
             compressed_subdomain_size, dev_id);
-        if (status == compress_status_type::OutputTooLargeFailure) {
-          all_status[dev_id] = compress_status_type::OutputTooLargeFailure;
+        if (status == compress_status_type::Failure) {
+          all_status[dev_id] = compress_status_type::Failure;
         }
       } else {
         enum compress_status_type status =
@@ -1280,16 +1280,10 @@ decompress(std::vector<SIZE> shape, const void *compressed_data,
                 domain_decomposer, subdomain_ids, local_tol, (T)m.s, (T)m.norm,
                 local_ebtype, config, compressed_subdomain_data,
                 compressed_subdomain_size, dev_id);
-        if (status == compress_status_type::OutputTooLargeFailure) {
-          all_status[dev_id] = compress_status_type::OutputTooLargeFailure;
+        if (status == compress_status_type::Failure) {
+          all_status[dev_id] = compress_status_type::Failure;
         }
       }
-    }
-  }
-
-  for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
-    if (all_status[dev_id] == compress_status_type::OutputTooLargeFailure) {
-      return compress_status_type::OutputTooLargeFailure;
     }
   }
 
@@ -1323,6 +1317,12 @@ decompress(std::vector<SIZE> shape, const void *compressed_data,
                              timer_total.get() / 1e9) +
               " GB/s");
     timer_total.clear();
+  }
+
+  for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
+    if (all_status[dev_id] == compress_status_type::Failure) {
+      return compress_status_type::Failure;
+    }
   }
   return compress_status_type::Success;
 }

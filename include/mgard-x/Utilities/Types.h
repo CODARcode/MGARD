@@ -55,6 +55,7 @@ enum class bitplane_encoding_type : uint8_t { GroupedBitplaneEncoding };
 
 enum class compress_status_type : uint8_t {
   Success,
+  Failure,
   OutputTooLargeFailure,
   NotSupportHigherNumberOfDimensionsFailure,
   NotSupportDataTypeFailure,
