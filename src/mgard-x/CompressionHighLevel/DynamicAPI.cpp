@@ -111,10 +111,11 @@ void adjust_shape(std::vector<SIZE> &shape) {
   // }
 }
 
-void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
-              double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size, Config config,
-              bool output_pre_allocated) {
+enum compress_status_type
+compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol, double s,
+         enum error_bound_type mode, const void *original_data,
+         void *&compressed_data, size_t &compressed_size, Config config,
+         bool output_pre_allocated) {
 
   enum device_type dev_type = config.dev_type;
   if (dev_type == device_type::AUTO) {
@@ -126,57 +127,54 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
 
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
-    compress<SERIAL>(D, dtype, shape, tol, s, mode, original_data,
-                     compressed_data, compressed_size, config,
-                     output_pre_allocated);
+    return compress<SERIAL>(D, dtype, shape, tol, s, mode, original_data,
+                            compressed_data, compressed_size, config,
+                            output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SERIAL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
-    compress<OPENMP>(D, dtype, shape, tol, s, mode, original_data,
-                     compressed_data, compressed_size, config,
-                     output_pre_allocated);
+    return compress<OPENMP>(D, dtype, shape, tol, s, mode, original_data,
+                            compressed_data, compressed_size, config,
+                            output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with OPENMP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
-                   compressed_data, compressed_size, config,
-                   output_pre_allocated);
+    return compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
+                          compressed_data, compressed_size, config,
+                          output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with CUDA backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
-                  compressed_size, config, output_pre_allocated);
+    return compress<HIP>(D, dtype, shape, tol, s, mode, original_data,
+                         compressed_data, compressed_size, config,
+                         output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with HIP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    compress<SYCL>(D, dtype, shape, tol, s, mode, original_data,
-                   compressed_data, compressed_size, config,
-                   output_pre_allocated);
+    return compress<SYCL>(D, dtype, shape, tol, s, mode, original_data,
+                          compressed_data, compressed_size, config,
+                          output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SYCL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else {
-    log::err("Unsupported backend.");
+    return compress_status_type::BackendNotAvailableFailure;
   }
 }
 
-void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
-              double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size,
-              bool output_pre_allocated) {
+enum compress_status_type
+compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol, double s,
+         enum error_bound_type mode, const void *original_data,
+         void *&compressed_data, size_t &compressed_size,
+         bool output_pre_allocated) {
 
   enum device_type dev_type = auto_detect_device();
 
@@ -185,51 +183,47 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
     compress<SERIAL>(D, dtype, shape, tol, s, mode, original_data,
                      compressed_data, compressed_size, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SERIAL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
     compress<OPENMP>(D, dtype, shape, tol, s, mode, original_data,
                      compressed_data, compressed_size, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with OPENMP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
     compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
                    compressed_data, compressed_size, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with CUDA backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
     compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
                   compressed_size, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with HIP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
     compress<SYCL>(D, dtype, shape, tol, s, mode, original_data,
                    compressed_data, compressed_size, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SYCL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else {
-    log::err("Unsupported backend.");
+    return compress_status_type::BackendNotAvailableFailure;
   }
 }
 
-void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
-              double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size,
-              std::vector<const Byte *> coords, Config config,
-              bool output_pre_allocated) {
+enum compress_status_type
+compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol, double s,
+         enum error_bound_type mode, const void *original_data,
+         void *&compressed_data, size_t &compressed_size,
+         std::vector<const Byte *> coords, Config config,
+         bool output_pre_allocated) {
 
   enum device_type dev_type = config.dev_type;
   if (dev_type == device_type::AUTO) {
@@ -242,8 +236,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                      compressed_data, compressed_size, coords, config,
                      output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SERIAL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
@@ -251,8 +244,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                      compressed_data, compressed_size, coords, config,
                      output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with OPENMP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
@@ -260,16 +252,14 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                    compressed_data, compressed_size, coords, config,
                    output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with CUDA backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
     compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
                   compressed_size, coords, config, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with HIP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
@@ -277,18 +267,18 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                    compressed_data, compressed_size, coords, config,
                    output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SYCL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else {
-    log::err("Unsupported backend.");
+    return compress_status_type::BackendNotAvailableFailure;
   }
 }
 
-void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
-              double s, enum error_bound_type mode, const void *original_data,
-              void *&compressed_data, size_t &compressed_size,
-              std::vector<const Byte *> coords, bool output_pre_allocated) {
+enum compress_status_type
+compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol, double s,
+         enum error_bound_type mode, const void *original_data,
+         void *&compressed_data, size_t &compressed_size,
+         std::vector<const Byte *> coords, bool output_pre_allocated) {
 
   enum device_type dev_type = auto_detect_device();
 
@@ -298,8 +288,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                      compressed_data, compressed_size, coords,
                      output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SERIAL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
@@ -307,8 +296,7 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                      compressed_data, compressed_size, coords,
                      output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with OPENMP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
@@ -316,16 +304,14 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                    compressed_data, compressed_size, coords,
                    output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with CUDA backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
     compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
                   compressed_size, coords, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with HIP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
@@ -333,17 +319,17 @@ void compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol,
                    compressed_data, compressed_size, coords,
                    output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SYCL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else {
-    log::err("Unsupported backend.");
+    return compress_status_type::BackendNotAvailableFailure;
   }
 }
 
-void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, Config config,
-                bool output_pre_allocated) {
+enum compress_status_type decompress(const void *compressed_data,
+                                     size_t compressed_size,
+                                     void *&decompressed_data, Config config,
+                                     bool output_pre_allocated) {
 
   enum device_type dev_type = config.dev_type;
   if (dev_type == device_type::AUTO) {
@@ -352,102 +338,95 @@ void decompress(const void *compressed_data, size_t compressed_size,
 
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
-    decompress<SERIAL>(compressed_data, compressed_size, decompressed_data,
-                       config, output_pre_allocated);
+    return decompress<SERIAL>(compressed_data, compressed_size,
+                              decompressed_data, config, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SERIAL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
-    decompress<OPENMP>(compressed_data, compressed_size, decompressed_data,
-                       config, output_pre_allocated);
+    return decompress<OPENMP>(compressed_data, compressed_size,
+                              decompressed_data, config, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with OPENMP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    decompress<CUDA>(compressed_data, compressed_size, decompressed_data,
-                     config, output_pre_allocated);
+    return decompress<CUDA>(compressed_data, compressed_size, decompressed_data,
+                            config, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with CUDA backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    decompress<HIP>(compressed_data, compressed_size, decompressed_data, config,
-                    output_pre_allocated);
+    return decompress<HIP>(compressed_data, compressed_size, decompressed_data,
+                           config, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with HIP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    decompress<SYCL>(compressed_data, compressed_size, decompressed_data,
-                     config, output_pre_allocated);
+    return decompress<SYCL>(compressed_data, compressed_size, decompressed_data,
+                            config, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SYCL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else {
-    log::err("Unsupported backend.");
+    return compress_status_type::BackendNotAvailableFailure;
   }
 }
 
-void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, bool output_pre_allocated) {
+enum compress_status_type decompress(const void *compressed_data,
+                                     size_t compressed_size,
+                                     void *&decompressed_data,
+                                     bool output_pre_allocated) {
 
   enum device_type dev_type = auto_detect_device();
 
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
-    decompress<SERIAL>(compressed_data, compressed_size, decompressed_data,
-                       output_pre_allocated);
+    return decompress<SERIAL>(compressed_data, compressed_size,
+                              decompressed_data, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SERIAL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
-    decompress<OPENMP>(compressed_data, compressed_size, decompressed_data,
-                       output_pre_allocated);
+    return decompress<OPENMP>(compressed_data, compressed_size,
+                              decompressed_data, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with OPENMP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    decompress<CUDA>(compressed_data, compressed_size, decompressed_data,
-                     output_pre_allocated);
+    return decompress<CUDA>(compressed_data, compressed_size, decompressed_data,
+                            output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with CUDA backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    decompress<HIP>(compressed_data, compressed_size, decompressed_data,
-                    output_pre_allocated);
+    return decompress<HIP>(compressed_data, compressed_size, decompressed_data,
+                           output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with HIP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    decompress<SYCL>(compressed_data, compressed_size, decompressed_data,
-                     output_pre_allocated);
+    return decompress<SYCL>(compressed_data, compressed_size, decompressed_data,
+                            output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SYCL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else {
-    log::err("Unsupported backend.");
+    return compress_status_type::BackendNotAvailableFailure;
   }
 }
 
-void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, std::vector<mgard_x::SIZE> &shape,
-                data_type &dtype, Config config, bool output_pre_allocated) {
+enum compress_status_type
+decompress(const void *compressed_data, size_t compressed_size,
+           void *&decompressed_data, std::vector<mgard_x::SIZE> &shape,
+           data_type &dtype, Config config, bool output_pre_allocated) {
 
   enum device_type dev_type = config.dev_type;
   if (dev_type == device_type::AUTO) {
@@ -456,98 +435,93 @@ void decompress(const void *compressed_data, size_t compressed_size,
 
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
-    decompress<SERIAL>(compressed_data, compressed_size, decompressed_data,
-                       dtype, shape, config, output_pre_allocated);
+    return decompress<SERIAL>(compressed_data, compressed_size,
+                              decompressed_data, dtype, shape, config,
+                              output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SERIAL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
-    decompress<OPENMP>(compressed_data, compressed_size, decompressed_data,
-                       dtype, shape, config, output_pre_allocated);
+    return decompress<OPENMP>(compressed_data, compressed_size,
+                              decompressed_data, dtype, shape, config,
+                              output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with OPENMP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    decompress<CUDA>(compressed_data, compressed_size, decompressed_data, dtype,
-                     shape, config, output_pre_allocated);
+    return decompress<CUDA>(compressed_data, compressed_size, decompressed_data,
+                            dtype, shape, config, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with CUDA backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    decompress<HIP>(compressed_data, compressed_size, decompressed_data, dtype,
-                    shape, config, output_pre_allocated);
+    return decompress<HIP>(compressed_data, compressed_size, decompressed_data,
+                           dtype, shape, config, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with HIP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    decompress<SYCL>(compressed_data, compressed_size, decompressed_data, dtype,
-                     shape, config, output_pre_allocated);
+    return decompress<SYCL>(compressed_data, compressed_size, decompressed_data,
+                            dtype, shape, config, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SYCL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else {
-    log::err("Unsupported backend.");
+    return compress_status_type::BackendNotAvailableFailure;
   }
 }
 
-void decompress(const void *compressed_data, size_t compressed_size,
-                void *&decompressed_data, std::vector<mgard_x::SIZE> &shape,
-                data_type &dtype, bool output_pre_allocated) {
+enum compress_status_type
+decompress(const void *compressed_data, size_t compressed_size,
+           void *&decompressed_data, std::vector<mgard_x::SIZE> &shape,
+           data_type &dtype, bool output_pre_allocated) {
 
   enum device_type dev_type = auto_detect_device();
 
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
-    decompress<SERIAL>(compressed_data, compressed_size, decompressed_data,
-                       dtype, shape, output_pre_allocated);
+    return decompress<SERIAL>(compressed_data, compressed_size,
+                              decompressed_data, dtype, shape,
+                              output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SERIAL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   }
   if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
-    decompress<OPENMP>(compressed_data, compressed_size, decompressed_data,
-                       dtype, shape, output_pre_allocated);
+    return decompress<OPENMP>(compressed_data, compressed_size,
+                              decompressed_data, dtype, shape,
+                              output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with OPENMP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    decompress<CUDA>(compressed_data, compressed_size, decompressed_data, dtype,
-                     shape, output_pre_allocated);
+    return decompress<CUDA>(compressed_data, compressed_size, decompressed_data,
+                            dtype, shape, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with CUDA backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    decompress<HIP>(compressed_data, compressed_size, decompressed_data, dtype,
-                    shape, output_pre_allocated);
+    return decompress<HIP>(compressed_data, compressed_size, decompressed_data,
+                           dtype, shape, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with HIP backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    decompress<SYCL>(compressed_data, compressed_size, decompressed_data, dtype,
-                     shape, output_pre_allocated);
+    return decompress<SYCL>(compressed_data, compressed_size, decompressed_data,
+                            dtype, shape, output_pre_allocated);
 #else
-    log::err("MGARD-X was not built with SYCL backend.");
-    exit(-1);
+    return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else {
-    log::err("Unsupported backend.");
+    return compress_status_type::BackendNotAvailableFailure;
   }
 }
 
