@@ -47,6 +47,22 @@ void quantize_(const TensorMeshHierarchy<N, Real> &hierarchy,
   std::copy(quantized_.begin(), quantized_.end(), quantized);
 }
 
+// QG roi-adaptive
+template <std::size_t N, typename Real, typename Int>
+void quantize_roi_(const TensorMeshHierarchy<N, Real> &hierarchy,
+                   const pb::Header &header, const Real s, const Real tolerance,
+                   const size_t scalar, const Real *cmap,
+                   Real const *const coefficients, Int *const quantized) {
+  check_alignment<Int>(quantized);
+  check_endianness<Int>(header);
+
+  using QntzrAdp = TensorMultilevelCoefficientAdpQuantizer<N, Real, Int>;
+  const QntzrAdp quantizer(hierarchy, s, tolerance, scalar);
+  using It = typename QntzrAdp::iterator;
+  const RangeSlice<It> quantized_ = quantizer(coefficients, cmap);
+  std::copy(quantized_.begin(), quantized_.end(), quantized);
+}
+
 // This function has the same signature as `dequantize`, so it's named
 // differently.
 
@@ -91,6 +107,31 @@ void quantize(const TensorMeshHierarchy<N, Real> &hierarchy,
   case pb::Quantization::INT64_T:
     return quantize_(hierarchy, header, s, tolerance, coefficients,
                      static_cast<std::int64_t *>(quantized));
+  default:
+    throw std::runtime_error("unrecognized quantization type");
+  }
+}
+
+// QG: roi-adaptive
+template <std::size_t N, typename Real>
+void quantize_roi(const TensorMeshHierarchy<N, Real> &hierarchy,
+                  const pb::Header &header, const Real s, const Real tolerance,
+                  const size_t scalar, const Real *cmap,
+                  Real const *const coefficients, void *const quantized) {
+  const QuantizationParameters quantization = read_quantization(header);
+  switch (quantization.type) {
+  case pb::Quantization::INT8_T:
+    return quantize_roi_(hierarchy, header, s, tolerance, scalar, cmap,
+                         coefficients, static_cast<std::int8_t *>(quantized));
+  case pb::Quantization::INT16_T:
+    return quantize_roi_(hierarchy, header, s, tolerance, scalar, cmap,
+                         coefficients, static_cast<std::int16_t *>(quantized));
+  case pb::Quantization::INT32_T:
+    return quantize_roi_(hierarchy, header, s, tolerance, scalar, cmap,
+                         coefficients, static_cast<std::int32_t *>(quantized));
+  case pb::Quantization::INT64_T:
+    return quantize_roi_(hierarchy, header, s, tolerance, scalar, cmap,
+                         coefficients, static_cast<std::int64_t *>(quantized));
   default:
     throw std::runtime_error("unrecognized quantization type");
   }

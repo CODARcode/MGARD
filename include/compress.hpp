@@ -18,6 +18,7 @@
   "compiling with NVCC."
 #endif
 
+#include "adaptive_roi.hpp"
 #include "compress_x.hpp"
 
 //! Implementation of the MGARD compression and decompression algorithms.
@@ -33,6 +34,26 @@ template <std::size_t N, typename Real>
 CompressedDataset<N, Real>
 compress(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
          const Real s, const Real tolerance);
+
+//! Compress a function on a tensor product grid with region-adaptive
+//!
+//!\param hierarchy Mesh hierarchy to use in compressing the function.
+//!\param v Nodal values of the function.
+//!\param s Smoothness parameter to use in compressing the function.
+//!\param tolerance Absolute error tolerance to use in compressing the function.
+//!\param thresh thresh
+//!\param init_bw init_bw
+//!\param bw_ratio bw_ratio
+//!\param l_th l_th
+//!\param filename filename
+//!\param wr wr
+template <std::size_t N, typename Real>
+CompressedDataset<N, Real>
+compress_roi(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
+             const Real s, const Real tolerance, const std::vector<Real> thresh,
+             const std::vector<size_t> init_bw,
+             const std::vector<size_t> bw_ratio, const size_t l_th,
+             const char *filename, bool wr);
 
 //! Decompress a function on a tensor product grid.
 //!
