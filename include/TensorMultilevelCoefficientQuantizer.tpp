@@ -5,6 +5,7 @@
 namespace mgard {
 
 #define Qntzr TensorMultilevelCoefficientQuantizer
+#define QntzrAdp TensorMultilevelCoefficientAdpQuantizer
 
 namespace {
 
@@ -75,11 +76,49 @@ Int Qntzr<N, Real, Int>::operator()(const TensorNode<N> node,
   }
 }
 
+// QG: roi-adaptive
+template <std::size_t N, typename Real, typename Int>
+QntzrAdp<N, Real, Int>::QntzrAdp(const TensorMeshHierarchy<N, Real> &hierarchy,
+                                 const Real s, const Real tolerance,
+                                 const std::size_t scalar)
+    : hierarchy(hierarchy), s(s), tolerance(tolerance),
+      nodes(hierarchy, hierarchy.L),
+      supremum_quantizer(supremum_quantum(hierarchy, tolerance)),
+      scalar(scalar) {}
+
+// QG: roi-adaptive
+template <std::size_t N, typename Real, typename Int>
+Int QntzrAdp<N, Real, Int>::operator()(const TensorNode<N> node,
+                                       const Real coefficient,
+                                       const Real cmap) const {
+  // TODO: Look into moving this test outside of the operator.
+  // TODO: L-inf QoI-adaptive pending development
+  if (s == std::numeric_limits<Real>::infinity()) {
+    return supremum_quantizer(coefficient);
+  } else {
+    Real tol = (cmap == 255) ? tolerance * scalar : tolerance;
+    const LinearQuantizer<Real, Int> quantizer(
+        s_quantum(hierarchy, s, tol, node));
+    return ((cmap == 255) ? scalar * quantizer(coefficient)
+                          : quantizer(coefficient));
+  }
+}
+
 template <std::size_t N, typename Real, typename Int>
 RangeSlice<typename Qntzr<N, Real, Int>::iterator>
 Qntzr<N, Real, Int>::operator()(Real const *const u) const {
   return {.begin_ = iterator(*this, nodes.begin(), u),
           .end_ = iterator(*this, nodes.end(), u + hierarchy.ndof())};
+}
+
+// QG: roi-adaptive
+template <std::size_t N, typename Real, typename Int>
+RangeSlice<typename QntzrAdp<N, Real, Int>::iterator>
+QntzrAdp<N, Real, Int>::operator()(Real const *const u,
+                                   Real const *const u_map) const {
+  return {.begin_ = iterator(*this, nodes.begin(), u, u_map),
+          .end_ = iterator(*this, nodes.end(), u + hierarchy.ndof(),
+                           u_map + hierarchy.ndof())};
 }
 
 template <std::size_t N, typename Real, typename Int>
@@ -92,12 +131,34 @@ bool operator!=(const Qntzr<N, Real, Int> &a, const Qntzr<N, Real, Int> &b) {
   return !operator==(a, b);
 }
 
+// QG: roi-adaptive
+template <std::size_t N, typename Real, typename Int>
+bool operator==(const QntzrAdp<N, Real, Int> &a,
+                const QntzrAdp<N, Real, Int> &b) {
+  return a.hierarchy == b.hierarchy && a.s == b.s && a.tolerance == b.tolerance;
+}
+// QG: roi-adaptive
+template <std::size_t N, typename Real, typename Int>
+bool operator!=(const QntzrAdp<N, Real, Int> &a,
+                const QntzrAdp<N, Real, Int> &b) {
+  return !operator==(a, b);
+}
+
 template <std::size_t N, typename Real, typename Int>
 Qntzr<N, Real, Int>::iterator::iterator(
     const Qntzr &quantizer,
     const typename ShuffledTensorNodeRange<N, Real>::iterator &inner_node,
     Real const *const inner_coeff)
     : quantizer(quantizer), inner_node(inner_node), inner_coeff(inner_coeff) {}
+
+// QG: roi-adaptive
+template <std::size_t N, typename Real, typename Int>
+QntzrAdp<N, Real, Int>::iterator::iterator(
+    const QntzrAdp &quantizer,
+    const typename ShuffledTensorNodeRange<N, Real>::iterator &inner_node,
+    Real const *const inner_coeff, Real const *const coeff_map)
+    : quantizer(quantizer), inner_node(inner_node), inner_coeff(inner_coeff),
+      coeff_map(coeff_map) {}
 
 template <std::size_t N, typename Real, typename Int>
 bool Qntzr<N, Real, Int>::iterator::operator==(
@@ -106,9 +167,25 @@ bool Qntzr<N, Real, Int>::iterator::operator==(
          inner_node == other.inner_node && inner_coeff == other.inner_coeff;
 }
 
+// QG: roi-adaptive
+template <std::size_t N, typename Real, typename Int>
+bool QntzrAdp<N, Real, Int>::iterator::operator==(
+    const typename QntzrAdp<N, Real, Int>::iterator &other) const {
+  return (&quantizer == &other.quantizer || quantizer == other.quantizer) &&
+         inner_node == other.inner_node && inner_coeff == other.inner_coeff &&
+         coeff_map == other.coeff_map;
+}
+
 template <std::size_t N, typename Real, typename Int>
 bool Qntzr<N, Real, Int>::iterator::operator!=(
     const typename Qntzr<N, Real, Int>::iterator &other) const {
+  return !operator==(other);
+}
+
+// QG: roi-adaptive
+template <std::size_t N, typename Real, typename Int>
+bool QntzrAdp<N, Real, Int>::iterator::operator!=(
+    const typename QntzrAdp<N, Real, Int>::iterator &other) const {
   return !operator==(other);
 }
 
@@ -120,6 +197,16 @@ Qntzr<N, Real, Int>::iterator::operator++() {
   return *this;
 }
 
+// QG: roi-adaptive
+template <std::size_t N, typename Real, typename Int>
+typename QntzrAdp<N, Real, Int>::iterator &
+QntzrAdp<N, Real, Int>::iterator::operator++() {
+  ++inner_node;
+  ++inner_coeff;
+  ++coeff_map;
+  return *this;
+}
+
 template <std::size_t N, typename Real, typename Int>
 typename Qntzr<N, Real, Int>::iterator
 Qntzr<N, Real, Int>::iterator::operator++(int) {
@@ -128,9 +215,24 @@ Qntzr<N, Real, Int>::iterator::operator++(int) {
   return tmp;
 }
 
+// QG: roi-adaptive
+template <std::size_t N, typename Real, typename Int>
+typename QntzrAdp<N, Real, Int>::iterator
+QntzrAdp<N, Real, Int>::iterator::operator++(int) {
+  const iterator tmp = *this;
+  operator++();
+  return tmp;
+}
+
 template <std::size_t N, typename Real, typename Int>
 Int Qntzr<N, Real, Int>::iterator::operator*() const {
   return quantizer(*inner_node, *inner_coeff);
+}
+
+// QG: roi-adaptive
+template <std::size_t N, typename Real, typename Int>
+Int QntzrAdp<N, Real, Int>::iterator::operator*() const {
+  return quantizer(*inner_node, *inner_coeff, *coeff_map);
 }
 
 #undef Qntzer
