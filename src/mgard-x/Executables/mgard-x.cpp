@@ -39,15 +39,20 @@ void print_usage_message(std::string error) {
 \t\t -m <abs|rel>: error bound mode (abs: abolute; rel: relative)\n\
 \t\t -e <error>: error bound\n\
 \t\t -s <smoothness>: smoothness parameter\n\
+\t\t -r <0|1>: internal data layout (0: Higher throughput (default) | 1: Higher compression ratio)\n\
+\t\t -b <0|1>: domain decomposition type (0: 1D max dimension  (default)| 1: N-D block)\n\
+\t\t -f <bytes>: maximum memory footprint in bytes (if not specify, no limit)\n\
 \t\t -l choose lossless compressor (0:Huffman 1:Huffman+LZ4 2:Huffman+Zstd)\n\
-\t\t -d <auto|serial|openmp|cuda|hip|sycl>: device type\n\
-\t\t -v enable verbose (show timing and statistics)\n\
 \n\
 \t -x: decompress data\n\
 \t\t -c <path to compressed file>\n\
 \t\t -o <path to decompressed file>\n\
-\t\t -d <auto|serial|cuda|hip>: device type\n\
-\t\t -v enable verbose (show timing and statistics)\n");
+\t -d <auto|serial|openmp|cuda|hip|sycl>: device type\n\
+\t -v <level>  verbose level (0: error only (default) | 1: error + infomation | 2: error + timing | 3: all)\n\
+\t -g <G> number of devices (GPUs) to use (default: 1)\n\
+\t -h <0|1>: enable/disable prefecth pipeline optimization (0: disable | 1: enable (default))\n\
+");
+
   exit(0);
 }
 
