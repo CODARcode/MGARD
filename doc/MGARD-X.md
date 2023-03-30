@@ -273,9 +273,11 @@ For achieving the best performance:
     + **Tune for a specific backend:** run ```mgard-x-autotuner -d <serial|openmp|cuda|hip|sycl>```
     + **Tune for a specific shape of data on a specific backend :** run ```mgard-x-autotuner -d <auto|serial|openmp|cuda|hip|sycl> -n <ndim> [dim1] [dim2] ... [dimN]```.
     + ***Note:*** MGARD-X needs to be recompiled after auto tuning to make it effective.
+* **Use large data and turn on prefetch**: Using larger input data will help MGARD-X achieve more efficient compression and decompression pipeline. The high-level API allows users to provide data larger than the available memory size on the GPU. In this case, MGARD-X can achieve much better performance with pipeline optimization. Please be sure to set ```Config.prefetch = true```.
+* **Use decompsition operation**: MGARD-X can be configured to reornagize the input data to imporve the performance of its multilevel decompsition process. To enable such optimization, set ```Config.prefetch = adjust_shape```.
 
 ## Performance at scale
-XGC fusion simulation data
+The figures below show the compression and decompression throughput of MGARD-X on NVIDIA V100 and AMD MI-250X GPU. XGC fusion simulation data is used for compression and decompression.
 
 [<img src="images/summit_throughput_at_scale.png" width="300" />](Summit)
 [<img src="images/crusher_throughput_at_scale.png" width="300" />](Crusher)
