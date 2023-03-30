@@ -230,23 +230,23 @@ An object ```mgard_x::Compressor``` needs to be created and initialized. Same as
    ***Note:*** ```mgard_x::Array``` will automatically release its internal CPU/GPU array when it goes out of scope.
  
 * **Step 4: Invoke compression/decompression API**:
-    + For ***compression***: ```void mgard_x::Compressor::compress(mgard_x::Array<NumDims, DataType, DeviceType> in_array, mgard_x::error_bound_type type, DataType tol, DataType s, DataType &norm, mgard_x::Array<1, unsigned char, DeviceType> &compressed_data, int queue_idx)```
+    + For ***compression***: ```void mgard_x::Compressor::compress(mgard_x::Array<NumDims, DataType, DeviceType> in_array, mgard_x::error_bound_type type, DataType tol, DataType s, DataType &norm, mgard_x::Array<1, unsigned char, DeviceType> &compressed_data, int queue_id)```
      	+ ```[In] in_array ```: Input data to be compressed (its value will be altered during compression).
      	+ ```[In] type ```: Error bound type. ```mgard_x::error_bound_type::REL``` for relative error bound or ```mgard_x::error_bound_type::ABS``` for absolute error bound.
         + ```[In] tol```: Error bound.
         + ```[In] s```: Smoothness parameter.
         + ```[Out] norm```: Norm of the original data (vaild only in relative error bound mode).
         + ```[Out] compressed_data```: Compressed data.
-        + ```[In] queue_idx```: device task queue id (e.g. CUDA Stream).
+        + ```[In] queue_id```: device task queue id (e.g. CUDA Stream).
   	
-    + For ***decompression***: ```void mgard_x::Compressor::decompress(mgard_x::Array<1, unsigned char, DeviceType> compressed_data, enum mgard_x::error_bound_type type, DataType tol, DataType s, DataType norm, mgard_x::Array<NumDims, DataType, DeviceType> &decompressed_data, int queue_idx)```
+    + For ***decompression***: ```void mgard_x::Compressor::decompress(mgard_x::Array<1, unsigned char, DeviceType> compressed_data, enum mgard_x::error_bound_type type, DataType tol, DataType s, DataType norm, mgard_x::Array<NumDims, DataType, DeviceType> &decompressed_data, int queue_id)```
         + ```[In] compressed_data ```: Compressed data.
         + ```[In] type ```: Error bound type. ```mgard_x::error_bound_type::REL``` for relative error bound or ```mgard_x::error_bound_type::ABS``` for absolute error bound.
         + ```[In] tol```: Error bound.
         + ```[In] s```: Smoothness parameter.
         + ```[In] norm```: Norm of the original data.
         + ```[Out] decompressed_data```: Decompressed data.
-        + ```[In] queue_idx```: device task queue id (e.g. CUDA Stream).
+        + ```[In] queue_id```: device task queue id (e.g. CUDA Stream).
     + ***Template parameters***
         - ```NumDims```: Number of dimentions of the original data (1 - 5).
         - ```DataType```: Data type of the original data:
@@ -259,7 +259,7 @@ An object ```mgard_x::Compressor``` needs to be created and initialized. Same as
             + ```mgard_x::HIP```
             + ```mgard_x::SYCL```
 * **Step 5: Synchornization**
-By default compression and decompression are done asynchronously relative to the host. To ensure all tasks are finished, please call ```mgard_x::DeviceRuntime<DeviceType>::SyncQueue(int queue_idx)``` to synchornize before accessing compressed or decompressed data.
+By default compression and decompression are done asynchronously relative to the host. To ensure all tasks are finished, please call ```mgard_x::DeviceRuntime<DeviceType>::SyncQueue(int queue_id)``` to synchornize before accessing compressed or decompressed data.
 	
 ## Performance optimization
 For achieving the best performance:
@@ -276,11 +276,16 @@ For achieving the best performance:
 * **Use large data and turn on prefetch**: Using larger input data will help MGARD-X achieve more efficient compression and decompression pipeline. The high-level API allows users to provide data larger than the available memory size on the GPU. In this case, MGARD-X can achieve much better performance with pipeline optimization. Please be sure to set ```Config.prefetch = true```.
 * **Use decompsition operation**: MGARD-X can be configured to reornagize the input data to imporve the performance of its multilevel decompsition process. To enable such optimization, set ```Config.prefetch = adjust_shape```.
 
-## Performance at scale
-The figures below show the compression and decompression throughput of MGARD-X on NVIDIA V100 and AMD MI-250X GPU. XGC fusion simulation data is used for compression and decompression.
+## Performance
+The figures below show the compression and decompression throughput of MGARD-X on single CPU (multi-core) and GPU. XGC fusion simulation data is used for compression and decompression.
 
-[<img src="images/summit_throughput_at_scale.png" width="300" />](Summit)
-[<img src="images/crusher_throughput_at_scale.png" width="300" />](Crusher)
+[<img src="images/MGARD-X-CPU.png" width="400" />](CPU)
+[<img src="images/MGARD-X-GPU.png" width="400" />](CPU)
+
+The figures below show the compression and decompression throughput of MGARD-X on multiple NVIDIA V100 and AMD MI-250X GPUs. XGC fusion simulation data is used for compression and decompression.
+
+[<img src="images/summit_throughput_at_scale.png" width="400" />](Summit)
+[<img src="images/crusher_throughput_at_scale.png" width="400" />](Crusher)
 ## Example Code
 
 * High-level APIs example code can be found in [here][high-level-example].
