@@ -68,6 +68,8 @@ $ man mgard
 
 [tclap]: http://tclap.sourceforge.net/
 
+[mgard format]: doc/MGARD-format.md
+
 ## Accelerated and portable compression
 MGARD-X is designed for portable compression on NVIDIA GPUs, AMD GPUs, and CPUs. See detailed user guide in [here][mgard_x instructions].
 
@@ -83,6 +85,8 @@ MDR and MDR-X are designed for enabling fine-grain data refactoring and progress
 
 [mdr_x instructions]: doc/MDR-X.md
 
+## Self-describing format for compressed and refactored data
+Data produced by MGARD, MGARD-X, and MDR-X are designed to follow a unified self-describing format. See format details in [here][mgard format].
 
 ## References
 
