@@ -3,7 +3,7 @@
 
 MGARD-X is a portable implementation of the MGARD lossy compressor supporting various types of GPUs and CPUs.
 
-![MGARD-x](./images/mgard-x-arch.pdf)
+[<img src="./images/mgard-x-arch.png" width="600" />](MGARD-X)
 
 ## Supporting features
 * **Data type:** Double and single precision floating-point data
