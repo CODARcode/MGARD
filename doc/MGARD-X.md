@@ -2,6 +2,9 @@
 # MGARD-X
 
 MGARD-X is a portable implementation of the MGARD lossy compressor supporting various types of GPUs and CPUs.
+
+![MGARD-x](./images/mgard-x-arch.pdf)
+
 ## Supporting features
 * **Data type:** Double and single precision floating-point data
 * **Dimensions:** 1D-5D
@@ -271,6 +274,11 @@ For achieving the best performance:
     + **Tune for a specific shape of data on a specific backend :** run ```mgard-x-autotuner -d <auto|serial|openmp|cuda|hip|sycl> -n <ndim> [dim1] [dim2] ... [dimN]```.
     + ***Note:*** MGARD-X needs to be recompiled after auto tuning to make it effective.
 
+## Performance at scale
+XGC fusion simulation data
+
+[<img src="images/summit_throughput_at_scale.png" width="300" />](Summit)
+[<img src="images/crusher_throughput_at_scale.png" width="300" />](Crusher)
 ## Example Code
 
 * High-level APIs example code can be found in [here][high-level-example].
@@ -278,3 +286,4 @@ For achieving the best performance:
 
 [high-level-example]:../examples/mgard-x/HighLevelAPIs
 [low-level-example]:../examples/mgard-x/LowLevelAPIs
+
