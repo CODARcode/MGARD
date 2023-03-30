@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(Example CUDA)
+project(Example CXX CUDA)
 find_package(mgard)
 
 add_executable(Example Example.cu)
