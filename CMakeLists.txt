@@ -312,8 +312,6 @@ set_target_properties(mgard-library PROPERTIES OUTPUT_NAME mgard)
 
 target_link_libraries(mgard-library PUBLIC PkgConfig::protobuf)
 
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -Wfatal-errors -Wall -Wextra")
-
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   set(SANITIZER_DEFAULT ON)
 else()
@@ -328,16 +326,6 @@ endif()
 if(MGARD_ENABLE_ASAN)
   target_compile_options(mgard-library PUBLIC "-fsanitize=address")
   target_link_libraries(mgard-library PUBLIC "-fsanitize=address")
-endif()
-
-if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-  execute_process(COMMAND "arch" OUTPUT_VARIABLE ARCH)
-  string(REGEX REPLACE "\n$" "" ARCH "${ARCH}")
-  if("${ARCH}" STREQUAL "x86_64")
-    set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -march=native -ffast-math -fno-finite-math-only")
-  elseif("${ARCH}" STREQUAL "ppc64le")
-    set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -mcpu=native -mtune=native -ffast-math -fno-finite-math-only")
-  endif()
 endif()
 
 target_include_directories(mgard-library
