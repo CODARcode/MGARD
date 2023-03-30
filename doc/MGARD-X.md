@@ -116,16 +116,16 @@ An executable ```mgard-x``` will be built after building the MGARD-X library. To
     + ```-e <error>``` error bound
     + ```-s <smoothness>``` smoothness parameter
     + ```-r <0|1>``` internal data layout (0: Higher throughput | 1: Higher compression ratio)
-    + ```-b <0|1>``` domain decomposition type (0: 1D max dimension | 1: N-D block)
-    + ```-f <bytes>``` maximum memory footprint in bytes
-    + ```-h <0|1>``` enable/disable prefecth pipeline optimization (0: disable | 1: enable)
+    + ```-b <0|1>``` domain decomposition type (0: 1D max dimension (default) | 1: N-D block)
+    + ```-f <bytes>``` maximum memory footprint in bytes (if not specify: no limit)
     + ```-l <0|1|2>``` choose lossless compressor (0:Huffman | 1:Huffman+LZ4 (NVIDIA GPU only) | 2:Huffman@ZSTD)
 + ```-x```: enable decompression mode
     + ```-c <path>``` path to compressed file
-    + ```-d <path>``` path to decompressed file
-+ ```-v``` enable verbose (0: error only | 1: error + infomation | 2: error + timing | 3: all)
+    + ```-o <path>``` path to decompressed file
 + ```-d <auto|serial|openmp|cuda|hip|sycl>``` choose processor (auto: Auto select | serial: CPU | openmp: multi-threaded CPU | cuda: NVIDIA GPU | hip: AMD GPU | sycl: Intel GPU )
-+ ```-g <G>``` number of devices (GPUs) to use
++ ```-v``` enable verbose (0: error only (default) | 1: error + infomation | 2: error + timing | 3: all)
++ ```-g <G>``` number of devices (GPUs) to use (default: 1)
++ ```-h <0|1>``` enable/disable prefecth pipeline optimization (0: disable | 1: enable (default))
 
 	
 ## For using both the high-level APIs and low-level API
