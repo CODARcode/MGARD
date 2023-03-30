@@ -1,0 +1,189 @@
+### MGARD Self-describing format
+
+MGARD uses Protocol Buffers version 3 (proto3) to build self-describing format.
+
+```proto
+syntax = "proto3";
+
+package mgard.pb;
+
+// The GNU C library defines macros `major` and `minor`.
+message VersionNumber {
+  uint64 major_ = 1;
+  uint64 minor_ = 2;
+  uint64 patch_ = 3;
+}
+
+message CartesianGridTopology {
+  uint64 dimension = 1;
+  repeated uint64 shape = 2;
+}
+
+message ExplicitCubeGeometry { repeated double coordinates = 2; }
+
+message Domain {
+  enum Topology { CARTESIAN_GRID = 0; }
+  enum Geometry {
+    UNIT_CUBE = 0;
+    EXPLICIT_CUBE = 1;
+  }
+
+  Topology topology = 1;
+  oneof topology_definition {
+    CartesianGridTopology cartesian_grid_topology = 2;
+  }
+
+  Geometry geometry = 3;
+  oneof geometry_definition {
+    ExplicitCubeGeometry explicit_cube_geometry = 4;
+    string explicit_cube_filename = 5;
+  }
+}
+
+message Dataset {
+  enum Type {
+    FLOAT = 0;
+    DOUBLE = 1;
+  }
+
+  Type type = 1;
+  // In case we want to support vector-valued data in the future.
+  uint64 dimension = 2;
+}
+
+message ErrorControl {
+  enum Mode {
+    ABSOLUTE = 0;
+    RELATIVE = 1;
+  }
+  enum Norm {
+    L_INFINITY = 0;
+    S_NORM = 1;
+  }
+
+  Mode mode = 1;
+  Norm norm = 2;
+  // Only relevant when `error_norm == S_NORM`.
+  double s = 3;
+  // Only relevant when `error_mode == RELATIVE`.
+  double norm_of_original_data = 4;
+  double tolerance = 5;
+}
+
+message DomainDecomposition {
+  enum Method {
+    NOOP_METHOD = 0;
+    MAX_DIMENSION = 1;
+    BLOCK = 2;
+  }
+
+  Method method = 1;
+  uint64 decomposition_dimension = 2;
+  uint64 decomposition_size = 3;
+}
+
+message FunctionDecomposition {
+  enum Transform { MULTILEVEL_COEFFICIENTS = 0; }
+  enum Hierarchy {
+    POWER_OF_TWO_PLUS_ONE = 0;
+    MULTIDIMENSION_WITH_GHOST_NODES = 1;
+    ONE_DIM_AT_A_TIME_WITH_GHOST_NODES = 2;
+  }
+
+  Transform transform = 1;
+  Hierarchy hierarchy = 2;
+  // Currently only relevant when `hierarchy == GHOST_NODES`.
+  uint64 L_target = 3;
+}
+
+message Quantization {
+  enum Method { NOOP_QUANTIZATION = 0;
+                COEFFICIENTWISE_LINEAR = 1;
+              }
+  enum BinWidths {
+    PER_COEFFICIENT = 0;
+    PER_LEVEL = 1;
+  }
+  enum Type {
+    INT8_T = 0;
+    INT16_T = 1;
+    INT32_T = 2;
+    INT64_T = 3;
+  }
+
+  Method method = 1;
+  BinWidths bin_widths = 2;
+  Type type = 3;
+  bool big_endian = 4;
+}
+
+message BitplaneEncoding {
+  enum Method { NOOP_BITPLANE_ENCODING = 0;
+                GROUPED_BITPLANE_ENCODING = 1;
+              }
+  enum Type {
+    INT8_T = 0;
+    INT16_T = 1;
+    INT32_T = 2;
+    INT64_T = 3;
+  }
+  Method method = 1;
+  Type type = 2;
+  uint64 number_bitplanes = 3;
+  bool big_endian = 4;
+}
+
+message Encoding {
+  enum Preprocessor {
+    NOOP_PREPROCESSOR = 0;
+    SHUFFLE = 1;
+  }
+  enum Compressor {
+    NOOP_COMPRESSOR = 0;
+    CPU_HUFFMAN_ZLIB = 1;
+    CPU_HUFFMAN_ZSTD = 2;
+    X_HUFFMAN = 3;
+    X_HUFFMAN_LZ4 = 4;
+    X_HUFFMAN_ZSTD = 5;
+  }
+
+  Preprocessor preprocessor = 1;
+  Compressor compressor = 2;
+  // Only relevant when `compressor == X_HUFFMAN` or `lossless_compressor ==
+  // X_HUFFMAN_LZ4` or `compressor == X_HUFFMAN_ZSTD`
+  uint64 huffman_dictionary_size = 3;
+  uint64 huffman_block_size = 4;
+}
+
+message Device {
+  enum Backend {
+    CPU = 0;
+    X_SERIAL = 1;
+    X_OPENMP = 2;
+    X_CUDA = 3;
+    X_HIP = 4;
+    X_SYCL = 5;
+  }
+
+  Backend backend = 1;
+}
+
+message Header {
+  // enum Structure {
+  // 	TRANFORM_QUANTIZE_ENCODE = 0;
+  // }
+
+  // Structure structure = 1;
+  VersionNumber mgard_version = 2;
+  VersionNumber file_format_version = 3;
+  Domain domain = 4;
+  Dataset dataset = 5;
+  ErrorControl error_control = 6;
+  DomainDecomposition domain_decomposition = 7;
+  FunctionDecomposition function_decomposition = 8;
+  Quantization quantization = 9;
+  BitplaneEncoding bitplane_encoding = 10;
+  Encoding encoding = 11;
+  Device device = 12;
+}
+```
