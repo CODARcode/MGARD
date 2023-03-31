@@ -1,1 +1,1 @@
-from.XGC import XGC
+from .xgc4py import XGC
