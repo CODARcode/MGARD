@@ -26,7 +26,7 @@ The API of MGARD quantities of interest compression is contained in mgard/Tensor
     * [In] s: smoothness parameter.
     * [Return] $R_s$: operator norm; use $\tau/R_s$ as the input to MGARD compression API to guarantee the error of the QoI will be bounded by $\tau$.
 
-####Example Code
+### Example Code
 MGARD-QoI example code can be found in [here][qoi-example].
 
 [qoi-example]: ../examples/qoi 
