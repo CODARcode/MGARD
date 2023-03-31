@@ -9,83 +9,39 @@ We encourage you to [make a GitHub issue][issue form] if you run into any proble
 [format workflow badge]: https://github.com/CODARcode/MGARD/actions/workflows/format.yml/badge.svg
 [issue form]: https://github.com/CODARcode/MGARD/issues/new/choose
 
-## MGARD framework
+[<img src="./doc/images/MGARD-family.png" width="800" />](MGARD)
 
-[<img src="./doc/images/MGARD-family.png" width="800" />](MGARD-X)
+MGARD framework consists of the following modules. Please use the detailed instructions for each modules to build and install MGARD.
 
-## Building and Installing
+## `MGARD-CPU`: MGARD implementation for CPUs
+MGARD-CPU is design for running compression on CPUs. See detailed user guide in [here][mgard-cpu]
 
-To build and install MGARD, run the following from the root of the repository.
-You will need [CMake][cmake] and [Protobuf][protobuf].
+[mgard-cpu]: doc/MGARD-CPU.md
 
-```console
-$ cmake -S . -B build -D CMAKE_INSTALL_PREFIX=<location to install MGARD>
-$ cmake --build build
-$ cmake --install build
-```
-
-[cmake]: https://cmake.org/
-[protobuf]: https://opensource.google/projects/protobuf
-
-### Documentation
-
-To build the documentation, run `cmake` with `-D MGARD_ENABLE_DOCS=ON`.
-You will need [Doxygen][doxygen].
-The documentation will be installed to `${CMAKE_INSTALL_PREFIX}/share/doc/MGARD/` by default.
-Open `index.html` with a browser to read.
-
-[doxygen]: https://www.doxygen.nl/
-
-### Benchmarks
-
-To build the benchmarks, run `cmake` with `-D MGARD_ENABLE_BENCHMARKS=ON`.
-You will need [Google Benchmark][benchmark].
-You can then run the benchmarks with `build/bin/benchmarks`.
-
-[benchmark]: https://github.com/google/benchmark
-
-## Including and Linking
-
-The API consists of a header file `compress.hpp` providing declarations for function templates `mgard::compress` and `mgard::decompress`.
-See [the header][api] for documentation of these templates.
-
-To use MGARD in your project, you will need to tell your compiler where to find the MGARD headers (by default, `${CMAKE_INSTALL_PREFIX}/include/mgard/`) and library (by default, `${CMAKE_INSTALL_PREFIX}/lib/`).
-If you're using CMake, you can call `find_package(mgard)` and add a dependency to the `mgard::mgard` imported target.
-See [the examples directory][examples] for a basic example.
-
-[api]: include/compress.hpp
-[examples]: examples/README.md
-
-## Command Line Interface
-
-To build the command line interface, run `cmake` with `-D MGARD_ENABLE_CLI=ON`.
-You will need [TCLAP][tclap].
-A convenience executable called `mgard` will be built and installed to `${CMAKE_INSTALL_PREFIX}/bin/` by default.
-You can get help with the CLI by running the following commands.
-
-```console
-$ mgard --help
-$ man mgard
-```
-
-*This executable is an experimental part of the API.*
-
-[tclap]: http://tclap.sourceforge.net/
-
-## Accelerated and portable compression
-MGARD-X is designed for portable compression on NVIDIA GPUs, AMD GPUs, and CPUs. See detailed user guide in [here][mgard_x instructions].
-
-[mgard_x instructions]: doc/MGARD-X.md
-
-## CUDA accelerated compression
+## `MGARD-GPU`: CUDA accelerated compression
 MGARD-GPU is designed for accelerating compression specifically using NVIDIA GPUs. See detailed user guide in [here][gpu instructions].
 
 [gpu instructions]: doc/MGARD-GPU.md
 
-## Fine-grain progressive data reconstruction
+## `MGARD-X`: Accelerated and portable compression
+MGARD-X is designed for portable compression on NVIDIA GPUs, AMD GPUs, and CPUs. See detailed user guide in [here][mgard_x instructions].
+
+[mgard_x instructions]: doc/MGARD-X.md
+
+## `MDR`/`MDR-X`: Fine-grain progressive data reconstruction
 MDR and MDR-X are designed for enabling fine-grain data refactoring and progressive data reconstruction. See detailed user guide in [here][mdr_x instructions].
 
 [mdr_x instructions]: doc/MDR-X.md
+
+## `MGARD-ROI`: Preserving Region-of-Interest
+MGARD-ROI is designed for preserving region-of-interest during data compression. See detailed user guide in [here][mgard-roi].
+
+[mgard-roi]: doc/MGARD-RoI.md
+
+## `MGARD-QOI`: Preserving Quantity-of-Interest
+MGARD-QOI is designed for preserving quantity-of-interest during data compression. See detailed user guide in [here][mgard-qoi].
+
+[mgard-qoi]: doc/MGARD-QoI.md
 
 ## Self-describing format for compressed and refactored data
 Data produced by MGARD, MGARD-X, and MDR-X are designed to follow a unified self-describing format. See format details in [here][mgard format].
