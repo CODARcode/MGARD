@@ -105,7 +105,7 @@ Data produced by MGARD, MGARD-X, and MDR-X are designed to follow a unified self
 ### Preserving Quantites of Interest (QoIs)
 * Tania Banerjee et al. [Scalable Hybrid Learning Techniques for Scientific Data Compression.][pp3], *Arxiv*, 2022
 * Qian Gong et al. [Region-adaptive, Error-controlled Scientific Data Compression using Multilevel Decomposition.][roi2] *the 34th International Conference on Scientific and Statistical Database Management*, Jul. 2022
-* Tania Benerjee et al. [An algorithmic and software pipeline for very large scale scientific data compression with error guarantees.][pp2] *International Conference on High Performance Computing, Data, and Analytics*, 2022
+* Tania Benerjee et al. An algorithmic and software pipeline for very large scale scientific data compression with error guarantees. *International Conference on High Performance Computing, Data, and Analytics*, 2022
 * Jaemoon Lee et al. [Error-bounded learned scientific data compression with preservation of derived quantities.][pp] *Applied Sciences*, 2022
 * Qian Gong et al. [Maintaining trust in reduction: Preserving the accuracy of quantities of interest for lossy compression.][roi] *21st Smoky Mountains Computational Sciences and Engineering Conference*, Oct. 2021
 
