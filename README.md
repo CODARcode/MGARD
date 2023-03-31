@@ -11,7 +11,7 @@ We encourage you to [make a GitHub issue][issue form] if you run into any proble
 
 [<img src="./doc/images/MGARD-family.png" width="800" />](MGARD)
 
-MGARD framework consists of the following modules. Please use the detailed instructions for each modules to build and install MGARD.
+MGARD framework consists of the following modules. Please see the detailed instructions for each module to build and install MGARD.
 
 ## `MGARD-CPU`: MGARD implementation for CPUs
 MGARD-CPU is design for running compression on CPUs. See detailed user guide in [here][mgard-cpu]
