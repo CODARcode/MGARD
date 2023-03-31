@@ -12,12 +12,12 @@ This directory contains examples showing how to use MGARD.
 8. [an example showing how to use MGARD to preserve quantities of interest (QoIs)][qoi]
 9. [an example showing how to use MGARD to preserve regions of interest (RoIs)][roi]
 
-[linking]: linking/README.md
-[compression]: compression/README.md
-[decompression]: decompression/README.md
-[mgard-x-highlevel-apis]: mgard-x/HighLevelAPIs/README.md
-[mgard-x-lowlevel-apis]: mgard-x/LowLevelAPIs/README.md
-[mdr]: mgard-x/MDR/README.md
-[mdr-x]: mgard-x/MDR-X/README.md
-[qoi]: qoi/README.md
-[roi]: roi/README.md
+[linking]: linking
+[compression]: compression
+[decompression]: decompression
+[mgard-x-highlevel-apis]: mgard-x/HighLevelAPIs
+[mgard-x-lowlevel-apis]: mgard-x/LowLevelAPIs
+[mdr]: mgard-x/MDR
+[mdr-x]: mgard-x/MDR-X
+[qoi]: qoi
+[roi]: roi
