@@ -1,6 +1,6 @@
-#MGARD-CPU
+# MGARD-CPU
 
-`MGARD-CPU` is a CPU implementation of the MGARD lossy compressor. It is built by defualt and used as base implementation for `MGARD-ROI` and `MGARD-QOI`.
+`MGARD-CPU` is a CPU implementation of the MGARD lossy compressor. It is built by default and used as the base implementation for `MGARD-ROI` and `MGARD-QOI`.
 
 ### Building and Installing
 
