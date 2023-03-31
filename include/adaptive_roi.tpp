@@ -831,7 +831,7 @@ void amr_gb(const T1 *u_mc, customized_hierarchy<T2> &c_hierarchy,
   } // parent_blc contains the filtered blocks
   end = clock();
   duration_bz = ((float)(end - start)) / CLOCKS_PER_SEC;
-  std::cout << "AMR takes " << duration_bz << " seconds\n";
+  // std::cout << "AMR takes " << duration_bz << " seconds\n";
   //    std::cout << "final bins..." << n_pblc << "\n";
 
   // RoI expansion
