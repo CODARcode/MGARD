@@ -13,16 +13,16 @@ We include 3 variables in the testing dataset, which can be used for tropical cy
 Run build/run_mgard_roi.sh for demonstration or see below for the inputs/outputs of the executable mgard_roi: 
 
 * Inputs
- * IPath to the input data
- * IFilename of the input data 
- * IVariable to read in (choose from the testing dataset)
- * IDims (2 or 3 for spatial or spatiotemporal adaptive compression)
- * INumber of refinement levels for RoI detection (recommend 1-4) 
- * The coarsest level at which MGARD multilevel coefficients will be used for RoI detection (recommend log2(min{Dim1, Dim2, ..}) - 1)
- * Initial bin width (bw) used for refinement (bw_dim1, bw_dim2, …)
- * Ratios of bin width used before and after each refinement 
- * RoIs as the percentage of data to be kept at each level of refinement
+   * Path to the input data
+   * Filename of the input data 
+   * Variable to read in (choose from the testing dataset)
+   * Dims (2 or 3 for spatial or spatiotemporal adaptive compression)
+   * Number of refinement levels for RoI detection (recommend 1-4) 
+   * The coarsest level at which MGARD multilevel coefficients will be used for RoI detection (recommend log2(min{Dim1, Dim2, ..}) - 1)
+   * Initial bin width (bw) used for refinement (bw_dim1, bw_dim2, …)
+   * Ratios of bin width used before and after each refinement 
+   * RoIs as the percentage of data to be kept at each level of refinement
 *  Outputs
- * Compression ratios in display
- * Reconstructed data for evaluation 
+   * Compression ratios in display
+   * Reconstructed data for evaluation 
 
