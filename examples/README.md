@@ -9,6 +9,8 @@ This directory contains examples showing how to use MGARD.
 5. [an example showing how to use MGARD-X Low-level APIs][mgard-x-lowlevel-apis]
 6. [an example showing how to use MDR][mdr]
 7. [an example showing how to use MDR-X][mdr-x]
+8. [an example showing how to use MGARD to preserve quantities of interest (QoIs)][qoi]
+9. [an example showing how to use MGARD to preserve regions of interest (RoIs)][roi]
 
 [linking]: linking/README.md
 [compression]: compression/README.md
@@ -17,3 +19,5 @@ This directory contains examples showing how to use MGARD.
 [mgard-x-lowlevel-apis]: mgard-x/LowLevelAPIs/README.md
 [mdr]: mgard-x/MDR/README.md
 [mdr-x]: mgard-x/MDR-X/README.md
+[qoi]: qoi/README.md
+[roi]: roi/README.md

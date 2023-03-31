@@ -213,7 +213,8 @@ compress_roi(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
       cnt_roi++;
   }
   // std::cout << "percentage of bz " << (float)cnt_bz / (float)ndof * 100.0
-  //           << "% out of " << (float)cnt_roi / (float)ndof * 100.0 << "% roi\n";
+  //           << "% out of " << (float)cnt_roi / (float)ndof * 100.0 << "%
+  //           roi\n";
   shuffle(hierarchy, u_map, unshuffled_u.data());
 
   // QG: scalar of eb used for coefficients in non-RoI : RoI
