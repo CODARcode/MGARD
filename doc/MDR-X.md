@@ -1,5 +1,5 @@
 
-# MDR
+# MDR/MDR-X
 
 Multi-precision Data Refactoring designed on top of MGARD for enabling fine-grain progressive data reconstruction with error control. Currently, there are two designs available:
 
