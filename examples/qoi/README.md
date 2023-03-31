@@ -12,13 +12,13 @@ The average.cpp shows an example of how to preserve the average quantities compu
 Below shows the inputs/outputs of the executable average:
 
 * Inputs
- * Dim 1 of the input data (default value 128)
- * Dim 2 of the input data (default value 128)
- * Lower left coordinate of the bounding box in dim 1
- * Lower left coordinate of the bounding box in dim 2
- * Upper right coordinate of the bounding box in dim 1
- * Upper right coordinate of the bounding box in dim 2
- * Error tolerance prescribed on QoI (i.e., average in this example)
+   * Dim 1 of the input data (default value 128)
+   * Dim 2 of the input data (default value 128)
+   * Lower left coordinate of the bounding box in dim 1
+   * Lower left coordinate of the bounding box in dim 2
+   * Upper right coordinate of the bounding box in dim 1
+   * Upper right coordinate of the bounding box in dim 2
+   * Error tolerance prescribed on QoI (i.e., average in this example)
 * Outputs in display
- * Compression ratio
- * Error of QoI vs the prescribed error bound 
+   * Compression ratio
+   * Error of QoI vs the prescribed error bound 
