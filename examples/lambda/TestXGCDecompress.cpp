@@ -15,9 +15,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "LagrangeOptimizer.hpp"
 #include "adios2.h"
 #include "mgard/compress_x.hpp"
+#include "LagrangeOptimizer.hpp"
 
 #define ANSI_RED "\x1b[31m"
 #define ANSI_GREEN "\x1b[32m"
@@ -64,8 +64,8 @@ int main(int argc, char *argv[]) {
 
   int i = 1;
   infile = argv[i++];
-  char *meshfile = argv[i++];
-  char *lagfile = argv[i++];
+  char* meshfile = argv[i++];
+  char* lagfile = argv[i++];
   double job_sz = atof(argv[i++]);
   if (rank == 0) {
     printf("Input data: %s ", infile);
@@ -105,10 +105,10 @@ int main(int argc, char *argv[]) {
       (rank == np_size - 1) ? (div_nnodes - rank * iter_nnodes) : iter_nnodes;
   size_t local_elements = nphi * vx * local_nnodes * vy;
   size_t lSize = sizeof(double) * gb_elements;
-  double *in_buff = (double *)malloc(sizeof(double) * local_elements);
+  double *in_buff = (double*)malloc(sizeof(double) * local_elements);
   if (rank == 0) {
-    std::cout << "total data size: {" << nphi << ", " << nnodes << ", " << vx
-              << ", " << vy << "}, number of iters: " << num_iter << "\n";
+    std::cout << "total data size: {" << nphi << ", " << nnodes << ", "
+      << vx << ", " << vy << "}, number of iters: " << num_iter << "\n";
   }
   size_t out_size = 0;
   size_t lagrange_size = 0;
@@ -126,13 +126,14 @@ int main(int argc, char *argv[]) {
     std::vector<mgard_x::SIZE> shape = {nphi, vx, local_nnodes, vy};
     long unsigned int offset = div_nnodes * iter + iter_nnodes * rank;
     if (bigtest) {
-      std::cout << "rank " << rank << " read from {0, 0, " << offset
-                << ", 0} for {" << nphi << ", " << vx << ", " << local_nnodes
-                << ", " << vy << "}\n";
-    } else {
-      std::cout << "rank " << rank << " read from {0, " << offset
-                << ", 0, 0} for {" << nphi << ", " << local_nnodes << ", " << vx
-                << ", " << vy << "}\n";
+        std::cout << "rank " << rank << " read from {0, 0, "
+              << offset << ", 0} for {" << nphi << ", " << vx << ", "
+              << local_nnodes << ", " << vy << "}\n";
+    }
+    else {
+        std::cout << "rank " << rank << " read from {0, "
+              << offset << ", 0, 0} for {" << nphi
+              << ", " << local_nnodes << ", " << vx<< ", " << vy << "}\n";
     }
     std::vector<unsigned long> dim1 = {0, 0, offset, 0};
     std::vector<unsigned long> dim2 = {nphi, vx, local_nnodes, vy};
@@ -149,8 +150,8 @@ int main(int argc, char *argv[]) {
       std::cout << "Didn't find lag_p...exit\n";
       exit(1);
     }
-    std::vector<unsigned long> lag_dim1 = {offset * 4};
-    std::vector<unsigned long> lag_dim2 = {nphi * local_nnodes * 4};
+    std::vector<unsigned long> lag_dim1 = {offset*4};
+    std::vector<unsigned long> lag_dim2 = {nphi*local_nnodes*4};
     std::pair<std::vector<unsigned long>, std::vector<unsigned long>> lag_dim;
     lag_dim.first = lag_dim1;
     lag_dim.second = lag_dim2;
@@ -159,7 +160,7 @@ int main(int argc, char *argv[]) {
     reader_lag.Get<double>(var_i_f_lag, lag_buff);
     reader_lag.PerformGets();
 
-    LagrangeOptimizer optim("ion", "single");
+    LagrangeOptimizer optim("ion", "double");
     // in_buff gets modified after applying the Lagrange transformation
     optim.setDataFromCharBufferV1(in_buff, lag_buff.data(), meshfile);
   }
