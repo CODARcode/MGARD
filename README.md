@@ -43,8 +43,8 @@ MGARD-QOI is designed for preserving linear quantity-of-interest during data com
 
 [mgard-qoi]: doc/MGARD-QoI.md
 
-## `MGARD-$\lambda$`: Preserving Non-Linear Quantity-of-Interest
-MGARD-$\lambda$ is designed for preserving non-linear quantity-of-interest during data compression. This is an experimental part of MGARD. Currently only support certain QoIs derived from XGC 5D data. See example in [here][mgard-lambda].
+## `MGARD-Lambda`: Preserving Non-Linear Quantity-of-Interest
+MGARD-Lambda is designed for preserving non-linear quantity-of-interest during data compression. This is an experimental part of MGARD. Currently only supporting certain QoIs derived from XGC 5D data. See example in [here][mgard-lambda].
 
 [mgard-lambda]: ./examples/lambda
 
