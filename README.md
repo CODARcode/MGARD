@@ -38,10 +38,15 @@ MGARD-ROI is designed for preserving region-of-interest during data compression.
 
 [mgard-roi]: doc/MGARD-RoI.md
 
-## `MGARD-QOI`: Preserving Quantity-of-Interest
-MGARD-QOI is designed for preserving quantity-of-interest during data compression. See detailed user guide in [here][mgard-qoi].
+## `MGARD-QOI`: Preserving Linear Quantity-of-Interest
+MGARD-QOI is designed for preserving linear quantity-of-interest during data compression. See detailed user guide in [here][mgard-qoi].
 
 [mgard-qoi]: doc/MGARD-QoI.md
+
+## `MGARD-$\lambda$`: Preserving Non-Linear Quantity-of-Interest
+MGARD-$\lambda$ is designed for preserving non-linear quantity-of-interest during data compression. This is an experimental part of MGARD. Currently only support certain QoIs derived from XGC 5D data. See example in [here][mgard-lambda].
+
+[mgard-lambda]: ./examples/lambda
 
 ## Self-describing format for compressed and refactored data
 Data produced by MGARD, MGARD-X, and MDR-X are designed to follow a unified self-describing format. See format details in [here][mgard format].
