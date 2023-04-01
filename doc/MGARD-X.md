@@ -3,7 +3,7 @@
 
 MGARD-X is a portable implementation of the MGARD lossy compressor supporting various types of GPUs and CPUs.
 
-[<img src="./images/mgard-x-arch.png" width="600" />](MGARD-X)
+[<img src="./images/mgard-x-arch.png" width="600" />](./images/mgard-x-arch.png)
 
 ## Supporting features
 * **Data type:** Double and single precision floating-point data
@@ -279,13 +279,14 @@ For achieving the best performance:
 ## Performance
 The figures below show the compression and decompression throughput of MGARD-X on single CPU (multi-core) and GPU. XGC fusion simulation data is used for compression and decompression.
 
-[<img src="images/MGARD-X-CPU.png" width="400" />](CPU)
-[<img src="images/MGARD-X-GPU.png" width="400" />](CPU)
+[<img src="images/MGARD-X-CPU.png" width="400" />](images/MGARD-X-CPU.png)
+[<img src="images/MGARD-X-GPU.png" width="400" />](images/MGARD-X-GPU.png)
 
 The figures below show the compression and decompression throughput of MGARD-X on multiple NVIDIA V100 and AMD MI-250X GPUs. XGC fusion simulation data is used for compression and decompression.
 
-[<img src="images/summit_throughput_at_scale.png" width="400" />](Summit)
-[<img src="images/crusher_throughput_at_scale.png" width="400" />](Crusher)
+[<img src="images/summit_throughput_at_scale.png" width="400" />](images/summit_throughput_at_scale.png)
+[<img src="images/crusher_throughput_at_scale.png" width="400" />](images/crusher_throughput_at_scale.png)
+
 ## Example Code
 
 * High-level APIs example code can be found in [here][high-level-example].
