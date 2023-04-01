@@ -9,7 +9,7 @@ We encourage you to [make a GitHub issue][issue form] if you run into any proble
 [format workflow badge]: https://github.com/CODARcode/MGARD/actions/workflows/format.yml/badge.svg
 [issue form]: https://github.com/CODARcode/MGARD/issues/new/choose
 
-[<img src="./doc/images/MGARD-family.png" width="800" />](MGARD)
+[<img src="./doc/images/MGARD-family.png" width="800" />](./doc/images/MGARD-family.png)
 
 MGARD framework consists of the following modules. Please see the detailed instructions for each module to build and install MGARD.
 
@@ -44,7 +44,7 @@ MGARD-QOI is designed for preserving linear quantity-of-interest during data com
 [mgard-qoi]: doc/MGARD-QoI.md
 
 ## `MGARD-Lambda`: Preserving Non-Linear Quantity-of-Interest
-MGARD-Lambda is designed for preserving non-linear quantity-of-interest during data compression. This is an experimental part of MGARD. Currently only supporting certain QoIs derived from XGC 5D data. See example in [here][mgard-lambda].
+MGARD-Lambda is designed for preserving non-linear quantity-of-interest during data compression. This is an experimental part of MGARD. Currently only support certain QoIs derived from XGC 5D data. See example in [here][mgard-lambda].
 
 [mgard-lambda]: ./examples/lambda
 

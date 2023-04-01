@@ -1,8 +1,8 @@
-# MGARD-$\lambda$ 
+# MGARD-Lambda 
 
 Data compression while preserving non-linear quantities of interest. 
 
-*MGARD-$\lambda$ is an experimental part of MGARD. Currently only support certain QoIs derived from XGC 5D data.*
+*MGARD-Lambda is an experimental part of MGARD. Currently only supporting certain QoIs derived from XGC 5D data.*
 
 #### Prerequisites:
 
