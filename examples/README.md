@@ -12,6 +12,7 @@ This directory contains examples showing how to use MGARD.
 8. [Using MGARD-QOI][qoi]
 9. [Using MGARD-ROI][roi]
 10. [XGC 5D data case study][xgc]
+
 [linking]: linking
 [compression]: compression
 [decompression]: decompression
