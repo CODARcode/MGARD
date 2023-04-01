@@ -10,7 +10,7 @@ $ build/make
 
 The example code sets are designed to reproduce the experimental results in [1]. They demonstrate how to better preserve the accuracy of Quantities of Interest (QoI) based on a list of features of MGARD. The demonstration uses the ion f-data simulated by a fusion plasma code XGC (https://xgc.pppl.gov/html/index.html) and a few derived Quantities of Interest (QoI), e.g., density, temperature, flux surface average momentums, etc., as the examples. 
 
-#### Testing dataset is available at: https://www.dropbox.com/s/ak0iaypb12d3ojt/dataset.zip?dl=0
+#### Test dataset is available at: https://www.dropbox.com/s/ak0iaypb12d3ojt/dataset.zip?dl=0
 
 #### Feature demonstration:
 *	TestXGCBasic
