@@ -209,8 +209,8 @@ public:
     log::info("Huffman compress ratio (primary): " +
               std::to_string(primary_count * sizeof(Q)) + "/" +
               std::to_string(ddata_size * sizeof(H)) + " (" +
-              std::to_string((double)primary_count * sizeof(Q) / ddata_size *
-                             sizeof(H)) +
+              std::to_string((double)primary_count * sizeof(Q) /
+                             (ddata_size * sizeof(H))) +
               ")");
     log::info(
         "Huffman compress ratio: " + std::to_string(primary_count * sizeof(Q)) +
@@ -222,6 +222,10 @@ public:
     if (log::level & log::TIME) {
       timer.end();
       timer.print("Huffman compress");
+      log::info("Huffmen compression throughput: " +
+                std::to_string((double)primary_count * sizeof(Q) / timer.get() /
+                               1e9) +
+                " GB/s");
       timer.clear();
     }
   }
@@ -302,6 +306,10 @@ public:
     if (log::level & log::TIME) {
       timer.end();
       timer.print("Huffman decompress");
+      log::info("Huffmen decompression throughput: " +
+                std::to_string((double)primary_count * sizeof(Q) / timer.get() /
+                               1e9) +
+                " GB/s");
       timer.clear();
     }
   }
