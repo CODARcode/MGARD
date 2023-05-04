@@ -1,0 +1,211 @@
+/*
+ * Copyright 2022, Oak Ridge National Laboratory.
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
+ * Author: Jieyang Chen (chenj3@ornl.gov)
+ * Date: March 17, 2022
+ */
+
+#include <chrono>
+#include <iomanip>
+#include <iostream>
+#include <numeric>
+#include <vector>
+
+#include "../Utilities/Types.h"
+
+#include "../Config/Config.h"
+#include "../Hierarchy/Hierarchy.h"
+#include "../RuntimeX/RuntimeX.h"
+#include "Compressor2.h"
+
+#ifndef MGARD_X_COMPRESSOR2_HPP
+#define MGARD_X_COMPRESSOR2_HPP
+
+namespace mgard_x {
+
+static bool debug_print_compression = true;
+
+template <DIM D, typename T, typename DeviceType>
+Compressor2<D, T, DeviceType>::Compressor2(
+    Hierarchy<D, T, DeviceType> hierarchy, Config config)
+    : hierarchy(hierarchy), config(config), refactor(hierarchy, config),
+      levelwise_refactor(hierarchy, config),
+      lossless_compressor(hierarchy.total_num_elems(), config),
+      quantizer(hierarchy, config) {
+
+  norm_array = Array<1, T, DeviceType>({1});
+  // Reuse workspace. Warning:
+  if (sizeof(QUANTIZED_INT) <= sizeof(T)) {
+    // Reuse workspace if possible
+    norm_tmp_array = Array<1, T, DeviceType>({hierarchy.total_num_elems()},
+                                             (T *)refactor.w_array.data());
+    quantized_array = Array<D, QUANTIZED_INT, DeviceType>(
+        hierarchy.level_shape(hierarchy.l_target()),
+        (QUANTIZED_INT *)refactor.w_array.data());
+  } else {
+    norm_tmp_array = Array<1, T, DeviceType>({hierarchy.total_num_elems()});
+    quantized_array = Array<D, QUANTIZED_INT, DeviceType>(
+        hierarchy.level_shape(hierarchy.l_target()), false, false);
+  }
+  std::vector<SIZE> shape = hierarchy.level_shape(hierarchy.l_target());
+  SIZE decomposed_size = 1;
+  for (DIM d = 0; d < D; d++)
+    decomposed_size *= ((shape[d] - 1) / 8 + 1) * 8;
+  decomposed_array = Array<1, T, DeviceType>({decomposed_size});
+}
+
+template <DIM D, typename T, typename DeviceType>
+size_t
+Compressor2<D, T, DeviceType>::EstimateMemoryFootprint(std::vector<SIZE> shape,
+                                                       Config config) {
+  Hierarchy<D, T, DeviceType> hierarchy;
+  size_t size = hierarchy.estimate_memory_usgae(shape);
+  size += DataRefactorType::EstimateMemoryFootprint(shape);
+  size += LinearQuantizerType::EstimateMemoryFootprint(shape);
+  size += LosslessCompressorType::EstimateMemoryFootprint(
+      hierarchy.total_num_elems(), config);
+  size += sizeof(T);
+  if (sizeof(QUANTIZED_INT) > sizeof(T)) {
+    size += sizeof(T) * hierarchy.total_num_elems();
+    size += sizeof(QUANTIZED_INT) * hierarchy.total_num_elems();
+  }
+  return size;
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Compressor2<D, T, DeviceType>::CalculateNorm(
+    Array<D, T, DeviceType> &original_data, enum error_bound_type ebtype, T s,
+    T &norm, int queue_idx) {
+  if (ebtype == error_bound_type::REL) {
+    norm =
+        norm_calculator(original_data, SubArray(norm_tmp_array),
+                        SubArray(norm_array), s, config.normalize_coordinates);
+  }
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Compressor2<D, T, DeviceType>::Decompose(
+    Array<D, T, DeviceType> &original_data, int queue_idx) {
+  levelwise_refactor.Decompose(original_data, decomposed_array, queue_idx);
+  refactor.Decompose(original_data, queue_idx);
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Compressor2<D, T, DeviceType>::Quantize(
+    Array<D, T, DeviceType> &original_data, enum error_bound_type ebtype, T tol,
+    T s, T norm, int queue_idx) {
+  quantizer.Quantize(original_data, ebtype, tol, s, norm, quantized_array,
+                     lossless_compressor, queue_idx);
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Compressor2<D, T, DeviceType>::LosslessCompress(
+    Array<1, Byte, DeviceType> &compressed_data, int queue_idx) {
+  Array<1, QUANTIZED_UNSIGNED_INT, DeviceType> quantized_liearized_array(
+      {hierarchy.total_num_elems()},
+      (QUANTIZED_UNSIGNED_INT *)quantized_array.data());
+  lossless_compressor.Compress(quantized_liearized_array, compressed_data,
+                               queue_idx);
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Compressor2<D, T, DeviceType>::Recompose(
+    Array<D, T, DeviceType> &decompressed_data, int queue_idx) {
+  refactor.Recompose(decompressed_data, queue_idx);
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Compressor2<D, T, DeviceType>::Dequantize(
+    Array<D, T, DeviceType> &decompressed_data, enum error_bound_type ebtype,
+    T tol, T s, T norm, int queue_idx) {
+  quantizer.Dequantize(quantized_array, ebtype, tol, s, norm, decompressed_data,
+                       lossless_compressor, queue_idx);
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Compressor2<D, T, DeviceType>::LosslessDecompress(
+    Array<1, Byte, DeviceType> &compressed_data, int queue_idx) {
+  Array<1, QUANTIZED_UNSIGNED_INT, DeviceType> quantized_liearized_data(
+      {hierarchy.total_num_elems()},
+      (QUANTIZED_UNSIGNED_INT *)quantized_array.data());
+  lossless_compressor.Decompress(compressed_data, quantized_liearized_data,
+                                 queue_idx);
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Compressor2<D, T, DeviceType>::Compress(
+    Array<D, T, DeviceType> &original_data, enum error_bound_type ebtype, T tol,
+    T s, T &norm, Array<1, Byte, DeviceType> &compressed_data, int queue_idx) {
+
+  config.apply();
+
+  DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
+  log::info("Select device: " + DeviceRuntime<DeviceType>::GetDeviceName());
+  Timer timer_total;
+  for (int d = D - 1; d >= 0; d--) {
+    if (hierarchy.level_shape(hierarchy.l_target(), d) !=
+        original_data.shape(d)) {
+      log::err("The shape of input array does not match the shape initilized "
+               "in hierarchy!");
+      return;
+    }
+  }
+
+  if (log::level & log::TIME)
+    timer_total.start();
+
+  CalculateNorm(original_data, ebtype, s, norm, queue_idx);
+  Decompose(original_data, queue_idx);
+  Quantize(original_data, ebtype, tol, s, norm, queue_idx);
+  LosslessCompress(compressed_data, queue_idx);
+  if (config.compress_with_dryrun) {
+    Dequantize(original_data, ebtype, tol, s, norm, queue_idx);
+    Recompose(original_data, queue_idx);
+  }
+
+  if (log::level & log::TIME) {
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+    timer_total.end();
+    timer_total.print("Low-level compression");
+    log::time("Low-level compression throughput: " +
+              std::to_string((double)(hierarchy.total_num_elems() * sizeof(T)) /
+                             timer_total.get() / 1e9) +
+              " GB/s");
+    timer_total.clear();
+  }
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Compressor2<D, T, DeviceType>::Decompress(
+    Array<1, Byte, DeviceType> &compressed_data, enum error_bound_type ebtype,
+    T tol, T s, T &norm, Array<D, T, DeviceType> &decompressed_data,
+    int queue_idx) {
+  config.apply();
+
+  DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
+  log::info("Select device: " + DeviceRuntime<DeviceType>::GetDeviceName());
+  Timer timer_total, timer_each;
+
+  if (log::level & log::TIME)
+    timer_total.start();
+
+  decompressed_data.resize(hierarchy.level_shape(hierarchy.l_target()));
+  LosslessDecompress(compressed_data, queue_idx);
+  Dequantize(decompressed_data, ebtype, tol, s, norm, queue_idx);
+  Recompose(decompressed_data, queue_idx);
+
+  if (log::level & log::TIME) {
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+    timer_total.end();
+    timer_total.print("Low-level decompression");
+    log::time("Low-level decompression throughput: " +
+              std::to_string((double)(hierarchy.total_num_elems() * sizeof(T)) /
+                             timer_total.get() / 1e9) +
+              " GB/s");
+    timer_total.clear();
+  }
+}
+
+} // namespace mgard_x
+
+#endif

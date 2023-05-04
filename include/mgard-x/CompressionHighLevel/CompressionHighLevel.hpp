@@ -17,6 +17,7 @@
 #include "../RuntimeX/RuntimeX.h"
 
 #include "../CompressionLowLevel/Compressor.h"
+#include "../CompressionLowLevel/Compressor2.h"
 #include "../CompressionLowLevel/NormCalculator.hpp"
 
 #include "../DomainDecomposer/DomainDecomposer.hpp"
@@ -284,14 +285,20 @@ compress_subdomain(DomainDecomposer<D, T, Compressor<D, T, DeviceType>,
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_id);
   Compressor compressor(hierarchy, config);
+  Compressor2 compressor2(hierarchy, config);
   std::stringstream ss;
   for (DIM d = 0; d < D; d++) {
     ss << hierarchy.level_shape(hierarchy.l_target(), d) << " ";
   }
   log::info("Compressing subdomain " + std::to_string(subdomain_id) +
             " with shape: " + ss.str());
-  compressor.Compress(device_subdomain_buffer, local_ebtype, local_tol, s, norm,
-                      device_compressed_buffer, 0);
+
+  compressor2.Compress(device_subdomain_buffer, local_ebtype, local_tol, s,
+                       norm, device_compressed_buffer, 0);
+
+  // compressor.Compress(device_subdomain_buffer, local_ebtype, local_tol, s,
+  // norm,
+  //                     device_compressed_buffer, 0);
   if (device_compressed_buffer.shape(0) >
       hierarchy.total_num_elems() * sizeof(T) + OUTPUT_SAFTY_OVERHEAD) {
     return compress_status_type::OutputTooLargeFailure;

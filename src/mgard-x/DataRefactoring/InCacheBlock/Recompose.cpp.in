@@ -14,11 +14,9 @@ namespace data_refactoring {
 namespace in_cache_block {
 
 template void recompose<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>(
-    Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &hierarchy,
-    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> &v,
-    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> w,
-    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> b, 
-    int start_level, int stop_level, int queue_idx);
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> v,
+    SubArray<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@> coarse, 
+    SubArray<1, @DATA_TYPE@, @DEVICE_TYPE@> coeff, int queue_idx);
 
 } // namespace in_cache_block
 
