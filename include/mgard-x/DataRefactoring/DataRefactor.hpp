@@ -74,10 +74,6 @@ public:
     } else if (config.decomposition == decomposition_type::SingleDim) {
       single_dimension::decompose<D, T, DeviceType>(
           hierarchy, data_subarray, start_level, stop_level, queue_idx);
-    } else if (config.decomposition == decomposition_type::InCacheBlock) {
-      in_cache_block::decompose<D, T, DeviceType>(
-          hierarchy, data_subarray, w_subarray, b_subarray, start_level,
-          stop_level, queue_idx);
     }
     if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
@@ -89,11 +85,6 @@ public:
                          timer.get() / 1e9) +
           " GB/s");
       timer.clear();
-    }
-
-    if (config.decomposition == decomposition_type::InCacheBlock) {
-      log::err("InCacheBlock is in development. Exiting...\n");
-      exit(0);
     }
   }
   void Recompose(Array<D, T, DeviceType> &data, int start_level, int stop_level,
@@ -113,10 +104,6 @@ public:
     } else if (config.decomposition == decomposition_type::SingleDim) {
       single_dimension::recompose<D, T, DeviceType>(
           hierarchy, data_subarray, start_level, stop_level, queue_idx);
-    } else if (config.decomposition == decomposition_type::InCacheBlock) {
-      in_cache_block::recompose<D, T, DeviceType>(
-          hierarchy, data_subarray, w_subarray, b_subarray, start_level,
-          stop_level, queue_idx);
     }
     if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);

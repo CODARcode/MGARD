@@ -1885,20 +1885,66 @@ MGARDX_EXEC int MassTrans_X_DistCase_8x8x8(SIZE i) {
   return offset[i];
 }
 
-MGARDX_EXEC float const *MassTrans_X_Dist_8x8x8(SIZE i) {
-  #define DIST(Z, Y) {0.0, 0.0, 1.0, 1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0, 0.5, 0.5}, {0.5, 0.5, 0.0, 0.0}
 
-  static constexpr float offset[320][4] = {
-    DIST(0, 0), DIST(0, 1), DIST(0, 2), DIST(0, 3), DIST(0, 4), DIST(0, 5), DIST(0, 6), DIST(0, 7),
-    DIST(1, 0), DIST(1, 1), DIST(1, 2), DIST(1, 3), DIST(1, 4), DIST(1, 5), DIST(1, 6), DIST(1, 7),
-    DIST(2, 0), DIST(2, 1), DIST(2, 2), DIST(2, 3), DIST(2, 4), DIST(2, 5), DIST(2, 6), DIST(2, 7),
-    DIST(3, 0), DIST(3, 1), DIST(3, 2), DIST(3, 3), DIST(3, 4), DIST(3, 5), DIST(3, 6), DIST(3, 7),
-    DIST(4, 0), DIST(4, 1), DIST(4, 2), DIST(4, 3), DIST(4, 4), DIST(4, 5), DIST(4, 6), DIST(4, 7),
-    DIST(5, 0), DIST(5, 1), DIST(5, 2), DIST(5, 3), DIST(5, 4), DIST(5, 5), DIST(5, 6), DIST(5, 7),
-    DIST(6, 0), DIST(6, 1), DIST(6, 2), DIST(6, 3), DIST(6, 4), DIST(6, 5), DIST(6, 6), DIST(6, 7),
-    DIST(7, 0), DIST(7, 1), DIST(7, 2), DIST(7, 3), DIST(7, 4), DIST(7, 5), DIST(7, 6), DIST(7, 7)
+template<typename T>
+MGARDX_EXEC constexpr T wa(T h1, T h2, T h3, T h4) {
+  T r1 = 0.0;
+  if (h1 + h2 != 0) {
+    r1 = h1 / (h1 + h2);
+  }
+  return (h1 / 6) * r1;
+}
+
+template<typename T>
+MGARDX_EXEC constexpr T wb(T h1, T h2, T h3, T h4) {
+  T r1 = 0.0;
+  if (h1 + h2 != 0) {
+    r1 = h1 / (h1 + h2);
+  }
+  return ((h1 + h2) / 3) * r1 + (h2 / 6);
+}
+
+template<typename T>
+MGARDX_EXEC constexpr T wc(T h1, T h2, T h3, T h4) {
+  T r1 = 0.0;
+  if (h1 + h2 != 0) {
+    r1 = h1 / (h1 + h2);
+  }
+  T r4 = 0.0;
+  if (h3 + h4 != 0) {
+    r4 = h4 / (h3 + h4);
+  }
+  return ((h2 + h3) / 3) + (h2 / 6) * r1 + (h3 / 6) * r4;
+}
+
+template<typename T>
+MGARDX_EXEC constexpr T wd(T h1, T h2, T h3, T h4) {
+  T r4 = 0.0;
+  if (h3 + h4 != 0) {
+    r4 = h4 / (h3 + h4);
+  }
+  return ((h3 + h4) / 3) * r4 + (h3 / 6);
+}
+
+template<typename T>
+MGARDX_EXEC constexpr T we(T h1, T h2, T h3, T h4) {
+  T r4 = 0.0;
+  if (h3 + h4 != 0) {
+    r4 = h4 / (h3 + h4);
+  }
+  return (h4 / 6) * r4;
+}
+
+template<typename T>
+MGARDX_EXEC T const *MassTrans_Weights_8x8x8(SIZE i) {
+  
+  static constexpr T offset[5][5] = {
+    {wa<T>(0.0, 0.0, 1.0, 1.0), wb<T>(0.0, 0.0, 1.0, 1.0), wc<T>(0.0, 0.0, 1.0, 1.0), wd<T>(0.0, 0.0, 1.0, 1.0), we<T>(0.0, 0.0, 1.0, 1.0)},
+    {wa<T>(1.0, 1.0, 1.0, 1.0), wb<T>(1.0, 1.0, 1.0, 1.0), wc<T>(1.0, 1.0, 1.0, 1.0), wd<T>(1.0, 1.0, 1.0, 1.0), we<T>(1.0, 1.0, 1.0, 1.0)},
+    {wa<T>(1.0, 1.0, 1.0, 1.0), wb<T>(1.0, 1.0, 1.0, 1.0), wc<T>(1.0, 1.0, 1.0, 1.0), wd<T>(1.0, 1.0, 1.0, 1.0), we<T>(1.0, 1.0, 1.0, 1.0)},
+    {wa<T>(1.0, 1.0, 0.5, 0.5), wb<T>(1.0, 1.0, 0.5, 0.5), wc<T>(1.0, 1.0, 0.5, 0.5), wd<T>(1.0, 1.0, 0.5, 0.5), we<T>(1.0, 1.0, 0.5, 0.5)},
+    {wa<T>(0.5, 0.5, 0.0, 0.0), wb<T>(0.5, 0.5, 0.0, 0.0), wc<T>(0.5, 0.5, 0.0, 0.0), wd<T>(0.5, 0.5, 0.0, 0.0), we<T>(0.5, 0.5, 0.0, 0.0)}
   };
-  #undef DIST
   return offset[i];
 }
 
@@ -1911,7 +1957,8 @@ MGARDX_EXEC int const *MassTrans_X_Offset_8x8x8(SIZE i) {
     zero_offset,                                   \
     offset8x8x8(Z, Y, coarse_x_8x8x8[0]+1, 8, 8),  \
     zero_offset,                                   \
-    offset8x8x8(Z, Y, 0,                   5, 8)   \
+    offset8x8x8(Z, Y, 0,                   5, 8),  \
+    0                                              \
   },                                               \
   {                                                \
     zero_offset,                                   \
@@ -1919,7 +1966,8 @@ MGARDX_EXEC int const *MassTrans_X_Offset_8x8x8(SIZE i) {
     zero_offset,                                   \
     offset8x8x8(Z, Y, coarse_x_8x8x8[1]+1, 8, 8),  \
     zero_offset,                                   \
-    offset8x8x8(Z, Y, 1,                   5, 8)   \
+    offset8x8x8(Z, Y, 1,                   5, 8),  \
+    1                                              \
   },                                               \
   {                                                \
     zero_offset,                                   \
@@ -1927,7 +1975,8 @@ MGARDX_EXEC int const *MassTrans_X_Offset_8x8x8(SIZE i) {
     zero_offset,                                   \
     offset8x8x8(Z, Y, coarse_x_8x8x8[2]+1, 8, 8),  \
     zero_offset,                                   \
-    offset8x8x8(Z, Y, 2,                   5, 8)   \
+    offset8x8x8(Z, Y, 2,                   5, 8),  \
+    2                                              \
   },                                               \
   {                                                \
     zero_offset,                                   \
@@ -1935,7 +1984,8 @@ MGARDX_EXEC int const *MassTrans_X_Offset_8x8x8(SIZE i) {
     zero_offset,                                   \
     zero_offset,                                   \
     zero_offset,                                   \
-    offset8x8x8(Z, Y, 3,                   5, 8)   \
+    offset8x8x8(Z, Y, 3,                   5, 8),  \
+    3                                              \
   },                                               \
   {                                                \
     zero_offset,                                   \
@@ -1943,7 +1993,8 @@ MGARDX_EXEC int const *MassTrans_X_Offset_8x8x8(SIZE i) {
     zero_offset,                                   \
     zero_offset,                                   \
     zero_offset,                                   \
-    offset8x8x8(Z, Y, 4,                   5, 8)   \
+    offset8x8x8(Z, Y, 4,                   5, 8),  \
+    4                                              \
   }
 
   #define OFFSET2(Z, Y)                            \
@@ -1953,7 +2004,8 @@ MGARDX_EXEC int const *MassTrans_X_Offset_8x8x8(SIZE i) {
     offset8x8x8(Z, Y, coarse_x_8x8x8[0],   8, 8),  \
     offset8x8x8(Z, Y, coarse_x_8x8x8[0]+1, 8, 8),  \
     offset8x8x8(Z, Y, coarse_x_8x8x8[0]+2, 8, 8),  \
-    offset8x8x8(Z, Y, 0,                   5, 8)   \
+    offset8x8x8(Z, Y, 0,                   5, 8),  \
+    0                                              \
   },                                               \
   {                                                \
     offset8x8x8(Z, Y, coarse_x_8x8x8[1]-2, 8, 8),  \
@@ -1961,7 +2013,8 @@ MGARDX_EXEC int const *MassTrans_X_Offset_8x8x8(SIZE i) {
     offset8x8x8(Z, Y, coarse_x_8x8x8[1],   8, 8),  \
     offset8x8x8(Z, Y, coarse_x_8x8x8[1]+1, 8, 8),  \
     offset8x8x8(Z, Y, coarse_x_8x8x8[1]+2, 8, 8),  \
-    offset8x8x8(Z, Y, 1,                   5, 8)   \
+    offset8x8x8(Z, Y, 1,                   5, 8),  \
+    1                                              \
   },                                               \
   {                                                \
     offset8x8x8(Z, Y, coarse_x_8x8x8[2]-2, 8, 8),  \
@@ -1969,7 +2022,8 @@ MGARDX_EXEC int const *MassTrans_X_Offset_8x8x8(SIZE i) {
     offset8x8x8(Z, Y, coarse_x_8x8x8[2],   8, 8),  \
     offset8x8x8(Z, Y, coarse_x_8x8x8[2]+1, 8, 8),  \
     offset8x8x8(Z, Y, coarse_x_8x8x8[2]+2, 8, 8),  \
-    offset8x8x8(Z, Y, 2,                   5, 8)   \
+    offset8x8x8(Z, Y, 2,                   5, 8),  \
+    2                                              \
   },                                               \
   {                                                \
     offset8x8x8(Z, Y, coarse_x_8x8x8[3]-2, 8, 8),  \
@@ -1977,7 +2031,8 @@ MGARDX_EXEC int const *MassTrans_X_Offset_8x8x8(SIZE i) {
     offset8x8x8(Z, Y, coarse_x_8x8x8[3],   8, 8),  \
     zero_offset,                                   \
     offset8x8x8(Z, Y, coarse_x_8x8x8[3]+1, 8, 8),  \
-    offset8x8x8(Z, Y, 3,                   5, 8)   \
+    offset8x8x8(Z, Y, 3,                   5, 8),  \
+    3                                              \
   },                                               \
   {                                                \
     offset8x8x8(Z, Y, coarse_x_8x8x8[4]-1, 8, 8),  \
@@ -1985,10 +2040,11 @@ MGARDX_EXEC int const *MassTrans_X_Offset_8x8x8(SIZE i) {
     offset8x8x8(Z, Y, coarse_x_8x8x8[4],   8, 8),  \
     zero_offset,                                   \
     zero_offset,                                   \
-    offset8x8x8(Z, Y, 4,                   5, 8)   \
+    offset8x8x8(Z, Y, 4,                   5, 8),  \
+    4                                              \
   }
 
-  static constexpr int offset[320][6] = {
+  static constexpr int offset[320][7] = {
     OFFSET1(0, 0), OFFSET2(0, 1), OFFSET1(0, 2), OFFSET2(0, 3), OFFSET1(0, 4), OFFSET2(0, 5), OFFSET1(0, 6), OFFSET1(0, 7),
     OFFSET2(1, 0), OFFSET2(1, 1), OFFSET2(1, 2), OFFSET2(1, 3), OFFSET2(1, 4), OFFSET2(1, 5), OFFSET2(1, 6), OFFSET2(1, 7),
     OFFSET1(2, 0), OFFSET2(2, 1), OFFSET1(2, 2), OFFSET2(2, 3), OFFSET1(2, 4), OFFSET2(2, 5), OFFSET1(2, 6), OFFSET1(2, 7),
@@ -2004,23 +2060,6 @@ MGARDX_EXEC int const *MassTrans_X_Offset_8x8x8(SIZE i) {
 }
 
 
-MGARDX_EXEC float const *MassTrans_Y_Dist_8x8x8(SIZE i) {
-  #define DIST(Z, X) {0.0, 0.0, 1.0, 1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0, 0.5, 0.5}, {0.5, 0.5, 0.0, 0.0}
-
-  static constexpr float offset[200][4] = {
-    DIST(0, 0), DIST(0, 1), DIST(0, 2), DIST(0, 3), DIST(0, 4),
-    DIST(1, 0), DIST(1, 1), DIST(1, 2), DIST(1, 3), DIST(1, 4),
-    DIST(2, 0), DIST(2, 1), DIST(2, 2), DIST(2, 3), DIST(2, 4),
-    DIST(3, 0), DIST(3, 1), DIST(3, 2), DIST(3, 3), DIST(3, 4),
-    DIST(4, 0), DIST(4, 1), DIST(4, 2), DIST(4, 3), DIST(4, 4),
-    DIST(5, 0), DIST(5, 1), DIST(5, 2), DIST(5, 3), DIST(5, 4),
-    DIST(6, 0), DIST(6, 1), DIST(6, 2), DIST(6, 3), DIST(6, 4),
-    DIST(7, 0), DIST(7, 1), DIST(7, 2), DIST(7, 3), DIST(7, 4)
-  };
-  #undef DIST
-  return offset[i];
-}
-
 MGARDX_EXEC int const *MassTrans_Y_Offset_8x8x8(SIZE i) {
   static constexpr int zero_offset = 8*8*5 + 8*5*5 + 5*5*5;
   #define OFFSET(Z, X)                               \
@@ -2030,7 +2069,8 @@ MGARDX_EXEC int const *MassTrans_Y_Offset_8x8x8(SIZE i) {
       offset8x8x8(Z, coarse_y_8x8x8[0],   X, 5, 8),  \
       offset8x8x8(Z, coarse_y_8x8x8[0]+1, X, 5, 8),  \
       offset8x8x8(Z, coarse_y_8x8x8[0]+2, X, 5, 8),  \
-      offset8x8x8(Z, 0,                   X, 5, 5)   \
+      offset8x8x8(Z, 0,                   X, 5, 5),  \
+      0                                              \
     },                                               \
     {                                                \
       offset8x8x8(Z, coarse_y_8x8x8[1]-2, X, 5, 8),  \
@@ -2038,7 +2078,8 @@ MGARDX_EXEC int const *MassTrans_Y_Offset_8x8x8(SIZE i) {
       offset8x8x8(Z, coarse_y_8x8x8[1],   X, 5, 8),  \
       offset8x8x8(Z, coarse_y_8x8x8[1]+1, X, 5, 8),  \
       offset8x8x8(Z, coarse_y_8x8x8[1]+2, X, 5, 8),  \
-      offset8x8x8(Z, 1,                   X, 5, 5)   \
+      offset8x8x8(Z, 1,                   X, 5, 5),  \
+      1                                              \
     },                                               \
     {                                                \
       offset8x8x8(Z, coarse_y_8x8x8[2]-2, X, 5, 8),  \
@@ -2046,7 +2087,8 @@ MGARDX_EXEC int const *MassTrans_Y_Offset_8x8x8(SIZE i) {
       offset8x8x8(Z, coarse_y_8x8x8[2],   X, 5, 8),  \
       offset8x8x8(Z, coarse_y_8x8x8[2]+1, X, 5, 8),  \
       offset8x8x8(Z, coarse_y_8x8x8[2]+2, X, 5, 8),  \
-      offset8x8x8(Z, 2,                   X, 5, 5)   \
+      offset8x8x8(Z, 2,                   X, 5, 5),  \
+      2                                              \
     },                                               \
     {                                                \
       offset8x8x8(Z, coarse_y_8x8x8[3]-2, X, 5, 8),  \
@@ -2054,7 +2096,8 @@ MGARDX_EXEC int const *MassTrans_Y_Offset_8x8x8(SIZE i) {
       offset8x8x8(Z, coarse_y_8x8x8[3],   X, 5, 8),  \
       zero_offset,                                   \
       offset8x8x8(Z, coarse_y_8x8x8[3]+1, X, 5, 8),  \
-      offset8x8x8(Z, 3,                   X, 5, 5)   \
+      offset8x8x8(Z, 3,                   X, 5, 5),  \
+      3                                              \
     },                                               \
     {                                                \
       offset8x8x8(Z, coarse_y_8x8x8[4]-1, X, 5, 8),  \
@@ -2062,10 +2105,11 @@ MGARDX_EXEC int const *MassTrans_Y_Offset_8x8x8(SIZE i) {
       offset8x8x8(Z, coarse_y_8x8x8[4],   X, 5, 8),  \
       zero_offset,                                   \
       zero_offset,                                   \
-      offset8x8x8(Z, 4,                   X, 5, 5)   \
+      offset8x8x8(Z, 4,                   X, 5, 5),  \
+      4                                              \
     }
 
-  static constexpr int offset[200][6] = {
+  static constexpr int offset[200][7] = {
     OFFSET(0, 0), OFFSET(0, 1), OFFSET(0, 2), OFFSET(0, 3), OFFSET(0, 4),
     OFFSET(1, 0), OFFSET(1, 1), OFFSET(1, 2), OFFSET(1, 3), OFFSET(1, 4),
     OFFSET(2, 0), OFFSET(2, 1), OFFSET(2, 2), OFFSET(2, 3), OFFSET(2, 4),
@@ -2079,20 +2123,6 @@ MGARDX_EXEC int const *MassTrans_Y_Offset_8x8x8(SIZE i) {
   return offset[i];
 }
 
-MGARDX_EXEC float const *MassTrans_Z_Dist_8x8x8(SIZE i) {
-  #define DIST(Y, X) {0.0, 0.0, 1.0, 1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0, 1.0, 1.0}, {1.0, 1.0, 0.5, 0.5}, {0.5, 0.5, 0.0, 0.0}
-
-  static constexpr float offset[125][4] = {
-    DIST(0, 0), DIST(0, 1), DIST(0, 2), DIST(0, 3), DIST(0, 4),
-    DIST(1, 0), DIST(1, 1), DIST(1, 2), DIST(1, 3), DIST(1, 4),
-    DIST(2, 0), DIST(2, 1), DIST(2, 2), DIST(2, 3), DIST(2, 4),
-    DIST(3, 0), DIST(3, 1), DIST(3, 2), DIST(3, 3), DIST(3, 4),
-    DIST(4, 0), DIST(4, 1), DIST(4, 2), DIST(4, 3), DIST(4, 4)
-  };
-  #undef DIST
-  return offset[i];
-}
-
 MGARDX_EXEC int const *MassTrans_Z_Offset_8x8x8(SIZE i) {
   static constexpr int zero_offset = 8*5*5 + 5*5*5;
   #define OFFSET(Y, X)                               \
@@ -2102,7 +2132,8 @@ MGARDX_EXEC int const *MassTrans_Z_Offset_8x8x8(SIZE i) {
       offset8x8x8(coarse_z_8x8x8[0],   Y, X, 5, 5),  \
       offset8x8x8(coarse_z_8x8x8[0]+1, Y, X, 5, 5),  \
       offset8x8x8(coarse_z_8x8x8[0]+2, Y, X, 5, 5),  \
-      offset8x8x8(0,                   Y, X, 5, 5)   \
+      offset8x8x8(0,                   Y, X, 5, 5),  \
+      0                                              \
     },                                               \
     {                                                \
       offset8x8x8(coarse_z_8x8x8[1]-2, Y, X, 5, 5),  \
@@ -2110,7 +2141,8 @@ MGARDX_EXEC int const *MassTrans_Z_Offset_8x8x8(SIZE i) {
       offset8x8x8(coarse_z_8x8x8[1],   Y, X, 5, 5),  \
       offset8x8x8(coarse_z_8x8x8[1]+1, Y, X, 5, 5),  \
       offset8x8x8(coarse_z_8x8x8[1]+2, Y, X, 5, 5),  \
-      offset8x8x8(1,                   Y, X, 5, 5)   \
+      offset8x8x8(1,                   Y, X, 5, 5),  \
+      1                                              \
     },                                               \
     {                                                \
       offset8x8x8(coarse_z_8x8x8[2]-2, Y, X, 5, 5),  \
@@ -2118,7 +2150,8 @@ MGARDX_EXEC int const *MassTrans_Z_Offset_8x8x8(SIZE i) {
       offset8x8x8(coarse_z_8x8x8[2],   Y, X, 5, 5),  \
       offset8x8x8(coarse_z_8x8x8[2]+1, Y, X, 5, 5),  \
       offset8x8x8(coarse_z_8x8x8[2]+2, Y, X, 5, 5),  \
-      offset8x8x8(2                ,   Y, X, 5, 5)   \
+      offset8x8x8(2                ,   Y, X, 5, 5),  \
+      2                                              \
     },                                               \
     {                                                \
       offset8x8x8(coarse_z_8x8x8[3]-2, Y, X, 5, 5),  \
@@ -2126,7 +2159,8 @@ MGARDX_EXEC int const *MassTrans_Z_Offset_8x8x8(SIZE i) {
       offset8x8x8(coarse_z_8x8x8[3],   Y, X, 5, 5),  \
       zero_offset,                                   \
       offset8x8x8(coarse_z_8x8x8[3]+1, Y, X, 5, 5),  \
-      offset8x8x8(3,                   Y, X, 5, 5)   \
+      offset8x8x8(3,                   Y, X, 5, 5),  \
+      3                                              \
     },                                               \
     {                                                \
       offset8x8x8(coarse_z_8x8x8[4]-1, Y, X, 5, 5),  \
@@ -2134,10 +2168,11 @@ MGARDX_EXEC int const *MassTrans_Z_Offset_8x8x8(SIZE i) {
       offset8x8x8(coarse_z_8x8x8[4],   Y, X, 5, 5),  \
       zero_offset,                                   \
       zero_offset,                                   \
-      offset8x8x8(4,                   Y, X, 5, 5)  \
+      offset8x8x8(4,                   Y, X, 5, 5),  \
+      4                                              \
     }
 
-  static constexpr int offset[125][6] = {
+  static constexpr int offset[125][7] = {
     OFFSET(0, 0), OFFSET(0, 1), OFFSET(0, 2), OFFSET(0, 3), OFFSET(0, 4),
     OFFSET(1, 0), OFFSET(1, 1), OFFSET(1, 2), OFFSET(1, 3), OFFSET(1, 4),
     OFFSET(2, 0), OFFSET(2, 1), OFFSET(2, 2), OFFSET(2, 3), OFFSET(2, 4),
@@ -2147,6 +2182,66 @@ MGARDX_EXEC int const *MassTrans_Z_Offset_8x8x8(SIZE i) {
   #undef OFFSET
   return offset[i];
 }
+
+template <typename T>
+constexpr T am_8x8x8(int index) {
+  T h_dist[4] = {2.0, 2.0, 2.0, 1.0};
+  T am[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  T bm[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  bm[0] = 2 * h_dist[0] / 6;
+  am[0] = 0.0;
+  SIZE dof = 5;
+  for (int i = 1; i < dof - 1; i++) {
+    T a_j = h_dist[i - 1] / 6;
+    T w = a_j / bm[i - 1];
+    bm[i] = 2 * (h_dist[i - 1] + h_dist[i]) / 6 - w * a_j;
+    am[i] = a_j;
+  }
+  T a_j = h_dist[dof - 2] / 6;
+  T w = a_j / bm[dof - 2];
+  bm[dof - 1] = 2 * h_dist[dof - 2] / 6 - w * a_j;
+  am[dof - 1] = a_j;
+
+  am[dof] = 0.0;
+  for (int i = dof; i >= 1; i--) {
+    bm[i] = bm[i-1];
+  }
+  bm[0] = 1.0;
+  return am[index] * -1;
+}
+
+template <typename T>
+constexpr T bm_8x8x8(int index) {
+  T h_dist[4] = {2.0, 2.0, 2.0, 1.0};
+  T am[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  T bm[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  bm[0] = 2 * h_dist[0] / 6;
+  am[0] = 0.0;
+  SIZE dof = 5;
+  for (int i = 1; i < dof - 1; i++) {
+    T a_j = h_dist[i - 1] / 6;
+    T w = a_j / bm[i - 1];
+    bm[i] = 2 * (h_dist[i - 1] + h_dist[i]) / 6 - w * a_j;
+    am[i] = a_j;
+  }
+  T a_j = h_dist[dof - 2] / 6;
+  T w = a_j / bm[dof - 2];
+  bm[dof - 1] = 2 * h_dist[dof - 2] / 6 - w * a_j;
+  am[dof - 1] = a_j;
+
+  am[dof] = 0.0;
+  for (int i = dof; i >= 1; i--) {
+    bm[i] = bm[i-1];
+  }
+  bm[0] = 1.0;
+  return 1.0 / bm[index];
+}
+
+template <typename T>
+constexpr T amxbm_8x8x8(int index) {
+  return am_8x8x8<T>(index) * bm_8x8x8<T>(index);
+}
+
 
 MGARDX_EXEC int const *TriDiag_X_Offset_8x8x8(SIZE i) {
   static constexpr int offset[25][5] = {
@@ -2285,6 +2380,119 @@ MGARDX_EXEC int Coarse_Offset_8x8x8(SIZE i) {
     offset8x8x8(7, 4, 0, 8, 8), offset8x8x8(7, 4, 2, 8, 8), offset8x8x8(7, 4, 4, 8, 8), offset8x8x8(7, 4, 6, 8, 8), offset8x8x8(7, 4, 7, 8, 8),
     offset8x8x8(7, 6, 0, 8, 8), offset8x8x8(7, 6, 2, 8, 8), offset8x8x8(7, 6, 4, 8, 8), offset8x8x8(7, 6, 6, 8, 8), offset8x8x8(7, 6, 7, 8, 8),
     offset8x8x8(7, 7, 0, 8, 8), offset8x8x8(7, 7, 2, 8, 8), offset8x8x8(7, 7, 4, 8, 8), offset8x8x8(7, 7, 6, 8, 8), offset8x8x8(7, 7, 7, 8, 8)
+  };
+  return offset[i];
+}
+
+MGARDX_EXEC int const * Coarse_Reorder_8x8x8(SIZE i) {
+  static constexpr int offset[125][3] = {
+    {0, 0, 0}, {0, 0, 1}, {0, 0, 2}, {0, 0, 3}, {0, 0, 4},
+    {0, 1, 0}, {0, 1, 1}, {0, 1, 2}, {0, 1, 3}, {0, 1, 4},
+    {0, 2, 0}, {0, 2, 1}, {0, 2, 2}, {0, 2, 3}, {0, 2, 4},
+    {0, 3, 0}, {0, 3, 1}, {0, 3, 2}, {0, 3, 3}, {0, 3, 4},
+    {0, 4, 0}, {0, 4, 1}, {0, 4, 2}, {0, 4, 3}, {0, 4, 4},
+
+    {1, 0, 0}, {1, 0, 1}, {1, 0, 2}, {1, 0, 3}, {1, 0, 4},
+    {1, 1, 0}, {1, 1, 1}, {1, 1, 2}, {1, 1, 3}, {1, 1, 4},
+    {1, 2, 0}, {1, 2, 1}, {1, 2, 2}, {1, 2, 3}, {1, 2, 4},
+    {1, 3, 0}, {1, 3, 1}, {1, 3, 2}, {1, 3, 3}, {1, 3, 4},
+    {1, 4, 0}, {1, 4, 1}, {1, 4, 2}, {1, 4, 3}, {1, 4, 4},
+
+    {2, 0, 0}, {2, 0, 1}, {2, 0, 2}, {2, 0, 3}, {2, 0, 4},
+    {2, 1, 0}, {2, 1, 1}, {2, 1, 2}, {2, 1, 3}, {2, 1, 4},
+    {2, 2, 0}, {2, 2, 1}, {2, 2, 2}, {2, 2, 3}, {2, 2, 4},
+    {2, 3, 0}, {2, 3, 1}, {2, 3, 2}, {2, 3, 3}, {2, 3, 4},
+    {2, 4, 0}, {2, 4, 1}, {2, 4, 2}, {2, 4, 3}, {2, 4, 4},
+
+    {3, 0, 0}, {3, 0, 1}, {3, 0, 2}, {3, 0, 3}, {3, 0, 4},
+    {3, 1, 0}, {3, 1, 1}, {3, 1, 2}, {3, 1, 3}, {3, 1, 4},
+    {3, 2, 0}, {3, 2, 1}, {3, 2, 2}, {3, 2, 3}, {3, 2, 4},
+    {3, 3, 0}, {3, 3, 1}, {3, 3, 2}, {3, 3, 3}, {3, 3, 4},
+    {3, 4, 0}, {3, 4, 1}, {3, 4, 2}, {3, 4, 3}, {3, 4, 4},
+
+    {4, 0, 0}, {4, 0, 1}, {4, 0, 2}, {4, 0, 3}, {4, 0, 4},
+    {4, 1, 0}, {4, 1, 1}, {4, 1, 2}, {4, 1, 3}, {4, 1, 4},
+    {4, 2, 0}, {4, 2, 1}, {4, 2, 2}, {4, 2, 3}, {4, 2, 4},
+    {4, 3, 0}, {4, 3, 1}, {4, 3, 2}, {4, 3, 3}, {4, 3, 4},
+    {4, 4, 0}, {4, 4, 1}, {4, 4, 2}, {4, 4, 3}, {4, 4, 4}
+  };
+  return offset[i];
+}
+
+
+MGARDX_EXEC int Coeff_Offset_8x8x8(SIZE i) {
+  static constexpr int offset[387] = {
+    offset8x8x8(0, 0, 1, 8, 8), offset8x8x8(0, 0, 3, 8, 8), offset8x8x8(0, 0, 5, 8, 8), 
+    offset8x8x8(0, 1, 0, 8, 8), offset8x8x8(0, 1, 1, 8, 8), offset8x8x8(0, 1, 2, 8, 8), offset8x8x8(0, 1, 3, 8, 8), offset8x8x8(0, 1, 4, 8, 8),
+    offset8x8x8(0, 2, 1, 8, 8), offset8x8x8(0, 2, 3, 8, 8), offset8x8x8(0, 2, 5, 8, 8), 
+    offset8x8x8(0, 3, 0, 8, 8), offset8x8x8(0, 3, 1, 8, 8), offset8x8x8(0, 3, 2, 8, 8), offset8x8x8(0, 3, 3, 8, 8), offset8x8x8(0, 3, 4, 8, 8),
+    offset8x8x8(0, 4, 1, 8, 8), offset8x8x8(0, 4, 3, 8, 8), offset8x8x8(0, 4, 5, 8, 8), 
+    offset8x8x8(0, 5, 0, 8, 8), offset8x8x8(0, 5, 1, 8, 8), offset8x8x8(0, 5, 2, 8, 8), offset8x8x8(0, 5, 3, 8, 8), offset8x8x8(0, 5, 4, 8, 8),
+    offset8x8x8(0, 6, 1, 8, 8), offset8x8x8(0, 6, 3, 8, 8), offset8x8x8(0, 6, 5, 8, 8), 
+    offset8x8x8(0, 7, 1, 8, 8), offset8x8x8(0, 7, 3, 8, 8), offset8x8x8(0, 7, 5, 8, 8), 
+
+    offset8x8x8(1, 0, 0, 8, 8), offset8x8x8(1, 0, 1, 8, 8), offset8x8x8(1, 0, 2, 8, 8), offset8x8x8(1, 0, 3, 8, 8), offset8x8x8(1, 0, 4, 8, 8), offset8x8x8(1, 0, 5, 8, 8), offset8x8x8(1, 0, 6, 8, 8), offset8x8x8(1, 0, 7, 8, 8),
+    offset8x8x8(1, 1, 0, 8, 8), offset8x8x8(1, 1, 1, 8, 8), offset8x8x8(1, 1, 2, 8, 8), offset8x8x8(1, 1, 3, 8, 8), offset8x8x8(1, 1, 4, 8, 8), offset8x8x8(1, 1, 5, 8, 8), offset8x8x8(1, 1, 6, 8, 8), offset8x8x8(1, 1, 7, 8, 8),
+    offset8x8x8(1, 2, 0, 8, 8), offset8x8x8(1, 2, 1, 8, 8), offset8x8x8(1, 2, 2, 8, 8), offset8x8x8(1, 2, 3, 8, 8), offset8x8x8(1, 2, 4, 8, 8), offset8x8x8(1, 2, 5, 8, 8), offset8x8x8(1, 2, 6, 8, 8), offset8x8x8(1, 2, 7, 8, 8),
+    offset8x8x8(1, 3, 0, 8, 8), offset8x8x8(1, 3, 1, 8, 8), offset8x8x8(1, 3, 2, 8, 8), offset8x8x8(1, 3, 3, 8, 8), offset8x8x8(1, 3, 4, 8, 8), offset8x8x8(1, 3, 5, 8, 8), offset8x8x8(1, 3, 6, 8, 8), offset8x8x8(1, 3, 7, 8, 8),
+    offset8x8x8(1, 4, 0, 8, 8), offset8x8x8(1, 4, 1, 8, 8), offset8x8x8(1, 4, 2, 8, 8), offset8x8x8(1, 4, 3, 8, 8), offset8x8x8(1, 4, 4, 8, 8), offset8x8x8(1, 4, 5, 8, 8), offset8x8x8(1, 4, 6, 8, 8), offset8x8x8(1, 4, 7, 8, 8),
+    offset8x8x8(1, 5, 0, 8, 8), offset8x8x8(1, 5, 1, 8, 8), offset8x8x8(1, 5, 2, 8, 8), offset8x8x8(1, 5, 3, 8, 8), offset8x8x8(1, 5, 4, 8, 8), offset8x8x8(1, 5, 5, 8, 8), offset8x8x8(1, 5, 6, 8, 8), offset8x8x8(1, 5, 7, 8, 8),
+    offset8x8x8(1, 6, 0, 8, 8), offset8x8x8(1, 6, 1, 8, 8), offset8x8x8(1, 6, 2, 8, 8), offset8x8x8(1, 6, 3, 8, 8), offset8x8x8(1, 6, 4, 8, 8), offset8x8x8(1, 6, 5, 8, 8), offset8x8x8(1, 6, 6, 8, 8), offset8x8x8(1, 6, 7, 8, 8),
+    offset8x8x8(1, 7, 0, 8, 8), offset8x8x8(1, 7, 1, 8, 8), offset8x8x8(1, 7, 2, 8, 8), offset8x8x8(1, 7, 3, 8, 8), offset8x8x8(1, 7, 4, 8, 8), offset8x8x8(1, 7, 5, 8, 8), offset8x8x8(1, 7, 6, 8, 8), offset8x8x8(1, 7, 7, 8, 8),
+
+    offset8x8x8(2, 0, 1, 8, 8), offset8x8x8(2, 0, 3, 8, 8), offset8x8x8(2, 0, 5, 8, 8), 
+    offset8x8x8(2, 1, 0, 8, 8), offset8x8x8(2, 1, 1, 8, 8), offset8x8x8(2, 1, 2, 8, 8), offset8x8x8(2, 1, 3, 8, 8), offset8x8x8(2, 1, 4, 8, 8),
+    offset8x8x8(2, 2, 1, 8, 8), offset8x8x8(2, 2, 3, 8, 8), offset8x8x8(2, 2, 5, 8, 8), 
+    offset8x8x8(2, 3, 0, 8, 8), offset8x8x8(2, 3, 1, 8, 8), offset8x8x8(2, 3, 2, 8, 8), offset8x8x8(2, 3, 3, 8, 8), offset8x8x8(2, 3, 4, 8, 8),
+    offset8x8x8(2, 4, 1, 8, 8), offset8x8x8(2, 4, 3, 8, 8), offset8x8x8(2, 4, 5, 8, 8), 
+    offset8x8x8(2, 5, 0, 8, 8), offset8x8x8(2, 5, 1, 8, 8), offset8x8x8(2, 5, 2, 8, 8), offset8x8x8(2, 5, 3, 8, 8), offset8x8x8(2, 5, 4, 8, 8),
+    offset8x8x8(2, 6, 1, 8, 8), offset8x8x8(2, 6, 3, 8, 8), offset8x8x8(2, 6, 5, 8, 8), 
+    offset8x8x8(2, 7, 1, 8, 8), offset8x8x8(2, 7, 3, 8, 8), offset8x8x8(2, 7, 5, 8, 8), 
+
+    offset8x8x8(3, 0, 0, 8, 8), offset8x8x8(3, 0, 1, 8, 8), offset8x8x8(3, 0, 2, 8, 8), offset8x8x8(3, 0, 3, 8, 8), offset8x8x8(3, 0, 4, 8, 8), offset8x8x8(3, 0, 5, 8, 8), offset8x8x8(3, 0, 6, 8, 8), offset8x8x8(3, 0, 7, 8, 8),
+    offset8x8x8(3, 1, 0, 8, 8), offset8x8x8(3, 1, 1, 8, 8), offset8x8x8(3, 1, 2, 8, 8), offset8x8x8(3, 1, 3, 8, 8), offset8x8x8(3, 1, 4, 8, 8), offset8x8x8(3, 1, 5, 8, 8), offset8x8x8(3, 1, 6, 8, 8), offset8x8x8(3, 1, 7, 8, 8),
+    offset8x8x8(3, 2, 0, 8, 8), offset8x8x8(3, 2, 1, 8, 8), offset8x8x8(3, 2, 2, 8, 8), offset8x8x8(3, 2, 3, 8, 8), offset8x8x8(3, 2, 4, 8, 8), offset8x8x8(3, 2, 5, 8, 8), offset8x8x8(3, 2, 6, 8, 8), offset8x8x8(3, 2, 7, 8, 8),
+    offset8x8x8(3, 3, 0, 8, 8), offset8x8x8(3, 3, 1, 8, 8), offset8x8x8(3, 3, 2, 8, 8), offset8x8x8(3, 3, 3, 8, 8), offset8x8x8(3, 3, 4, 8, 8), offset8x8x8(3, 3, 5, 8, 8), offset8x8x8(3, 3, 6, 8, 8), offset8x8x8(3, 3, 7, 8, 8),
+    offset8x8x8(3, 4, 0, 8, 8), offset8x8x8(3, 4, 1, 8, 8), offset8x8x8(3, 4, 2, 8, 8), offset8x8x8(3, 4, 3, 8, 8), offset8x8x8(3, 4, 4, 8, 8), offset8x8x8(3, 4, 5, 8, 8), offset8x8x8(3, 4, 6, 8, 8), offset8x8x8(3, 4, 7, 8, 8),
+    offset8x8x8(3, 5, 0, 8, 8), offset8x8x8(3, 5, 1, 8, 8), offset8x8x8(3, 5, 2, 8, 8), offset8x8x8(3, 5, 3, 8, 8), offset8x8x8(3, 5, 4, 8, 8), offset8x8x8(3, 5, 5, 8, 8), offset8x8x8(3, 5, 6, 8, 8), offset8x8x8(3, 5, 7, 8, 8),
+    offset8x8x8(3, 6, 0, 8, 8), offset8x8x8(3, 6, 1, 8, 8), offset8x8x8(3, 6, 2, 8, 8), offset8x8x8(3, 6, 3, 8, 8), offset8x8x8(3, 6, 4, 8, 8), offset8x8x8(3, 6, 5, 8, 8), offset8x8x8(3, 6, 6, 8, 8), offset8x8x8(3, 6, 7, 8, 8),
+    offset8x8x8(3, 7, 0, 8, 8), offset8x8x8(3, 7, 1, 8, 8), offset8x8x8(3, 7, 2, 8, 8), offset8x8x8(3, 7, 3, 8, 8), offset8x8x8(3, 7, 4, 8, 8), offset8x8x8(3, 7, 5, 8, 8), offset8x8x8(3, 7, 6, 8, 8), offset8x8x8(3, 7, 7, 8, 8),
+
+    offset8x8x8(4, 0, 1, 8, 8), offset8x8x8(4, 0, 3, 8, 8), offset8x8x8(4, 0, 5, 8, 8), 
+    offset8x8x8(4, 1, 0, 8, 8), offset8x8x8(4, 1, 1, 8, 8), offset8x8x8(4, 1, 2, 8, 8), offset8x8x8(4, 1, 3, 8, 8), offset8x8x8(4, 1, 4, 8, 8),
+    offset8x8x8(4, 2, 1, 8, 8), offset8x8x8(4, 2, 3, 8, 8), offset8x8x8(4, 2, 5, 8, 8), 
+    offset8x8x8(4, 3, 0, 8, 8), offset8x8x8(4, 3, 1, 8, 8), offset8x8x8(4, 3, 2, 8, 8), offset8x8x8(4, 3, 3, 8, 8), offset8x8x8(4, 3, 4, 8, 8),
+    offset8x8x8(4, 4, 1, 8, 8), offset8x8x8(4, 4, 3, 8, 8), offset8x8x8(4, 4, 5, 8, 8), 
+    offset8x8x8(4, 5, 0, 8, 8), offset8x8x8(4, 5, 1, 8, 8), offset8x8x8(4, 5, 2, 8, 8), offset8x8x8(4, 5, 3, 8, 8), offset8x8x8(4, 5, 4, 8, 8),
+    offset8x8x8(4, 6, 1, 8, 8), offset8x8x8(4, 6, 3, 8, 8), offset8x8x8(4, 6, 5, 8, 8), 
+    offset8x8x8(4, 7, 1, 8, 8), offset8x8x8(4, 7, 3, 8, 8), offset8x8x8(4, 7, 5, 8, 8), 
+
+    offset8x8x8(5, 0, 0, 8, 8), offset8x8x8(5, 0, 1, 8, 8), offset8x8x8(5, 0, 2, 8, 8), offset8x8x8(5, 0, 3, 8, 8), offset8x8x8(5, 0, 4, 8, 8), offset8x8x8(5, 0, 5, 8, 8), offset8x8x8(5, 0, 6, 8, 8), offset8x8x8(5, 0, 7, 8, 8),
+    offset8x8x8(5, 1, 0, 8, 8), offset8x8x8(5, 1, 1, 8, 8), offset8x8x8(5, 1, 2, 8, 8), offset8x8x8(5, 1, 3, 8, 8), offset8x8x8(5, 1, 4, 8, 8), offset8x8x8(5, 1, 5, 8, 8), offset8x8x8(5, 1, 6, 8, 8), offset8x8x8(5, 1, 7, 8, 8),
+    offset8x8x8(5, 2, 0, 8, 8), offset8x8x8(5, 2, 1, 8, 8), offset8x8x8(5, 2, 2, 8, 8), offset8x8x8(5, 2, 3, 8, 8), offset8x8x8(5, 2, 4, 8, 8), offset8x8x8(5, 2, 5, 8, 8), offset8x8x8(5, 2, 6, 8, 8), offset8x8x8(5, 2, 7, 8, 8),
+    offset8x8x8(5, 3, 0, 8, 8), offset8x8x8(5, 3, 1, 8, 8), offset8x8x8(5, 3, 2, 8, 8), offset8x8x8(5, 3, 3, 8, 8), offset8x8x8(5, 3, 4, 8, 8), offset8x8x8(5, 3, 5, 8, 8), offset8x8x8(5, 3, 6, 8, 8), offset8x8x8(5, 3, 7, 8, 8),
+    offset8x8x8(5, 4, 0, 8, 8), offset8x8x8(5, 4, 1, 8, 8), offset8x8x8(5, 4, 2, 8, 8), offset8x8x8(5, 4, 3, 8, 8), offset8x8x8(5, 4, 4, 8, 8), offset8x8x8(5, 4, 5, 8, 8), offset8x8x8(5, 4, 6, 8, 8), offset8x8x8(5, 4, 7, 8, 8),
+    offset8x8x8(5, 5, 0, 8, 8), offset8x8x8(5, 5, 1, 8, 8), offset8x8x8(5, 5, 2, 8, 8), offset8x8x8(5, 5, 3, 8, 8), offset8x8x8(5, 5, 4, 8, 8), offset8x8x8(5, 5, 5, 8, 8), offset8x8x8(5, 5, 6, 8, 8), offset8x8x8(5, 5, 7, 8, 8),
+    offset8x8x8(5, 6, 0, 8, 8), offset8x8x8(5, 6, 1, 8, 8), offset8x8x8(5, 6, 2, 8, 8), offset8x8x8(5, 6, 3, 8, 8), offset8x8x8(5, 6, 4, 8, 8), offset8x8x8(5, 6, 5, 8, 8), offset8x8x8(5, 6, 6, 8, 8), offset8x8x8(5, 6, 7, 8, 8),
+    offset8x8x8(5, 7, 0, 8, 8), offset8x8x8(5, 7, 1, 8, 8), offset8x8x8(5, 7, 2, 8, 8), offset8x8x8(5, 7, 3, 8, 8), offset8x8x8(5, 7, 4, 8, 8), offset8x8x8(5, 7, 5, 8, 8), offset8x8x8(5, 7, 6, 8, 8), offset8x8x8(5, 7, 7, 8, 8),
+
+    offset8x8x8(6, 0, 1, 8, 8), offset8x8x8(6, 0, 3, 8, 8), offset8x8x8(6, 0, 5, 8, 8), 
+    offset8x8x8(6, 1, 0, 8, 8), offset8x8x8(6, 1, 1, 8, 8), offset8x8x8(6, 1, 2, 8, 8), offset8x8x8(6, 1, 3, 8, 8), offset8x8x8(6, 1, 4, 8, 8),
+    offset8x8x8(6, 2, 1, 8, 8), offset8x8x8(6, 2, 3, 8, 8), offset8x8x8(6, 2, 5, 8, 8), 
+    offset8x8x8(6, 3, 0, 8, 8), offset8x8x8(6, 3, 1, 8, 8), offset8x8x8(6, 3, 2, 8, 8), offset8x8x8(6, 3, 3, 8, 8), offset8x8x8(6, 3, 4, 8, 8),
+    offset8x8x8(6, 4, 1, 8, 8), offset8x8x8(6, 4, 3, 8, 8), offset8x8x8(6, 4, 5, 8, 8), 
+    offset8x8x8(6, 5, 0, 8, 8), offset8x8x8(6, 5, 1, 8, 8), offset8x8x8(6, 5, 2, 8, 8), offset8x8x8(6, 5, 3, 8, 8), offset8x8x8(6, 5, 4, 8, 8),
+    offset8x8x8(6, 6, 1, 8, 8), offset8x8x8(6, 6, 3, 8, 8), offset8x8x8(6, 6, 5, 8, 8), 
+    offset8x8x8(6, 7, 1, 8, 8), offset8x8x8(6, 7, 3, 8, 8), offset8x8x8(6, 7, 5, 8, 8), 
+
+    offset8x8x8(7, 0, 1, 8, 8), offset8x8x8(7, 0, 3, 8, 8), offset8x8x8(7, 0, 5, 8, 8), 
+    offset8x8x8(7, 1, 0, 8, 8), offset8x8x8(7, 1, 1, 8, 8), offset8x8x8(7, 1, 2, 8, 8), offset8x8x8(7, 1, 3, 8, 8), offset8x8x8(7, 1, 4, 8, 8),
+    offset8x8x8(7, 2, 1, 8, 8), offset8x8x8(7, 2, 3, 8, 8), offset8x8x8(7, 2, 5, 8, 8), 
+    offset8x8x8(7, 3, 0, 8, 8), offset8x8x8(7, 3, 1, 8, 8), offset8x8x8(7, 3, 2, 8, 8), offset8x8x8(7, 3, 3, 8, 8), offset8x8x8(7, 3, 4, 8, 8),
+    offset8x8x8(7, 4, 1, 8, 8), offset8x8x8(7, 4, 3, 8, 8), offset8x8x8(7, 4, 5, 8, 8), 
+    offset8x8x8(7, 5, 0, 8, 8), offset8x8x8(7, 5, 1, 8, 8), offset8x8x8(7, 5, 2, 8, 8), offset8x8x8(7, 5, 3, 8, 8), offset8x8x8(7, 5, 4, 8, 8),
+    offset8x8x8(7, 6, 1, 8, 8), offset8x8x8(7, 6, 3, 8, 8), offset8x8x8(7, 6, 5, 8, 8), 
+    offset8x8x8(7, 7, 1, 8, 8), offset8x8x8(7, 7, 3, 8, 8), offset8x8x8(7, 7, 5, 8, 8)
   };
   return offset[i];
 }
