@@ -45,7 +45,10 @@ template <DIM D, typename T, SIZE Z, SIZE Y, SIZE X, OPTION OP,
 class DataRefactoringFunctor : public Functor<DeviceType> {
 public:
   MGARDX_CONT DataRefactoringFunctor() {}
-  MGARDX_CONT DataRefactoringFunctor(SubArray<D, T, DeviceType> v) : v(v) {
+  MGARDX_CONT DataRefactoringFunctor(SubArray<D, T, DeviceType> v,
+                                     SubArray<D, T, DeviceType> coarse,
+                                     SubArray<1, T, DeviceType> coeff)
+      : v(v), coarse(coarse), coeff(coeff) {
     Functor<DeviceType>();
   }
 
@@ -80,26 +83,38 @@ public:
     sm_c2 = sm_c3 + 3 * 3 * 3;
   }
 
+  // Interpolation
   MGARDX_EXEC void Operation1() {
     initialize_sm_8x8x8();
     x = FunctorBase<DeviceType>::GetThreadIdX();
     y = FunctorBase<DeviceType>::GetThreadIdY();
     z = FunctorBase<DeviceType>::GetThreadIdZ();
-    x_gl = FunctorBase<DeviceType>::GetBlockDimX() *
-               FunctorBase<DeviceType>::GetBlockIdX() +
-           x;
-    y_gl = FunctorBase<DeviceType>::GetBlockDimY() *
-               FunctorBase<DeviceType>::GetBlockIdY() +
-           y;
-    z_gl = FunctorBase<DeviceType>::GetBlockDimZ() *
-               FunctorBase<DeviceType>::GetBlockIdZ() +
-           z;
+    x_tb = FunctorBase<DeviceType>::GetBlockIdX();
+    y_tb = FunctorBase<DeviceType>::GetBlockIdY();
+    z_tb = FunctorBase<DeviceType>::GetBlockIdZ();
+    x_gl = X * x_tb + x;
+    y_gl = Y * y_tb + y;
+    z_gl = Z * z_tb + z;
+
     tid = z * X * Y + y * X + x;
+    bid = z_tb * FunctorBase<DeviceType>::GetGridDimX() *
+              FunctorBase<DeviceType>::GetGridDimY() +
+          y_tb * FunctorBase<DeviceType>::GetGridDimX() + x_tb;
     if (z == 0 && y == 0 && x == 0)
       sm_v[zero_const_offset] = (T)0;
 
     offset = get_idx(ld1, ld2, z, y, x);
-    sm_v[offset] = *v(z_gl, y_gl, x_gl);
+    sm_v[offset] = 0.0;
+    // Removing this check can speed up
+    if (z_gl < v.shape(D - 3) && y_gl < v.shape(D - 2) &&
+        x_gl < v.shape(D - 1)) {
+      sm_v[offset] = *v(z_gl, y_gl, x_gl);
+    }
+
+    // #ifdef MGARDX_COMPILE_CUDA
+    // start = clock();
+    // #endif
+
     op_tid = tid;
     if (tid < 225) {
       left = sm_v[Coeff1D_L_Offset_8x8x8(op_tid)];
@@ -133,8 +148,383 @@ public:
     }
   }
 
+  // MassTransX
   MGARDX_EXEC void Operation2() {
 
+    // #ifdef MGARDX_COMPILE_CUDA
+    // __syncthreads();
+    // if (tid == 0) {
+    //   printf("int\n");
+    //   for (int i = 0; i < 8; i++) {
+    //     printf("sm[i = %d]\n", i);
+    //     for (int j = 0; j < 8; j++) {
+    //       for (int k = 0; k < 8; k++) {
+    //         printf("%.6f ", sm_v[get_idx(8, 8, i, j, k)]);
+    //       }
+    //       printf("\n");
+    //     }
+    //     printf("\n");
+    //   }
+    // }
+    // __syncthreads();
+    // #endif
+
+    if (tid < 320) {
+      int const *index = MassTrans_X_Offset_8x8x8(tid);
+      T a = sm_v[index[0]];
+      T b = sm_v[index[1]];
+      T c = sm_v[index[2]];
+      T d = sm_v[index[3]];
+      T e = sm_v[index[4]];
+      T const *dist = MassTrans_Weights_8x8x8<T>(index[6]);
+      sm_x[index[5]] =
+          a * dist[0] + b * dist[1] + c * dist[2] + d * dist[3] + e * dist[4];
+      // if (tid == 0) {
+      //   printf("%f %f %f %f %f\n", a, b, c, d, e);
+      //   printf("%f %f %f %f %f\n", dist[0], dist[1], dist[2], dist[3],
+      //   dist[4]);
+      // }
+      // sm_x[index[5]] = mass_trans(a, b, c, d, e, (T)1.0, (T)1.0, (T)1.0,
+      // (T)1.0, (T)0.5, (T)0.5,
+      //                             (T)0.5, (T)0.5);
+    }
+
+    // #ifdef MGARDX_COMPILE_CUDA
+    // __syncthreads();
+    // if (tid == 5) {
+    //   printf("tra - x\n");
+    //   for (int i = 0; i < 8; i++) {
+    //     printf("sm[i = %d]\n", i);
+    //     for (int j = 0; j < 8; j++) {
+    //       for (int k = 0; k < 5; k++) {
+    //         printf("%.6f ", sm_x[get_idx(5, 8, i, j, k)]);
+    //       }
+    //       printf("\n");
+    //     }
+    //     printf("\n");
+    //   }
+    // }
+    // __syncthreads();
+    // #endif
+  }
+
+  // MassTransY
+  MGARDX_EXEC void Operation3() {
+    if (tid < 200) {
+      int const *index = MassTrans_Y_Offset_8x8x8(tid);
+      T a = sm_x[index[0]];
+      T b = sm_x[index[1]];
+      T c = sm_x[index[2]];
+      T d = sm_x[index[3]];
+      T e = sm_x[index[4]];
+      T const *dist = MassTrans_Weights_8x8x8<T>(index[6]);
+      sm_y[index[5]] =
+          a * dist[0] + b * dist[1] + c * dist[2] + d * dist[3] + e * dist[4];
+      // sm_y[index[5]] = mass_trans(a, b, c, d, e, (T)1.0, (T)1.0, (T)1.0,
+      // (T)1.0, (T)0.5, (T)0.5,
+      //                             (T)0.5, (T)0.5);
+    }
+
+    // #ifdef MGARDX_COMPILE_CUDA
+    // __syncthreads();
+    // if (tid == 0) {
+    //   printf("tra - y\n");
+    //   for (int i = 0; i < 8; i++) {
+    //     printf("sm[i = %d]\n", i);
+    //     for (int j = 0; j < 5; j++) {
+    //       for (int k = 0; k < 5; k++) {
+    //         printf("%.6f ", sm_y[get_idx(5, 5, i, j, k)]);
+    //       }
+    //       printf("\n");
+    //     }
+    //     printf("\n");
+    //   }
+    // }
+    // __syncthreads();
+    // #endif
+  }
+
+  // MassTransZ
+  MGARDX_EXEC void Operation4() {
+    if (tid < 125) {
+      int const *index = MassTrans_Z_Offset_8x8x8(tid);
+      T a = sm_y[index[0]];
+      T b = sm_y[index[1]];
+      T c = sm_y[index[2]];
+      T d = sm_y[index[3]];
+      T e = sm_y[index[4]];
+      T const *dist = MassTrans_Weights_8x8x8<T>(index[6]);
+      sm_z[index[5]] =
+          a * dist[0] + b * dist[1] + c * dist[2] + d * dist[3] + e * dist[4];
+      // sm_z[index[5]] = mass_trans(a, b, c, d, e, (T)1.0, (T)1.0, (T)1.0,
+      // (T)1.0, (T)0.5, (T)0.5,
+      //                             (T)0.5, (T)0.5);
+    }
+
+    // #ifdef MGARDX_COMPILE_CUDA
+    // __syncthreads();
+    // if (tid == 0) {
+    //   printf("tra - z\n");
+    //   for (int i = 0; i < 5; i++) {
+    //     printf("sm[i = %d]\n", i);
+    //     for (int j = 0; j < 5; j++) {
+    //       for (int k = 0; k < 5; k++) {
+    //         printf("%.6f ", sm_z[get_idx(5, 5, i, j, k)]);
+    //       }
+    //       printf("\n");
+    //     }
+    //     printf("\n");
+    //   }
+    // }
+    // __syncthreads();
+    // #endif
+  }
+
+  // TriadiagX
+  MGARDX_EXEC void Operation5() {
+    if (tid < 25) {
+      int const *index = TriDiag_X_Offset_8x8x8(tid);
+      T a = sm_z[index[0]];
+      T b = sm_z[index[1]];
+      T c = sm_z[index[2]];
+      T d = sm_z[index[3]];
+      T e = sm_z[index[4]];
+
+      // if (tid == 0) {
+      //   printf("%f %f %f %f %f %f\n",
+      //           am_8x8x8<T>(0),
+      //           am_8x8x8<T>(1),
+      //           am_8x8x8<T>(2),
+      //           am_8x8x8<T>(3),
+      //           am_8x8x8<T>(4),
+      //           am_8x8x8<T>(5));
+
+      //   printf("%f %f %f %f %f %f\n",
+      //           bm_8x8x8<T>(0),
+      //           bm_8x8x8<T>(1),
+      //           bm_8x8x8<T>(2),
+      //           bm_8x8x8<T>(3),
+      //           bm_8x8x8<T>(4),
+      //           bm_8x8x8<T>(5));
+      // }
+      // a -= 0 * (am_8x8x8<T>(0) / bm_8x8x8<T>(0));
+      // b -= a * (am_8x8x8<T>(1) / bm_8x8x8<T>(1));
+      // c -= b * (am_8x8x8<T>(2) / bm_8x8x8<T>(2));
+      // d -= c * (am_8x8x8<T>(3) / bm_8x8x8<T>(3));
+      // e -= d * (am_8x8x8<T>(4) / bm_8x8x8<T>(4));
+
+      a += 0 * amxbm_8x8x8<T>(0);
+      b += a * amxbm_8x8x8<T>(1);
+      c += b * amxbm_8x8x8<T>(2);
+      d += c * amxbm_8x8x8<T>(3);
+      e += d * amxbm_8x8x8<T>(4);
+
+      // e = (e - am_8x8x8<T>(5) * 0) / bm_8x8x8<T>(5);
+      // d = (d - am_8x8x8<T>(4) * e) / bm_8x8x8<T>(4);
+      // c = (c - am_8x8x8<T>(3) * d) / bm_8x8x8<T>(3);
+      // b = (b - am_8x8x8<T>(2) * c) / bm_8x8x8<T>(2);
+      // a = (a - am_8x8x8<T>(1) * b) / bm_8x8x8<T>(1);
+
+      e = (e + am_8x8x8<T>(5) * 0) * bm_8x8x8<T>(5);
+      d = (d + am_8x8x8<T>(4) * e) * bm_8x8x8<T>(4);
+      c = (c + am_8x8x8<T>(3) * d) * bm_8x8x8<T>(3);
+      b = (b + am_8x8x8<T>(2) * c) * bm_8x8x8<T>(2);
+      a = (a + am_8x8x8<T>(1) * b) * bm_8x8x8<T>(1);
+
+      // a = tridiag_forward2((T)0.0, (T)0.000000, (T)1.000000, a);
+      // b = tridiag_forward2((T)a, (T)0.333333, (T)0.666667, b);
+      // c = tridiag_forward2((T)b, (T)0.333333, (T)1.166667, c);
+      // d = tridiag_forward2((T)c, (T)0.333333, (T)1.238095, d);
+      // e = tridiag_forward2((T)d, (T)0.166667, (T)0.910256, e);
+
+      // e = tridiag_backward2((T)0.0, (T)0.000000, (T)1.000000, e);
+      // d = tridiag_backward2((T)e, (T)0.333333, (T)0.666667, d);
+      // c = tridiag_backward2((T)d, (T)0.333333, (T)1.166667, c);
+      // b = tridiag_backward2((T)c, (T)0.333333, (T)1.238095, b);
+      // a = tridiag_backward2((T)b, (T)0.166667, (T)0.910256, a);
+      sm_z[index[0]] = a;
+      sm_z[index[1]] = b;
+      sm_z[index[2]] = c;
+      sm_z[index[3]] = d;
+      sm_z[index[4]] = e;
+    }
+
+    // #ifdef MGARDX_COMPILE_CUDA
+    // __syncthreads();
+    // if (tid == 0) {
+    //   printf("tri - x\n");
+    //   for (int i = 0; i < 5; i++) {
+    //     printf("sm[i = %d]\n", i);
+    //     for (int j = 0; j < 5; j++) {
+    //       for (int k = 0; k < 5; k++) {
+    //         printf("%.6f ", sm_z[get_idx(5, 5, i, j, k)]);
+    //       }
+    //       printf("\n");
+    //     }
+    //     printf("\n");
+    //   }
+    // }
+    // __syncthreads();
+    // #endif
+  }
+
+  // TriadiagY
+  MGARDX_EXEC void Operation6() {
+    if (tid < 25) {
+      int const *index = TriDiag_Y_Offset_8x8x8(tid);
+      T a = sm_z[index[0]];
+      T b = sm_z[index[1]];
+      T c = sm_z[index[2]];
+      T d = sm_z[index[3]];
+      T e = sm_z[index[4]];
+      // a -= 0 * (am_8x8x8<T>(0) / bm_8x8x8<T>(0));
+      // b -= a * (am_8x8x8<T>(1) / bm_8x8x8<T>(1));
+      // c -= b * (am_8x8x8<T>(2) / bm_8x8x8<T>(2));
+      // d -= c * (am_8x8x8<T>(3) / bm_8x8x8<T>(3));
+      // e -= d * (am_8x8x8<T>(4) / bm_8x8x8<T>(4));
+      a += 0 * amxbm_8x8x8<T>(0);
+      b += a * amxbm_8x8x8<T>(1);
+      c += b * amxbm_8x8x8<T>(2);
+      d += c * amxbm_8x8x8<T>(3);
+      e += d * amxbm_8x8x8<T>(4);
+
+      // e = (e - am_8x8x8<T>(5) * 0) / bm_8x8x8<T>(5);
+      // d = (d - am_8x8x8<T>(4) * e) / bm_8x8x8<T>(4);
+      // c = (c - am_8x8x8<T>(3) * d) / bm_8x8x8<T>(3);
+      // b = (b - am_8x8x8<T>(2) * c) / bm_8x8x8<T>(2);
+      // a = (a - am_8x8x8<T>(1) * b) / bm_8x8x8<T>(1);
+
+      e = (e + am_8x8x8<T>(5) * 0) * bm_8x8x8<T>(5);
+      d = (d + am_8x8x8<T>(4) * e) * bm_8x8x8<T>(4);
+      c = (c + am_8x8x8<T>(3) * d) * bm_8x8x8<T>(3);
+      b = (b + am_8x8x8<T>(2) * c) * bm_8x8x8<T>(2);
+      a = (a + am_8x8x8<T>(1) * b) * bm_8x8x8<T>(1);
+
+      // a = tridiag_forward2((T)0.0, (T)0.000000, (T)1.000000, a);
+      // b = tridiag_forward2((T)a, (T)0.333333, (T)0.666667, b);
+      // c = tridiag_forward2((T)b, (T)0.333333, (T)1.166667, c);
+      // d = tridiag_forward2((T)c, (T)0.333333, (T)1.238095, d);
+      // e = tridiag_forward2((T)d, (T)0.166667, (T)0.910256, e);
+
+      // e = tridiag_backward2((T)0.0, (T)0.000000, (T)1.000000, e);
+      // d = tridiag_backward2((T)e, (T)0.333333, (T)0.666667, d);
+      // c = tridiag_backward2((T)d, (T)0.333333, (T)1.166667, c);
+      // b = tridiag_backward2((T)c, (T)0.333333, (T)1.238095, b);
+      // a = tridiag_backward2((T)b, (T)0.166667, (T)0.910256, a);
+
+      sm_z[index[0]] = a;
+      sm_z[index[1]] = b;
+      sm_z[index[2]] = c;
+      sm_z[index[3]] = d;
+      sm_z[index[4]] = e;
+    }
+    // #ifdef MGARDX_COMPILE_CUDA
+    // __syncthreads();
+    // if (tid == 0) {
+    //   printf("tri - y\n");
+    //   for (int i = 0; i < 5; i++) {
+    //     printf("sm[i = %d]\n", i);
+    //     for (int j = 0; j < 5; j++) {
+    //       for (int k = 0; k < 5; k++) {
+    //         printf("%.6f ", sm_z[get_idx(5, 5, i, j, k)]);
+    //       }
+    //       printf("\n");
+    //     }
+    //     printf("\n");
+    //   }
+    // }
+    // __syncthreads();
+    // #endif
+  }
+
+  // TriadiagZ
+  MGARDX_EXEC void Operation7() {
+    if (tid < 25) {
+      int const *index = TriDiag_Z_Offset_8x8x8(tid);
+      T a = sm_z[index[0]];
+      T b = sm_z[index[1]];
+      T c = sm_z[index[2]];
+      T d = sm_z[index[3]];
+      T e = sm_z[index[4]];
+      // a -= 0 * (am_8x8x8<T>(0) / bm_8x8x8<T>(0));
+      // b -= a * (am_8x8x8<T>(1) / bm_8x8x8<T>(1));
+      // c -= b * (am_8x8x8<T>(2) / bm_8x8x8<T>(2));
+      // d -= c * (am_8x8x8<T>(3) / bm_8x8x8<T>(3));
+      // e -= d * (am_8x8x8<T>(4) / bm_8x8x8<T>(4));
+      a += 0 * amxbm_8x8x8<T>(0);
+      b += a * amxbm_8x8x8<T>(1);
+      c += b * amxbm_8x8x8<T>(2);
+      d += c * amxbm_8x8x8<T>(3);
+      e += d * amxbm_8x8x8<T>(4);
+
+      // e = (e - am_8x8x8<T>(5) * 0) / bm_8x8x8<T>(5);
+      // d = (d - am_8x8x8<T>(4) * e) / bm_8x8x8<T>(4);
+      // c = (c - am_8x8x8<T>(3) * d) / bm_8x8x8<T>(3);
+      // b = (b - am_8x8x8<T>(2) * c) / bm_8x8x8<T>(2);
+      // a = (a - am_8x8x8<T>(1) * b) / bm_8x8x8<T>(1);
+
+      e = (e + am_8x8x8<T>(5) * 0) * bm_8x8x8<T>(5);
+      d = (d + am_8x8x8<T>(4) * e) * bm_8x8x8<T>(4);
+      c = (c + am_8x8x8<T>(3) * d) * bm_8x8x8<T>(3);
+      b = (b + am_8x8x8<T>(2) * c) * bm_8x8x8<T>(2);
+      a = (a + am_8x8x8<T>(1) * b) * bm_8x8x8<T>(1);
+
+      // a = tridiag_forward2((T)0.0, (T)0.000000, (T)1.000000, a);
+      // b = tridiag_forward2((T)a, (T)0.333333, (T)0.666667, b);
+      // c = tridiag_forward2((T)b, (T)0.333333, (T)1.166667, c);
+      // d = tridiag_forward2((T)c, (T)0.333333, (T)1.238095, d);
+      // e = tridiag_forward2((T)d, (T)0.166667, (T)0.910256, e);
+
+      // e = tridiag_backward2((T)0.0, (T)0.000000, (T)1.000000, e);
+      // d = tridiag_backward2((T)e, (T)0.333333, (T)0.666667, d);
+      // c = tridiag_backward2((T)d, (T)0.333333, (T)1.166667, c);
+      // b = tridiag_backward2((T)c, (T)0.333333, (T)1.238095, b);
+      // a = tridiag_backward2((T)b, (T)0.166667, (T)0.910256, a);
+
+      sm_z[index[0]] = a;
+      sm_z[index[1]] = b;
+      sm_z[index[2]] = c;
+      sm_z[index[3]] = d;
+      sm_z[index[4]] = e;
+    }
+    // #ifdef MGARDX_COMPILE_CUDA
+    // __syncthreads();
+    // if (tid == 0) {
+    //   printf("tri - z\n");
+    //   for (int i = 0; i < 5; i++) {
+    //     printf("sm[i = %d]\n", i);
+    //     for (int j = 0; j < 5; j++) {
+    //       for (int k = 0; k < 5; k++) {
+    //         printf("%.6f ", sm_z[get_idx(5, 5, i, j, k)]);
+    //       }
+    //       printf("\n");
+    //     }
+    //     printf("\n");
+    //   }
+    // }
+    // __syncthreads();
+    // #endif
+  }
+
+  // Apply Correction
+  MGARDX_EXEC void Operation8() {
+    if (tid < 125) {
+      sm_v[Coarse_Offset_8x8x8(tid)] += sm_z[tid];
+      int const *index = Coarse_Reorder_8x8x8(tid);
+      *coarse(z_tb + index[0], y_tb + index[1], x_tb + index[2]) =
+          sm_v[Coarse_Offset_8x8x8(tid)];
+    } else {
+      int op_tid = tid - 125;
+      *coeff(bid * 387 + op_tid) = sm_v[Coeff_Offset_8x8x8(op_tid)];
+    }
+
+    // *w(z_gl, y_gl, x_gl) = sm_v[offset];
+    // initialize_sm_3x3x3();
+    // if (tid < 125) {
+    //   sm_v[tid] = coarse + correction;
+    // }
+
+    // #ifdef MGARDX_COMPILE_CUDA
     // __syncthreads();
     // if (tid == 0) {
     //   for (int i = 0; i < 8; i++) {
@@ -148,628 +538,9 @@ public:
     //     printf("\n");
     //   }
     // }
-
     // __syncthreads();
-
-    if (tid < 320) {
-      int const *index = MassTrans_X_Offset_8x8x8(tid);
-      float const *dist = MassTrans_X_Dist_8x8x8(tid % 5);
-      T a = sm_v[index[0]];
-      T b = sm_v[index[1]];
-      T c = sm_v[index[2]];
-      T d = sm_v[index[3]];
-      T e = sm_v[index[4]];
-      T h1 = dist[0], h2 = dist[0], h3 = dist[3], h4 = dist[3];
-
-      // int dist_case = MassTrans_X_DistCase_8x8x8(tid);
-      // if (dist_case == 0) {
-      //   h1 = 0; h2 = 0; h3 = 1; h4 = 1;
-      // } else if (dist_case == 1) {
-      //   h1 = 1; h2 = 1; h3 = 1; h4 = 1;
-      // } else if (dist_case == 2) {
-      //   h1 = 1; h2 = 1; h3 = 0.5; h4 = 0.5;
-      // } else if (dist_case == 3) {
-      //   h1 = 0.5; h2 = 0.5; h3 = 0; h4 = 0;
-      // }
-      sm_x[index[5]] = mass_trans(a, b, c, d, e, h1, h2, h3, h4, (T)0.0, (T)0.0,
-                                  (T)0.0, (T)0.0);
-    }
-    // __syncthreads();
-    // if (tid == 5) {
-    //   for (int i = 0; i < 8; i++) {
-    //     printf("sm[i = %d]\n", i);
-    //     for (int j = 0; j < 8; j++) {
-    //       for (int k = 0; k < 5; k++) {
-    //         printf("%.6f ", sm_x[get_idx(5, 8, i, j, k)]);
-    //       }
-    //       printf("\n");
-    //     }
-    //     printf("\n");
-    //   }
-    // }
-
-    // __syncthreads();
+    // #endif
   }
-
-  MGARDX_EXEC void Operation3() {
-    if (tid < 200) {
-      int const *index = MassTrans_Y_Offset_8x8x8(tid);
-      T a = sm_x[index[0]];
-      T b = sm_x[index[1]];
-      T c = sm_x[index[2]];
-      T d = sm_x[index[3]];
-      T e = sm_x[index[4]];
-      float const *dist = MassTrans_Y_Dist_8x8x8(tid);
-      T h1 = dist[0], h2 = dist[0], h3 = dist[3], h4 = dist[3];
-      // int dist_case = MassTrans_Y_DistCase_8x8x8(tid);
-      // if (dist_case == 0) {
-      //   h1 = 0; h2 = 0; h3 = 1; h4 = 1;
-      // } else if (dist_case == 1) {
-      //   h1 = 1; h2 = 1; h3 = 1; h4 = 1;
-      // } else if (dist_case == 2) {
-      //   h1 = 1; h2 = 1; h3 = 0.5; h4 = 0.5;
-      // } else if (dist_case == 3) {
-      //   h1 = 0.5; h2 = 0.5; h3 = 0; h4 = 0;
-      // }
-      sm_y[index[5]] = mass_trans(a, b, c, d, e, h1, h2, h3, h4, (T)0.0, (T)0.0,
-                                  (T)0.0, (T)0.0);
-    }
-
-    // __syncthreads();
-    // if (tid == 0) {
-    //   for (int i = 0; i < 8; i++) {
-    //     printf("sm[i = %d]\n", i);
-    //     for (int j = 0; j < 5; j++) {
-    //       for (int k = 0; k < 5; k++) {
-    //         printf("%.6f ", sm_y[get_idx(5, 5, i, j, k)]);
-    //       }
-    //       printf("\n");
-    //     }
-    //     printf("\n");
-    //   }
-    // }
-
-    // __syncthreads();
-  }
-
-  MGARDX_EXEC void Operation4() {
-    if (tid < 125) {
-      int const *index = MassTrans_Z_Offset_8x8x8(tid);
-      T a = sm_y[index[0]];
-      T b = sm_y[index[1]];
-      T c = sm_y[index[2]];
-      T d = sm_y[index[3]];
-      T e = sm_y[index[4]];
-      float const *dist = MassTrans_Z_Dist_8x8x8(tid);
-      T h1 = dist[0], h2 = dist[0], h3 = dist[3], h4 = dist[3];
-      // int dist_case = MassTrans_Y_DistCase_8x8x8(tid);
-      // if (dist_case == 0) {
-      //   h1 = 0; h2 = 0; h3 = 1; h4 = 1;
-      // } else if (dist_case == 1) {
-      //   h1 = 1; h2 = 1; h3 = 1; h4 = 1;
-      // } else if (dist_case == 2) {
-      //   h1 = 1; h2 = 1; h3 = 0.5; h4 = 0.5;
-      // } else if (dist_case == 3) {
-      //   h1 = 0.5; h2 = 0.5; h3 = 0; h4 = 0;
-      // }
-      sm_z[index[5]] = mass_trans(a, b, c, d, e, h1, h2, h3, h4, (T)0.0, (T)0.0,
-                                  (T)0.0, (T)0.0);
-    }
-
-    // __syncthreads();
-    // if (tid == 0) {
-    //   for (int i = 0; i < 5; i++) {
-    //     printf("sm[i = %d]\n", i);
-    //     for (int j = 0; j < 5; j++) {
-    //       for (int k = 0; k < 5; k++) {
-    //         printf("%.6f ", sm_z[get_idx(5, 5, i, j, k)]);
-    //       }
-    //       printf("\n");
-    //     }
-    //     printf("\n");
-    //   }
-    // }
-
-    // __syncthreads();
-  }
-
-  MGARDX_EXEC void Operation5() {
-    if (tid < 25) {
-      int const *index = TriDiag_X_Offset_8x8x8(tid);
-      T a = sm_z[index[0]];
-      T b = sm_z[index[1]];
-      T c = sm_z[index[2]];
-      T d = sm_z[index[3]];
-      T e = sm_z[index[4]];
-      T am = 0;
-      T bm = 0;
-
-      a = tridiag_forward2((T)0.0, (T)0.000000, (T)1.000000, a);
-      b = tridiag_forward2((T)a, (T)0.333333, (T)0.666667, b);
-      c = tridiag_forward2((T)b, (T)0.333333, (T)1.166667, c);
-      d = tridiag_forward2((T)c, (T)0.333333, (T)1.238095, d);
-      e = tridiag_forward2((T)d, (T)0.166667, (T)0.910256, e);
-
-      // tridiag_backward2((T)0.0, am, bm, e);
-      // tridiag_backward2(e, am, bm, d);
-      // tridiag_backward2(d, am, bm, c);
-      // tridiag_backward2(c, am, bm, b);
-      // tridiag_backward2(b, am, bm, a);
-      sm_z[index[0]] = a;
-      sm_z[index[1]] = b;
-      sm_z[index[2]] = c;
-      sm_z[index[3]] = d;
-      sm_z[index[4]] = e;
-    }
-
-    // __syncthreads();
-    // if (tid == 0) {
-    //   for (int i = 0; i < 5; i++) {
-    //     printf("sm[i = %d]\n", i);
-    //     for (int j = 0; j < 5; j++) {
-    //       for (int k = 0; k < 5; k++) {
-    //         printf("%.6f ", sm_z[get_idx(5, 5, i, j, k)]);
-    //       }
-    //       printf("\n");
-    //     }
-    //     printf("\n");
-    //   }
-    // }
-
-    // __syncthreads();
-  }
-
-  // MGARDX_EXEC void Operation6() {
-  //   if (tid < 25) {
-  //     int const *index = TriDiag_Y_Offset_8x8x8(tid);
-  //     T a = sm_z[index[0]];
-  //     T b = sm_z[index[1]];
-  //     T c = sm_z[index[2]];
-  //     T d = sm_z[index[3]];
-  //     T e = sm_z[index[4]];
-  //     T am = 0;
-  //     T bm = 0;
-  //     tridiag_forward2((T)0.0, am, bm, a);
-  //     tridiag_forward2(a, am, bm, b);
-  //     tridiag_forward2(b, am, bm, c);
-  //     tridiag_forward2(c, am, bm, d);
-  //     tridiag_forward2(d, am, bm, e);
-
-  //     tridiag_backward2((T)0.0, am, bm, e);
-  //     tridiag_backward2(e, am, bm, d);
-  //     tridiag_backward2(d, am, bm, c);
-  //     tridiag_backward2(c, am, bm, b);
-  //     tridiag_backward2(b, am, bm, a);
-
-  //     sm_z[index[0]] = a;
-  //     sm_z[index[1]] = b;
-  //     sm_z[index[2]] = c;
-  //     sm_z[index[3]] = d;
-  //     sm_z[index[4]] = e;
-  //   }
-  // }
-
-  // MGARDX_EXEC void Operation7() {
-  //   if (tid < 25) {
-  //     int const *index = TriDiag_Z_Offset_8x8x8(tid);
-  //     T a = sm_z[index[0]];
-  //     T b = sm_z[index[1]];
-  //     T c = sm_z[index[2]];
-  //     T d = sm_z[index[3]];
-  //     T e = sm_z[index[4]];
-  //     T am = 0;
-  //     T bm = 0;
-  //     tridiag_forward2((T)0.0, am, bm, a);
-  //     tridiag_forward2(a, am, bm, b);
-  //     tridiag_forward2(b, am, bm, c);
-  //     tridiag_forward2(c, am, bm, d);
-  //     tridiag_forward2(d, am, bm, e);
-
-  //     tridiag_backward2((T)0.0, am, bm, e);
-  //     tridiag_backward2(e, am, bm, d);
-  //     tridiag_backward2(d, am, bm, c);
-  //     tridiag_backward2(c, am, bm, b);
-  //     tridiag_backward2(b, am, bm, a);
-
-  //     sm_z[index[0]] = a;
-  //     sm_z[index[1]] = b;
-  //     sm_z[index[2]] = c;
-  //     sm_z[index[3]] = d;
-  //     sm_z[index[4]] = e;
-  //   }
-  //   *v(z_gl, y_gl, x_gl) = sm_v[offset];
-  // }
-
-  // MGARDX_EXEC void Operation8() {
-  //   T coarse, correction;
-  //   if (tid < 125) {
-  //     coarse = sm_v[Coarse_Offset_8x8x8(tid)];
-  //     correction = sm_z[tid];
-  //   }
-  //   initialize_sm_3x3x3();
-  //   if (tid < 125) {
-  //     sm_v[tid] = coarse + correction;
-  //   }
-  // }
-
-  // MGARDX_EXEC void Operation9() {
-  //   op_tid = tid;
-  //   if (tid < 54) {
-  //     left = sm_v[Coeff1D_L_Offset_5x5x5(op_tid)];
-  //     right = sm_v[Coeff1D_M_Offset_5x5x5(op_tid)];
-  //     middle = sm_v[Coeff1D_R_Offset_5x5x5(op_tid)];
-  //     middle = middle - (left + right) * (T)0.5;
-  //     sm_v[Coeff1D_M_Offset_5x5x5(op_tid)] = middle;
-  //   } else if (tid >= 64 && tid < 64 + 36) {
-  //     op_tid -= 64;
-  //     T c00 = sm_v[Coeff2D_LL_Offset_5x5x5(op_tid)];
-  //     T c02 = sm_v[Coeff2D_LR_Offset_5x5x5(op_tid)];
-  //     T c20 = sm_v[Coeff2D_RL_Offset_5x5x5(op_tid)];
-  //     T c22 = sm_v[Coeff2D_RR_Offset_5x5x5(op_tid)];
-  //     T c11 = sm_v[Coeff2D_MM_Offset_5x5x5(op_tid)];
-  //     c11 -= (c00 + c02 + c20 + c22) / 4;
-  //     sm_v[Coeff2D_MM_Offset_5x5x5(op_tid)] = c11;
-  //   }
-
-  //   else if (tid >= 128 && tid < 128 + 8) {
-  //     op_tid -= 128;
-  //     T c000 = sm_v[Coeff3D_LLL_Offset_5x5x5(op_tid)];
-  //     T c002 = sm_v[Coeff3D_LLR_Offset_5x5x5(op_tid)];
-  //     T c020 = sm_v[Coeff3D_LRL_Offset_5x5x5(op_tid)];
-  //     T c022 = sm_v[Coeff3D_LRR_Offset_5x5x5(op_tid)];
-  //     T c200 = sm_v[Coeff3D_RLL_Offset_5x5x5(op_tid)];
-  //     T c202 = sm_v[Coeff3D_RLR_Offset_5x5x5(op_tid)];
-  //     T c220 = sm_v[Coeff3D_RRL_Offset_5x5x5(op_tid)];
-  //     T c222 = sm_v[Coeff3D_RRR_Offset_5x5x5(op_tid)];
-  //     T c111 = sm_v[Coeff3D_MMM_Offset_5x5x5(op_tid)];
-  //     c111 -= (c000 + c002 + c020 + c022 + c200 + c202 + c220 + c222) / 8;
-  //     sm_v[Coeff3D_MMM_Offset_5x5x5(tid)] = c111;
-  //   }
-  // }
-
-  // MGARDX_EXEC void Operation10() {
-  //   if (tid < 75) {
-  //     int const *index = MassTrans_X_Offset_5x5x5(tid);
-  //     T a = sm_v[index[0]];
-  //     T b = sm_v[index[1]];
-  //     T c = sm_v[index[2]];
-  //     T d = sm_v[index[3]];
-  //     T e = sm_v[index[4]];
-  //     const T h1 = 1.0 / 6.0;
-  //     const T h2 = 1.0 / 6.0;
-  //     const T h3 = 1.0 / 6.0;
-  //     const T h4 = 1.0 / 6.0;
-  //     const T r1 = 0.5;
-  //     const T r4 = 0.5;
-  //     T tb = a * h1 + b * (h1 + h2) + c * h2;
-  //     T tc = b * h2 + c * (h2 + h3) + d * h3;
-  //     T td = c * h3 + d * (h3 + h4) + e * h4;
-  //     sm_x[index[5]] += tb * r1 + td * r4;
-  //   }
-  // }
-
-  // MGARDX_EXEC void Operation11() {
-  //   if (tid < 45) {
-  //     int const *index = MassTrans_Y_Offset_5x5x5(tid);
-  //     T a = sm_v[index[0]];
-  //     T b = sm_v[index[1]];
-  //     T c = sm_v[index[2]];
-  //     T d = sm_v[index[3]];
-  //     T e = sm_v[index[4]];
-  //     const T h1 = 1.0 / 6.0;
-  //     const T h2 = 1.0 / 6.0;
-  //     const T h3 = 1.0 / 6.0;
-  //     const T h4 = 1.0 / 6.0;
-  //     const T r1 = 0.5;
-  //     const T r4 = 0.5;
-  //     T tb = a * h1 + b * (h1 + h2) + c * h2;
-  //     T tc = b * h2 + c * (h2 + h3) + d * h3;
-  //     T td = c * h3 + d * (h3 + h4) + e * h4;
-  //     sm_x[index[5]] += tb * r1 + td * r4;
-  //   }
-  // }
-
-  // MGARDX_EXEC void Operation12() {
-  //   if (tid < 27) {
-  //     int const *index = MassTrans_Z_Offset_5x5x5(tid);
-  //     T a = sm_v[index[0]];
-  //     T b = sm_v[index[1]];
-  //     T c = sm_v[index[2]];
-  //     T d = sm_v[index[3]];
-  //     T e = sm_v[index[4]];
-  //     const T h1 = 1.0 / 6.0;
-  //     const T h2 = 1.0 / 6.0;
-  //     const T h3 = 1.0 / 6.0;
-  //     const T h4 = 1.0 / 6.0;
-  //     const T r1 = 0.5;
-  //     const T r4 = 0.5;
-  //     T tb = a * h1 + b * (h1 + h2) + c * h2;
-  //     T tc = b * h2 + c * (h2 + h3) + d * h3;
-  //     T td = c * h3 + d * (h3 + h4) + e * h4;
-  //     sm_x[index[5]] += tb * r1 + td * r4;
-  //   }
-  // }
-
-  // MGARDX_EXEC void Operation13() {
-  //   if (tid < 9) {
-  //     int const *index = TriDiag_X_Offset_5x5x5(tid);
-  //     T a = sm_z[index[0]];
-  //     T b = sm_z[index[1]];
-  //     T c = sm_z[index[2]];
-  //     T d = sm_z[index[3]];
-  //     T e = sm_z[index[4]];
-  //     T am = 0;
-  //     T bm = 0;
-  //     tridiag_forward2((T)0.0, am, bm, a);
-  //     tridiag_forward2(a, am, bm, b);
-  //     tridiag_forward2(b, am, bm, c);
-  //     tridiag_forward2(c, am, bm, d);
-  //     tridiag_forward2(d, am, bm, e);
-
-  //     tridiag_backward2((T)0.0, am, bm, e);
-  //     tridiag_backward2(e, am, bm, d);
-  //     tridiag_backward2(d, am, bm, c);
-  //     tridiag_backward2(c, am, bm, b);
-  //     tridiag_backward2(b, am, bm, a);
-
-  //     sm_z[index[0]] = a;
-  //     sm_z[index[1]] = b;
-  //     sm_z[index[2]] = c;
-  //     sm_z[index[3]] = d;
-  //     sm_z[index[4]] = e;
-  //   }
-  //   if (tid < 9) {
-  //     int const *index = TriDiag_Y_Offset_5x5x5(tid);
-  //     T a = sm_z[index[0]];
-  //     T b = sm_z[index[1]];
-  //     T c = sm_z[index[2]];
-  //     T d = sm_z[index[3]];
-  //     T e = sm_z[index[4]];
-  //     T am = 0;
-  //     T bm = 0;
-  //     tridiag_forward2((T)0.0, am, bm, a);
-  //     tridiag_forward2(a, am, bm, b);
-  //     tridiag_forward2(b, am, bm, c);
-  //     tridiag_forward2(c, am, bm, d);
-  //     tridiag_forward2(d, am, bm, e);
-
-  //     tridiag_backward2((T)0.0, am, bm, e);
-  //     tridiag_backward2(e, am, bm, d);
-  //     tridiag_backward2(d, am, bm, c);
-  //     tridiag_backward2(c, am, bm, b);
-  //     tridiag_backward2(b, am, bm, a);
-
-  //     sm_z[index[0]] = a;
-  //     sm_z[index[1]] = b;
-  //     sm_z[index[2]] = c;
-  //     sm_z[index[3]] = d;
-  //     sm_z[index[4]] = e;
-  //   }
-  //   if (tid < 9) {
-  //     int const *index = TriDiag_Z_Offset_5x5x5(tid);
-  //     T a = sm_z[index[0]];
-  //     T b = sm_z[index[1]];
-  //     T c = sm_z[index[2]];
-  //     T d = sm_z[index[3]];
-  //     T e = sm_z[index[4]];
-  //     T am = 0;
-  //     T bm = 0;
-  //     tridiag_forward2((T)0.0, am, bm, a);
-  //     tridiag_forward2(a, am, bm, b);
-  //     tridiag_forward2(b, am, bm, c);
-  //     tridiag_forward2(c, am, bm, d);
-  //     tridiag_forward2(d, am, bm, e);
-
-  //     tridiag_backward2((T)0.0, am, bm, e);
-  //     tridiag_backward2(e, am, bm, d);
-  //     tridiag_backward2(d, am, bm, c);
-  //     tridiag_backward2(c, am, bm, b);
-  //     tridiag_backward2(b, am, bm, a);
-
-  //     sm_z[index[0]] = a;
-  //     sm_z[index[1]] = b;
-  //     sm_z[index[2]] = c;
-  //     sm_z[index[3]] = d;
-  //     sm_z[index[4]] = e;
-  //   }
-  // }
-
-  // MGARDX_EXEC void Operation14() {
-  //   T coarse, correction;
-  //   if (tid < 27) {
-  //     coarse = sm_v[Coarse_Offset_5x5x5(tid)];
-  //     correction = sm_z[tid];
-  //   }
-  //   initialize_sm_3x3x3();
-  //   if (tid < 27) {
-  //     sm_v[tid] = coarse + correction;
-  //   }
-  // }
-
-  // MGARDX_EXEC void Operation15() {
-  //   op_tid = tid;
-  //   if (tid < 12) {
-  //     left = sm_v[Coeff1D_L_Offset_3x3x3(op_tid)];
-  //     right = sm_v[Coeff1D_M_Offset_3x3x3(op_tid)];
-  //     middle = sm_v[Coeff1D_R_Offset_3x3x3(op_tid)];
-  //     middle = middle - (left + right) * (T)0.5;
-  //     sm_v[Coeff1D_M_Offset_3x3x3(op_tid)] = middle;
-  //   } else if (tid >= 32 && tid < 32 + 6) {
-  //     op_tid -= 32;
-  //     T c00 = sm_v[Coeff2D_LL_Offset_3x3x3(op_tid)];
-  //     T c02 = sm_v[Coeff2D_LR_Offset_3x3x3(op_tid)];
-  //     T c20 = sm_v[Coeff2D_RL_Offset_3x3x3(op_tid)];
-  //     T c22 = sm_v[Coeff2D_RR_Offset_3x3x3(op_tid)];
-  //     T c11 = sm_v[Coeff2D_MM_Offset_3x3x3(op_tid)];
-  //     c11 -= (c00 + c02 + c20 + c22) / 4;
-  //     sm_v[Coeff2D_MM_Offset_3x3x3(op_tid)] = c11;
-  //   }
-
-  //   else if (tid >= 64 && tid < 64 + 1) {
-  //     op_tid -= 64;
-  //     T c000 = sm_v[Coeff3D_LLL_Offset_3x3x3(op_tid)];
-  //     T c002 = sm_v[Coeff3D_LLR_Offset_3x3x3(op_tid)];
-  //     T c020 = sm_v[Coeff3D_LRL_Offset_3x3x3(op_tid)];
-  //     T c022 = sm_v[Coeff3D_LRR_Offset_3x3x3(op_tid)];
-  //     T c200 = sm_v[Coeff3D_RLL_Offset_3x3x3(op_tid)];
-  //     T c202 = sm_v[Coeff3D_RLR_Offset_3x3x3(op_tid)];
-  //     T c220 = sm_v[Coeff3D_RRL_Offset_3x3x3(op_tid)];
-  //     T c222 = sm_v[Coeff3D_RRR_Offset_3x3x3(op_tid)];
-  //     T c111 = sm_v[Coeff3D_MMM_Offset_3x3x3(op_tid)];
-  //     c111 -= (c000 + c002 + c020 + c022 + c200 + c202 + c220 + c222) / 8;
-  //     sm_v[Coeff3D_MMM_Offset_3x3x3(tid)] = c111;
-  //   }
-  // }
-
-  // MGARDX_EXEC void Operation16() {
-  //   if (tid < 18) {
-  //     int const *index = MassTrans_X_Offset_3x3x3(tid);
-  //     T a = sm_v[index[0]];
-  //     T b = sm_v[index[1]];
-  //     T c = sm_v[index[2]];
-  //     T d = sm_v[index[3]];
-  //     T e = sm_v[index[4]];
-  //     const T h1 = 1.0 / 6.0;
-  //     const T h2 = 1.0 / 6.0;
-  //     const T h3 = 1.0 / 6.0;
-  //     const T h4 = 1.0 / 6.0;
-  //     const T r1 = 0.5;
-  //     const T r4 = 0.5;
-  //     T tb = a * h1 + b * (h1 + h2) + c * h2;
-  //     T tc = b * h2 + c * (h2 + h3) + d * h3;
-  //     T td = c * h3 + d * (h3 + h4) + e * h4;
-  //     sm_x[index[5]] += tb * r1 + td * r4;
-  //   }
-  //   if (tid < 12) {
-  //     int const *index = MassTrans_Y_Offset_3x3x3(tid);
-  //     T a = sm_v[index[0]];
-  //     T b = sm_v[index[1]];
-  //     T c = sm_v[index[2]];
-  //     T d = sm_v[index[3]];
-  //     T e = sm_v[index[4]];
-  //     const T h1 = 1.0 / 6.0;
-  //     const T h2 = 1.0 / 6.0;
-  //     const T h3 = 1.0 / 6.0;
-  //     const T h4 = 1.0 / 6.0;
-  //     const T r1 = 0.5;
-  //     const T r4 = 0.5;
-  //     T tb = a * h1 + b * (h1 + h2) + c * h2;
-  //     T tc = b * h2 + c * (h2 + h3) + d * h3;
-  //     T td = c * h3 + d * (h3 + h4) + e * h4;
-  //     sm_x[index[5]] += tb * r1 + td * r4;
-  //   }
-  //   if (tid < 8) {
-  //     int const *index = MassTrans_Z_Offset_3x3x3(tid);
-  //     T a = sm_v[index[0]];
-  //     T b = sm_v[index[1]];
-  //     T c = sm_v[index[2]];
-  //     T d = sm_v[index[3]];
-  //     T e = sm_v[index[4]];
-  //     const T h1 = 1.0 / 6.0;
-  //     const T h2 = 1.0 / 6.0;
-  //     const T h3 = 1.0 / 6.0;
-  //     const T h4 = 1.0 / 6.0;
-  //     const T r1 = 0.5;
-  //     const T r4 = 0.5;
-  //     T tb = a * h1 + b * (h1 + h2) + c * h2;
-  //     T tc = b * h2 + c * (h2 + h3) + d * h3;
-  //     T td = c * h3 + d * (h3 + h4) + e * h4;
-  //     sm_x[index[5]] += tb * r1 + td * r4;
-  //   }
-  //   if (tid < 4) {
-  //     int const *index = TriDiag_X_Offset_3x3x3(tid);
-  //     T a = sm_z[index[0]];
-  //     T b = sm_z[index[1]];
-  //     T c = sm_z[index[2]];
-  //     T d = sm_z[index[3]];
-  //     T e = sm_z[index[4]];
-  //     T am = 0;
-  //     T bm = 0;
-  //     tridiag_forward2((T)0.0, am, bm, a);
-  //     tridiag_forward2(a, am, bm, b);
-  //     tridiag_forward2(b, am, bm, c);
-  //     tridiag_forward2(c, am, bm, d);
-  //     tridiag_forward2(d, am, bm, e);
-
-  //     tridiag_backward2((T)0.0, am, bm, e);
-  //     tridiag_backward2(e, am, bm, d);
-  //     tridiag_backward2(d, am, bm, c);
-  //     tridiag_backward2(c, am, bm, b);
-  //     tridiag_backward2(b, am, bm, a);
-
-  //     sm_z[index[0]] = a;
-  //     sm_z[index[1]] = b;
-  //     sm_z[index[2]] = c;
-  //     sm_z[index[3]] = d;
-  //     sm_z[index[4]] = e;
-  //   }
-  //   if (tid < 4) {
-  //     int const *index = TriDiag_Y_Offset_3x3x3(tid);
-  //     T a = sm_z[index[0]];
-  //     T b = sm_z[index[1]];
-  //     T c = sm_z[index[2]];
-  //     T d = sm_z[index[3]];
-  //     T e = sm_z[index[4]];
-  //     T am = 0;
-  //     T bm = 0;
-  //     tridiag_forward2((T)0.0, am, bm, a);
-  //     tridiag_forward2(a, am, bm, b);
-  //     tridiag_forward2(b, am, bm, c);
-  //     tridiag_forward2(c, am, bm, d);
-  //     tridiag_forward2(d, am, bm, e);
-
-  //     tridiag_backward2((T)0.0, am, bm, e);
-  //     tridiag_backward2(e, am, bm, d);
-  //     tridiag_backward2(d, am, bm, c);
-  //     tridiag_backward2(c, am, bm, b);
-  //     tridiag_backward2(b, am, bm, a);
-
-  //     sm_z[index[0]] = a;
-  //     sm_z[index[1]] = b;
-  //     sm_z[index[2]] = c;
-  //     sm_z[index[3]] = d;
-  //     sm_z[index[4]] = e;
-  //   }
-  //   if (tid < 4) {
-  //     int const *index = TriDiag_Z_Offset_3x3x3(tid);
-  //     T a = sm_z[index[0]];
-  //     T b = sm_z[index[1]];
-  //     T c = sm_z[index[2]];
-  //     T d = sm_z[index[3]];
-  //     T e = sm_z[index[4]];
-  //     T am = 0;
-  //     T bm = 0;
-  //     tridiag_forward2((T)0.0, am, bm, a);
-  //     tridiag_forward2(a, am, bm, b);
-  //     tridiag_forward2(b, am, bm, c);
-  //     tridiag_forward2(c, am, bm, d);
-  //     tridiag_forward2(d, am, bm, e);
-
-  //     tridiag_backward2((T)0.0, am, bm, e);
-  //     tridiag_backward2(e, am, bm, d);
-  //     tridiag_backward2(d, am, bm, c);
-  //     tridiag_backward2(c, am, bm, b);
-  //     tridiag_backward2(b, am, bm, a);
-
-  //     sm_z[index[0]] = a;
-  //     sm_z[index[1]] = b;
-  //     sm_z[index[2]] = c;
-  //     sm_z[index[3]] = d;
-  //     sm_z[index[4]] = e;
-  //   }
-  // }
-
-  // MGARDX_EXEC void Operation17() {
-  //   T coarse, correction;
-  //   if (tid < 8) {
-  //     coarse = sm_v[Coarse_Offset_3x3x3(tid)];
-  //     correction = sm_z[tid];
-  //   }
-  //   initialize_sm_2x2x2();
-  //   if (tid < 8) {
-  //     sm_c2[tid] = coarse + correction;
-  //   }
-  // }
 
   MGARDX_CONT size_t shared_memory_size() {
     size_t size = (Z * Y * X) + Z * Y * (X / 2 + 1) +
@@ -780,16 +551,21 @@ public:
 
 private:
   SubArray<D, T, DeviceType> v;
+  SubArray<D, T, DeviceType> coarse;
+  SubArray<1, T, DeviceType> coeff;
   T *sm_v, *sm_x, *sm_y, *sm_z, *sm_c8, *sm_c5, *sm_c3, *sm_c2;
   int ld1 = X;
   int ld2 = Y;
-  int z, y, x, z_gl, y_gl, x_gl;
-  int tid, op_tid;
+  int z, y, x, z_tb, y_tb, x_tb, z_gl, y_gl, x_gl;
+  int tid, bid, op_tid;
   T left, right, middle;
   int offset;
   int zero_const_offset = (Z * Y * X) + Z * Y * (X / 2 + 1) +
                           Z * (Y / 2 + 1) * (X / 2 + 1) +
                           (Z / 2 + 1) * (Y / 2 + 1) * (X / 2 + 1);
+  // #ifdef MGARDX_COMPILE_CUDA
+  // clock_t start, end;
+  // #endif
 };
 
 template <DIM D, typename T, SIZE Z, SIZE Y, SIZE X, OPTION OP,
@@ -799,21 +575,19 @@ public:
   constexpr static bool EnableAutoTuning() { return false; }
   constexpr static std::string_view Name = "lwpk";
   MGARDX_CONT
-  DataRefactoringKernel(SubArray<D, T, DeviceType> v) : v(v) {}
+  DataRefactoringKernel(SubArray<D, T, DeviceType> v,
+                        SubArray<D, T, DeviceType> coarse,
+                        SubArray<1, T, DeviceType> coeff)
+      : v(v), coarse(coarse), coeff(coeff) {}
 
   MGARDX_CONT Task<DataRefactoringFunctor<D, T, Z, Y, X, OP, DeviceType>>
   GenTask(int queue_idx) {
     using FunctorType = DataRefactoringFunctor<D, T, Z, Y, X, OP, DeviceType>;
-    FunctorType functor(v);
+    FunctorType functor(v, coarse, coeff);
 
-    SIZE total_thread_z = 1;
-    SIZE total_thread_y = 1;
-    SIZE total_thread_x = 1;
-    if (D >= 3)
-      total_thread_z = v.shape(D - 3);
-    if (D >= 2)
-      total_thread_y = v.shape(D - 2);
-    total_thread_x = v.shape(D - 1);
+    SIZE total_thread_z = v.shape(D - 3);
+    SIZE total_thread_y = v.shape(D - 2);
+    SIZE total_thread_x = v.shape(D - 1);
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
@@ -823,15 +597,15 @@ public:
     gridz = ceil((float)total_thread_z / tbz);
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
-    for (int d = D - 4; d >= 0; d--) {
-      gridx *= v.shape(d);
-    }
+
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
                 std::string(Name));
   }
 
 private:
   SubArray<D, T, DeviceType> v;
+  SubArray<D, T, DeviceType> coarse;
+  SubArray<1, T, DeviceType> coeff;
 };
 
 } // namespace in_cache_block

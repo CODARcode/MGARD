@@ -23,43 +23,19 @@ namespace data_refactoring {
 namespace in_cache_block {
 
 template <DIM D, typename T, typename DeviceType>
-void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
-               SubArray<D, T, DeviceType> &v, SubArray<D, T, DeviceType> w,
-               SubArray<D, T, DeviceType> b, int start_level, int stop_level,
-               int queue_idx) {
-
-  if (start_level < 0 || start_level > hierarchy.l_target()) {
-    std::cout << log::log_err << "decompose: start_level out of bound.\n";
-    exit(-1);
-  }
-
-  if (stop_level < 0 || stop_level > hierarchy.l_target()) {
-    std::cout << log::log_err << "decompose: stop_level out of bound.\n";
-    exit(-1);
-  }
-
+void decompose(SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> coarse,
+               SubArray<1, T, DeviceType> coeff, int queue_idx) {
   if constexpr (D <= 3) {
     DeviceLauncher<DeviceType>::Execute(
-        DataRefactoringKernel<D, T, 8, 8, 8, DECOMPOSE, DeviceType>(v),
+        DataRefactoringKernel<D, T, 8, 8, 8, DECOMPOSE, DeviceType>(v, coarse,
+                                                                    coeff),
         queue_idx);
   }
 }
 
 template <DIM D, typename T, typename DeviceType>
-void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
-               SubArray<D, T, DeviceType> &v, SubArray<D, T, DeviceType> w,
-               SubArray<D, T, DeviceType> b, int start_level, int stop_level,
-               int queue_idx) {
-
-  if (stop_level < 0 || stop_level > hierarchy.l_target()) {
-    std::cout << log::log_err << "recompose: stop_level out of bound.\n";
-    exit(-1);
-  }
-
-  if (start_level < 0 || start_level > hierarchy.l_target()) {
-    std::cout << log::log_err << "recompose: start_level out of bound.\n";
-    exit(-1);
-  }
+void recompose(SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> coarse,
+               SubArray<1, T, DeviceType> coeff, int queue_idx) {
 
   if constexpr (D <= 3) {
   }

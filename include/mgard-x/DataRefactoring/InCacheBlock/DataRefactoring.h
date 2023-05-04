@@ -19,16 +19,12 @@ namespace data_refactoring {
 namespace in_cache_block {
 
 template <DIM D, typename T, typename DeviceType>
-void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
-               SubArray<D, T, DeviceType> &v, SubArray<D, T, DeviceType> w,
-               SubArray<D, T, DeviceType> b, int start_level, int stop_level,
-               int queue_idx);
+void decompose(SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> coarse,
+               SubArray<1, T, DeviceType> coeff, int queue_idx);
 
 template <DIM D, typename T, typename DeviceType>
-void recompose(Hierarchy<D, T, DeviceType> &hierarchy,
-               SubArray<D, T, DeviceType> &v, SubArray<D, T, DeviceType> w,
-               SubArray<D, T, DeviceType> b, int start_level, int stop_level,
-               int queue_idx);
+void recompose(SubArray<D, T, DeviceType> v, SubArray<D, T, DeviceType> coarse,
+               SubArray<1, T, DeviceType> coeff, int queue_idx);
 
 } // namespace in_cache_block
 

@@ -255,26 +255,26 @@ MGARDX_KERL void CudaKernel(Task task, THREAD_IDX blockz_offset,
   task.GetFunctor().Operation9();
   SyncBlock<CUDA>::Sync();
   task.GetFunctor().Operation10();
-  SyncBlock<CUDA>::Sync();
-  task.GetFunctor().Operation11();
-  SyncBlock<CUDA>::Sync();
-  task.GetFunctor().Operation12();
-  SyncBlock<CUDA>::Sync();
-  task.GetFunctor().Operation13();
-  SyncBlock<CUDA>::Sync();
-  task.GetFunctor().Operation14();
-  SyncBlock<CUDA>::Sync();
-  task.GetFunctor().Operation15();
-  SyncBlock<CUDA>::Sync();
-  task.GetFunctor().Operation16();
-  SyncBlock<CUDA>::Sync();
-  task.GetFunctor().Operation17();
-  SyncBlock<CUDA>::Sync();
-  task.GetFunctor().Operation18();
-  SyncBlock<CUDA>::Sync();
-  task.GetFunctor().Operation19();
-  SyncBlock<CUDA>::Sync();
-  task.GetFunctor().Operation20();
+  // SyncBlock<CUDA>::Sync();
+  // task.GetFunctor().Operation11();
+  // SyncBlock<CUDA>::Sync();
+  // task.GetFunctor().Operation12();
+  // SyncBlock<CUDA>::Sync();
+  // task.GetFunctor().Operation13();
+  // SyncBlock<CUDA>::Sync();
+  // task.GetFunctor().Operation14();
+  // SyncBlock<CUDA>::Sync();
+  // task.GetFunctor().Operation15();
+  // SyncBlock<CUDA>::Sync();
+  // task.GetFunctor().Operation16();
+  // SyncBlock<CUDA>::Sync();
+  // task.GetFunctor().Operation17();
+  // SyncBlock<CUDA>::Sync();
+  // task.GetFunctor().Operation18();
+  // SyncBlock<CUDA>::Sync();
+  // task.GetFunctor().Operation19();
+  // SyncBlock<CUDA>::Sync();
+  // task.GetFunctor().Operation20();
 }
 
 template <typename Task>
