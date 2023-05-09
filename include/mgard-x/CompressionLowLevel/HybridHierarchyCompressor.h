@@ -5,13 +5,13 @@
  * Date: March 17, 2022
  */
 
-#ifndef MGARD_X_COMPRESSOR2_H
-#define MGARD_X_COMPRESSOR2_H
+#ifndef MGARD_X_HYBRID_HIERARCHY_COMPRESSOR_H
+#define MGARD_X_HYBRID_HIERARCHY_COMPRESSOR_H
 
 #include "../RuntimeX/RuntimeXPublic.h"
 
 #include "../DataRefactoring/DataRefactor.hpp"
-#include "../DataRefactoring/LevelwiseDataRefactor.hpp"
+#include "../DataRefactoring/HybridHierarchyDataRefactor.hpp"
 
 // #include "CompressionLowLevelWorkspace.hpp"
 
@@ -20,6 +20,7 @@
 #include "../Hierarchy/Hierarchy.h"
 
 #include "../Lossless/Lossless.hpp"
+#include "../Quantization/HybridHierarchyLinearQuantization.hpp"
 #include "../Quantization/LinearQuantization.hpp"
 
 #include "LossyCompressorInterface.hpp"
@@ -27,17 +28,21 @@
 namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType>
-class Compressor2 : public LossyCompressorInterface<D, T, DeviceType> {
+class HybridHierarchyCompressor
+    : public LossyCompressorInterface<D, T, DeviceType> {
   using DataRefactorType = data_refactoring::DataRefactor<D, T, DeviceType>;
-  using LevelwiseDataRefactorType =
-      data_refactoring::LevelwiseDataRefactor<D, T, DeviceType>;
+  using HybridHierarchyDataRefactorType =
+      data_refactoring::HybridHierarchyDataRefactor<D, T, DeviceType>;
   using LosslessCompressorType =
       ComposedLosslessCompressor<QUANTIZED_UNSIGNED_INT, HUFFMAN_CODE,
                                  DeviceType>;
   using LinearQuantizerType = LinearQuantizer<D, T, QUANTIZED_INT, DeviceType>;
+  using HybridHierarchyLinearQuantizerType =
+      HybridHierarchyLinearQuantizer<D, T, QUANTIZED_INT, DeviceType>;
 
 public:
-  Compressor2(Hierarchy<D, T, DeviceType> hierarchy, Config config);
+  HybridHierarchyCompressor(Hierarchy<D, T, DeviceType> hierarchy,
+                            Config config);
 
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape, Config config);
 
@@ -75,9 +80,11 @@ public:
   Array<1, T, DeviceType> norm_array;
   Array<1, T, DeviceType> decomposed_array;
   Array<D, QUANTIZED_INT, DeviceType> quantized_array;
+  Array<1, QUANTIZED_INT, DeviceType> hybrid_quantized_array;
   DataRefactorType refactor;
-  LevelwiseDataRefactorType levelwise_refactor;
+  HybridHierarchyDataRefactorType hybrid_refactor;
   LinearQuantizerType quantizer;
+  HybridHierarchyLinearQuantizerType hybrid_quantizer;
   LosslessCompressorType lossless_compressor;
 };
 

@@ -5,11 +5,11 @@
  * Date: March 17, 2022
  */
 
-#include "mgard-x/CompressionLowLevel/Compressor2.hpp"
+#include "mgard-x/CompressionLowLevel/HybridHierarchyCompressor.hpp"
 // clang-format off
 namespace mgard_x {
 
-template class Compressor2<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>;
+template class HybridHierarchyCompressor<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>;
 
 } // namespace mgard_x
 // clang-format on

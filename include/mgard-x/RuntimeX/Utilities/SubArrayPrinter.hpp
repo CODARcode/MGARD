@@ -357,6 +357,7 @@ void verify_matrix(SIZE nrow, SIZE ncol, SIZE nfib, T *v, SIZE ldv1, SIZE ldv2,
         }
       }
     }
+    printf("Mismatch result: %d\n", mismatch);
 
     delete[] v2;
     if (mismatch)
@@ -381,8 +382,7 @@ void verify_matrix_cuda(SIZE nrow, SIZE ncol, SIZE nfib, T *dv, SIZE lddv1,
     //                         ncol, dv, lddv1 * sizeof(T), sizex * sizeof(T),
     //                         lddv2, nfib * sizeof(T), ncol, nrow, D2H,
     //                         queue_idx);
-    // MemoryManager<CUDA>::CopyND(v, nfib, dv, lddv1,
-    //                           nfib, ncol * nrow, 0);
+    MemoryManager<CUDA>::CopyND(v, nfib, dv, lddv1, nfib, ncol * nrow, 0);
     // DeviceRuntime<CUDA>::SyncQueue(0);
     // tmp_handle->sync(queue_idx);
     verify_matrix(nrow, ncol, nfib, v, nfib, ncol, file_prefix, store, verify);

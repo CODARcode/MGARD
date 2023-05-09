@@ -10,14 +10,14 @@
 namespace mgard_x {
 template <DIM D, typename T, typename Q, typename DeviceType>
 class QuantizationInterface {
-  virtual void Quantize(Array<D, T, DeviceType> &original_data,
+  virtual void Quantize(SubArray<D, T, DeviceType> original_data,
                         enum error_bound_type ebtype, T tol, T s, T norm,
-                        Array<D, Q, DeviceType> &quantized_data,
+                        SubArray<D, Q, DeviceType> quantized_data,
                         int queue_idx) = 0;
 
-  virtual void Dequantize(Array<D, Q, DeviceType> &quantized_data,
+  virtual void Dequantize(SubArray<D, T, DeviceType> original_data,
                           enum error_bound_type ebtype, T tol, T s, T norm,
-                          Array<D, T, DeviceType> &original_data,
+                          SubArray<D, Q, DeviceType> quantized_data,
                           int queue_idx) = 0;
 };
 } // namespace mgard_x

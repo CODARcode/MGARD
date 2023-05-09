@@ -295,14 +295,21 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     const char *coords_file, double tol, double s,
                     enum mgard_x::error_bound_type mode, int reorder,
                     int lossless, int domain_decomposition,
+                    int hybrid_decomposition,
                     enum mgard_x::device_type dev_type, int num_dev,
                     int verbose, bool prefetch,
                     mgard_x::SIZE max_memory_footprint) {
 
   mgard_x::Config config;
   config.log_level = verbose_to_log_level(verbose);
-  // config.decomposition = mgard_x::decomposition_type::InCacheBlock;
-  config.decomposition = mgard_x::decomposition_type::MultiDim;
+  if (hybrid_decomposition == 0) {
+    config.decomposition = mgard_x::decomposition_type::MultiDim;
+  } else {
+    config.decomposition = mgard_x::decomposition_type::Hybrid;
+    config.num_local_refactoring_level = 1;
+    // config.max_larget_level = 0;
+  }
+
   if (domain_decomposition == 0) {
     config.domain_decomposition = mgard_x::domain_decomposition_type::MaxDim;
   } else {
@@ -350,9 +357,10 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   mgard_x::pin_memory(original_data, original_size * sizeof(T), config);
   mgard_x::pin_memory(compressed_data, compressed_size, config);
   std::vector<const mgard_x::Byte *> coords_byte;
+  mgard_x::compress_status_type ret;
   if (!non_uniform) {
-    mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
-                      compressed_data, compressed_size, config, true);
+    ret = mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
+                            compressed_data, compressed_size, config, true);
   } else {
     std::vector<T *> coords;
     if (non_uniform) {
@@ -361,9 +369,14 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     for (auto &coord : coords) {
       coords_byte.push_back((const mgard_x::Byte *)coord);
     }
-    mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
-                      compressed_data, compressed_size, coords_byte, config,
-                      true);
+    ret = mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
+                            compressed_data, compressed_size, coords_byte,
+                            config, true);
+  }
+
+  if (ret != mgard_x::compress_status_type::Success) {
+    std::cout << mgard_x::log::log_err << "Compression failed\n";
+    exit(-1);
   }
 
   writefile(output_file, compressed_size, compressed_data);
@@ -561,6 +574,11 @@ bool try_compression(int argc, char *argv[]) {
     domain_decomposition = get_arg_int(argc, argv, "-b");
   }
 
+  int hybrid_decomposition = 0;
+  if (has_arg(argc, argv, "-y")) {
+    hybrid_decomposition = get_arg_int(argc, argv, "-y");
+  }
+
   if (verbose)
     std::cout << mgard_x::log::log_info << "Verbose: enabled\n";
   for (int repeat_iter = 0; repeat_iter < repeat; repeat_iter++) {
@@ -568,14 +586,14 @@ bool try_compression(int argc, char *argv[]) {
       launch_compress<double>(
           D, dtype, input_file.c_str(), output_file.c_str(), shape, non_uniform,
           non_uniform_coords_file.c_str(), tol, s, mode, reorder,
-          lossless_level, domain_decomposition, dev_type, num_dev, verbose,
-          prefetch, max_memory_footprint);
+          lossless_level, domain_decomposition, hybrid_decomposition, dev_type,
+          num_dev, verbose, prefetch, max_memory_footprint);
     } else if (dtype == mgard_x::data_type::Float) {
       launch_compress<float>(
           D, dtype, input_file.c_str(), output_file.c_str(), shape, non_uniform,
           non_uniform_coords_file.c_str(), tol, s, mode, reorder,
-          lossless_level, domain_decomposition, dev_type, num_dev, verbose,
-          prefetch, max_memory_footprint);
+          lossless_level, domain_decomposition, hybrid_decomposition, dev_type,
+          num_dev, verbose, prefetch, max_memory_footprint);
     }
   }
   return true;

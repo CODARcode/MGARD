@@ -5,19 +5,19 @@
  * Date: March 17, 2022
  */
 
-#ifndef MGARD_X_LEVELWISE_DATA_REFACTOR_INTERFACE_HPP
-#define MGARD_X_LEVELWISE_DATA_REFACTOR_INTERFACE_HPP
+#ifndef MGARD_X_HYBRID_HIERARCHY_DATA_REFACTOR_INTERFACE_HPP
+#define MGARD_X_HYBRID_HIERARCHY_DATA_REFACTOR_INTERFACE_HPP
 namespace mgard_x {
 
 namespace data_refactoring {
 
 template <DIM D, typename T, typename DeviceType>
-class LevelwiseDataRefactorInterface {
-  virtual void Decompose(Array<D, T, DeviceType> &data,
-                         Array<1, T, DeviceType> &decomposed_data,
+class HybridHierarchyDataRefactorInterface {
+  virtual void Decompose(SubArray<D, T, DeviceType> data,
+                         SubArray<1, T, DeviceType> decomposed_data,
                          int queue_idx) = 0;
-  virtual void Recompose(Array<D, T, DeviceType> &data,
-                         Array<1, T, DeviceType> &decomposed_data,
+  virtual void Recompose(SubArray<D, T, DeviceType> data,
+                         SubArray<1, T, DeviceType> decomposed_data,
                          int queue_idx) = 0;
 };
 

@@ -610,6 +610,9 @@ private:
         function_decomposition.set_hierarchy(
             mgard::pb::FunctionDecomposition::
                 ONE_DIM_AT_A_TIME_WITH_GHOST_NODES);
+      } else if (decomposition == decomposition_type::Hybrid) {
+        function_decomposition.set_hierarchy(
+            mgard::pb::FunctionDecomposition::HYBRID_HIERARCHY);
       }
       function_decomposition.set_l_target(l_target);
     }
@@ -866,6 +869,9 @@ private:
                  mgard::pb::FunctionDecomposition::
                      ONE_DIM_AT_A_TIME_WITH_GHOST_NODES) {
         decomposition = decomposition_type::SingleDim;
+      } else if (function_decomposition.hierarchy() ==
+                 mgard::pb::FunctionDecomposition::HYBRID_HIERARCHY) {
+        decomposition = decomposition_type::Hybrid;
       } else {
         std::cout << log::log_err
                   << "this decomposition hierarchy mismatch the hierarchy used "

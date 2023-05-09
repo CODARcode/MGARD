@@ -495,7 +495,8 @@ public:
 
       // printf("quantizers: ");
       for (int l = 0; l < l_target + 1; l++) {
-        if (decomposition == decomposition_type::MultiDim) {
+        if (decomposition == decomposition_type::MultiDim ||
+            decomposition == decomposition_type::Hybrid) {
           // ben
           quantizers[l] = (abs_tol) / ((l_target + 1) * (1 + std::pow(3, D)));
           // xin
@@ -541,18 +542,18 @@ public:
     return size;
   }
 
-  void Quantize(Array<D, T, DeviceType> &original_data,
+  void Quantize(SubArray<D, T, DeviceType> original_data,
                 enum error_bound_type ebtype, T tol, T s, T norm,
-                Array<D, Q, DeviceType> &quantized_data, int queue_idx) {}
+                SubArray<D, Q, DeviceType> quantized_data, int queue_idx) {}
 
-  void Dequantize(Array<D, Q, DeviceType> &quantized_data,
+  void Dequantize(SubArray<D, T, DeviceType> original_data,
                   enum error_bound_type ebtype, T tol, T s, T norm,
-                  Array<D, T, DeviceType> &original_data, int queue_idx) {}
+                  SubArray<D, Q, DeviceType> quantized_data, int queue_idx) {}
 
   template <typename LosslessCompressorType>
-  void Quantize(Array<D, T, DeviceType> &original_data,
+  void Quantize(SubArray<D, T, DeviceType> original_data,
                 enum error_bound_type ebtype, T tol, T s, T norm,
-                Array<D, Q, DeviceType> &quantized_data,
+                SubArray<D, Q, DeviceType> quantized_data,
                 LosslessCompressorType &lossless, int queue_idx) {
 
     bool prep_huffman =
@@ -578,7 +579,6 @@ public:
     SubArray<1, Q, DeviceType> *quantized_linearized_v = nullptr;
 
     if (config.reorder) { // only if we need linerization
-      SubArray quantized_subarray(quantized_data);
       quantized_linearized_v_host =
           new SubArray<1, Q, DeviceType>[hierarchy.l_target() + 1];
       SIZE *ranges_h = level_ranges_subarray.dataHost();
@@ -588,9 +588,8 @@ public:
         for (DIM d = 0; d < D; d++) {
           level_size *= ranges_h[(l + 1) * D + d];
         }
-        quantized_linearized_v_host[l] =
-            SubArray<1, Q, DeviceType>({level_size - last_level_size},
-                                       quantized_subarray(last_level_size));
+        quantized_linearized_v_host[l] = SubArray<1, Q, DeviceType>(
+            {level_size - last_level_size}, quantized_data(last_level_size));
         last_level_size = level_size;
       }
 
@@ -613,9 +612,8 @@ public:
           LevelwiseLinearQuantizerKernel<D, T, MGARDX_QUANTIZE, DeviceType>(
               level_ranges_subarray, level_marks_subarray, hierarchy.l_target(),
               quantizers_subarray, level_volumes_subarray, s,
-              config.huff_dict_size, SubArray(original_data),
-              SubArray(quantized_data), prep_huffman, config.reorder,
-              quantized_linearized_v,
+              config.huff_dict_size, original_data, quantized_data,
+              prep_huffman, config.reorder, quantized_linearized_v,
               lossless.huffman.workspace.outlier_count_subarray,
               lossless.huffman.workspace.outlier_idx_subarray,
               lossless.huffman.workspace.outlier_subarray),
@@ -672,13 +670,12 @@ public:
   }
 
   template <typename LosslessCompressorType>
-  void Dequantize(Array<D, Q, DeviceType> &quantized_data,
+  void Dequantize(SubArray<D, T, DeviceType> original_data,
                   enum error_bound_type ebtype, T tol, T s, T norm,
-                  Array<D, T, DeviceType> &original_data,
+                  SubArray<D, Q, DeviceType> quantized_data,
                   LosslessCompressorType &lossless_compressor, int queue_idx) {
 
     SIZE total_elems = hierarchy.total_num_elems();
-    original_data.resize(hierarchy.level_shape(hierarchy.l_target()));
     MemoryManager<DeviceType>::Copy1D(
         lossless_compressor.huffman.workspace.outlier_count_subarray.data(),
         &lossless_compressor.huffman.workspace.outlier_count, 1, queue_idx);
@@ -701,7 +698,6 @@ public:
     SubArray<1, Q, DeviceType> *quantized_linearized_v_host = nullptr;
     SubArray<1, Q, DeviceType> *quantized_linearized_v = nullptr;
     if (config.reorder) { // only if we need linerization
-      SubArray quantized_subarray(quantized_data);
       quantized_linearized_v_host =
           new SubArray<1, Q, DeviceType>[hierarchy.l_target() + 1];
       SIZE *ranges_h = level_ranges_subarray.dataHost();
@@ -711,9 +707,8 @@ public:
         for (DIM d = 0; d < D; d++) {
           level_size *= ranges_h[(l + 1) * D + d];
         }
-        quantized_linearized_v_host[l] =
-            SubArray<1, Q, DeviceType>({level_size - last_level_size},
-                                       quantized_subarray(last_level_size));
+        quantized_linearized_v_host[l] = SubArray<1, Q, DeviceType>(
+            {level_size - last_level_size}, quantized_data(last_level_size));
         last_level_size = level_size;
       }
 
@@ -733,7 +728,7 @@ public:
     if (prep_huffman && lossless_compressor.huffman.workspace.outlier_count) {
       DeviceLauncher<DeviceType>::Execute(
           OutlierRestoreKernel<D, T, DeviceType>(
-              SubArray(quantized_data),
+              quantized_data,
               lossless_compressor.huffman.workspace.outlier_count,
               lossless_compressor.huffman.workspace.outlier_idx_subarray,
               lossless_compressor.huffman.workspace.outlier_subarray),
@@ -744,9 +739,8 @@ public:
         LevelwiseLinearQuantizerKernel<D, T, MGARDX_DEQUANTIZE, DeviceType>(
             level_ranges_subarray, level_marks_subarray, hierarchy.l_target(),
             quantizers_subarray, level_volumes_subarray, s,
-            config.huff_dict_size, SubArray(original_data),
-            SubArray(quantized_data), prep_huffman, config.reorder,
-            quantized_linearized_v,
+            config.huff_dict_size, original_data, quantized_data, prep_huffman,
+            config.reorder, quantized_linearized_v,
             lossless_compressor.huffman.workspace.outlier_count_subarray,
             lossless_compressor.huffman.workspace.outlier_idx_subarray,
             lossless_compressor.huffman.workspace.outlier_subarray),
