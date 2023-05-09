@@ -6,7 +6,6 @@
  */
 
 #include "DataRefactorInterface.hpp"
-// #include "DataRefactoringWorkspace.hpp"
 #include "InCacheBlock/DataRefactoring.h"
 #include "MultiDimension/DataRefactoring.h"
 #include "SingleDimension/DataRefactoring.h"
@@ -20,6 +19,7 @@ namespace data_refactoring {
 template <DIM D, typename T, typename DeviceType>
 class DataRefactor : public DataRefactorInterface<D, T, DeviceType> {
 public:
+  DataRefactor() {}
   DataRefactor(Hierarchy<D, T, DeviceType> hierarchy, Config config)
       : hierarchy(hierarchy), config(config) {
     std::vector<SIZE> workspace_shape =
@@ -55,25 +55,25 @@ public:
     return size;
   }
 
-  void Decompose(Array<D, T, DeviceType> &data, int start_level, int stop_level,
-                 int queue_idx) {
+  void Decompose(SubArray<D, T, DeviceType> data, int start_level,
+                 int stop_level, int queue_idx) {
     Timer timer;
     if (log::level & log::TIME)
       timer.start();
-    SubArray<D, T, DeviceType> data_subarray(data);
     SubArray<D, T, DeviceType> w_subarray(w_array);
     SubArray<D, T, DeviceType> b_subarray;
     if (D > 3) {
       b_subarray = SubArray<D, T, DeviceType>(b_array);
     }
 
-    if (config.decomposition == decomposition_type::MultiDim) {
-      multi_dimension::decompose<D, T, DeviceType>(
-          hierarchy, data_subarray, w_subarray, b_subarray, start_level,
-          stop_level, queue_idx);
+    if (config.decomposition == decomposition_type::MultiDim ||
+        config.decomposition == decomposition_type::Hybrid) {
+      multi_dimension::decompose<D, T, DeviceType>(hierarchy, data, w_subarray,
+                                                   b_subarray, start_level,
+                                                   stop_level, queue_idx);
     } else if (config.decomposition == decomposition_type::SingleDim) {
       single_dimension::decompose<D, T, DeviceType>(
-          hierarchy, data_subarray, start_level, stop_level, queue_idx);
+          hierarchy, data, start_level, stop_level, queue_idx);
     }
     if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
@@ -87,23 +87,22 @@ public:
       timer.clear();
     }
   }
-  void Recompose(Array<D, T, DeviceType> &data, int start_level, int stop_level,
-                 int queue_idx) {
+  void Recompose(SubArray<D, T, DeviceType> data, int start_level,
+                 int stop_level, int queue_idx) {
     Timer timer;
     if (log::level & log::TIME)
       timer.start();
-    SubArray<D, T, DeviceType> data_subarray(data);
     SubArray<D, T, DeviceType> w_subarray(w_array);
     SubArray<D, T, DeviceType> b_subarray;
     if (D > 3)
       b_subarray = SubArray<D, T, DeviceType>(b_array);
     if (config.decomposition == decomposition_type::MultiDim) {
-      multi_dimension::recompose<D, T, DeviceType>(
-          hierarchy, data_subarray, w_subarray, b_subarray, start_level,
-          stop_level, queue_idx);
+      multi_dimension::recompose<D, T, DeviceType>(hierarchy, data, w_subarray,
+                                                   b_subarray, start_level,
+                                                   stop_level, queue_idx);
     } else if (config.decomposition == decomposition_type::SingleDim) {
       single_dimension::recompose<D, T, DeviceType>(
-          hierarchy, data_subarray, start_level, stop_level, queue_idx);
+          hierarchy, data, start_level, stop_level, queue_idx);
     }
     if (log::level & log::TIME) {
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
@@ -118,11 +117,11 @@ public:
     }
   }
 
-  void Decompose(Array<D, T, DeviceType> &data, int queue_idx) {
+  void Decompose(SubArray<D, T, DeviceType> data, int queue_idx) {
     Decompose(data, hierarchy.l_target(), 0, queue_idx);
   }
 
-  void Recompose(Array<D, T, DeviceType> &data, int queue_idx) {
+  void Recompose(SubArray<D, T, DeviceType> data, int queue_idx) {
     Recompose(data, 0, hierarchy.l_target(), queue_idx);
   }
 

@@ -12,12 +12,12 @@ namespace mgard_x {
 namespace data_refactoring {
 
 template <DIM D, typename T, typename DeviceType> class DataRefactorInterface {
-  virtual void Decompose(Array<D, T, DeviceType> &data, int start_level,
+  virtual void Decompose(SubArray<D, T, DeviceType> data, int start_level,
                          int stop_level, int queue_idx) = 0;
-  virtual void Recompose(Array<D, T, DeviceType> &data, int start_level,
+  virtual void Recompose(SubArray<D, T, DeviceType> data, int start_level,
                          int stop_level, int queue_idx) = 0;
-  virtual void Decompose(Array<D, T, DeviceType> &data, int queue_idx) = 0;
-  virtual void Recompose(Array<D, T, DeviceType> &data, int queue_idx) = 0;
+  virtual void Decompose(SubArray<D, T, DeviceType> data, int queue_idx) = 0;
+  virtual void Recompose(SubArray<D, T, DeviceType> data, int queue_idx) = 0;
 };
 
 } // namespace data_refactoring

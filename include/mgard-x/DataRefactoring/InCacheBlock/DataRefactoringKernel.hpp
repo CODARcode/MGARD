@@ -511,11 +511,17 @@ public:
     if (tid < 125) {
       sm_v[Coarse_Offset_8x8x8(tid)] += sm_z[tid];
       int const *index = Coarse_Reorder_8x8x8(tid);
-      *coarse(z_tb + index[0], y_tb + index[1], x_tb + index[2]) =
+      *coarse(z_tb * 5 + index[0], y_tb * 5 + index[1], x_tb * 5 + index[2]) =
           sm_v[Coarse_Offset_8x8x8(tid)];
     } else {
       int op_tid = tid - 125;
       *coeff(bid * 387 + op_tid) = sm_v[Coeff_Offset_8x8x8(op_tid)];
+      // if (bid == 0 && op_tid == 0) {
+      //   for (int i = 0; i < 387; i++) {
+      //     printf("%f ", sm_v[Coeff_Offset_8x8x8(i)]);
+      //   }
+      //   printf("\n");
+      // }
     }
 
     // *w(z_gl, y_gl, x_gl) = sm_v[offset];
