@@ -83,6 +83,7 @@ message FunctionDecomposition {
     POWER_OF_TWO_PLUS_ONE = 0;
     MULTIDIMENSION_WITH_GHOST_NODES = 1;
     ONE_DIM_AT_A_TIME_WITH_GHOST_NODES = 2;
+    HYBRID_HIERARCHY = 3;
   }
 
   Transform transform = 1;

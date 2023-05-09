@@ -227,9 +227,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
   }
 
   _l_target = nlevel - 1;
-  if (max_larget_level != 0) {
-    _l_target = std::min(_l_target, max_larget_level);
-  }
+  _l_target = std::min(_l_target, max_larget_level);
 
   for (int l = 0; l < _l_target + 1; l++) {
     std::vector<SIZE> curr_level_shape(D);

@@ -80,7 +80,7 @@ void Compressor<D, T, DeviceType>::CalculateNorm(
 template <DIM D, typename T, typename DeviceType>
 void Compressor<D, T, DeviceType>::Decompose(
     Array<D, T, DeviceType> &original_data, int queue_idx) {
-  refactor.Decompose(original_data, queue_idx);
+  refactor.Decompose(SubArray(original_data), queue_idx);
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -104,14 +104,15 @@ void Compressor<D, T, DeviceType>::LosslessCompress(
 template <DIM D, typename T, typename DeviceType>
 void Compressor<D, T, DeviceType>::Recompose(
     Array<D, T, DeviceType> &decompressed_data, int queue_idx) {
-  refactor.Recompose(decompressed_data, queue_idx);
+  refactor.Recompose(SubArray(decompressed_data), queue_idx);
 }
 
 template <DIM D, typename T, typename DeviceType>
 void Compressor<D, T, DeviceType>::Dequantize(
     Array<D, T, DeviceType> &decompressed_data, enum error_bound_type ebtype,
     T tol, T s, T norm, int queue_idx) {
-  quantizer.Dequantize(quantized_array, ebtype, tol, s, norm, decompressed_data,
+  decompressed_data.resize(hierarchy.level_shape(hierarchy.l_target()));
+  quantizer.Dequantize(decompressed_data, ebtype, tol, s, norm, quantized_array,
                        lossless_compressor, queue_idx);
 }
 

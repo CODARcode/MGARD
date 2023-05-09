@@ -16,7 +16,7 @@ Config::Config() {
   dev_id = 0;
   num_dev = 1;
   domain_decomposition = domain_decomposition_type::MaxDim;
-  decomposition = decomposition_type::MultiDim;
+  decomposition = decomposition_type::Hybrid;
   estimate_outlier_ratio = 1.0;
   huff_dict_size = 4096;
   huff_block_size = 1024 * 20;
@@ -30,7 +30,7 @@ Config::Config() {
   lossless = lossless_type::Huffman;
   reorder = 0;
   log_level = log::ERR;
-  max_larget_level = 0; // no limit
+  max_larget_level = std::numeric_limits<SIZE>::max(); // no limit
   prefetch = true;
   max_memory_footprint = std::numeric_limits<SIZE>::max(); // no limit
   total_num_bitplanes = 32;
@@ -39,6 +39,7 @@ Config::Config() {
   collect_uncertainty = false;
   adjust_shape = false;
   compress_with_dryrun = false;
+  num_local_refactoring_level = 1;
 }
 
 void Config::apply() { log::level = log_level; }

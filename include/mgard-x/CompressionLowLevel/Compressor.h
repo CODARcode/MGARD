@@ -67,6 +67,7 @@ public:
                   Array<D, T, DeviceType> &decompressed_data, int queue_idx);
 
   Hierarchy<D, T, DeviceType> hierarchy;
+  Hierarchy<D, T, DeviceType> global_refactoring_hierarchy;
   Config config;
   Array<1, T, DeviceType> norm_tmp_array;
   Array<1, T, DeviceType> norm_array;
