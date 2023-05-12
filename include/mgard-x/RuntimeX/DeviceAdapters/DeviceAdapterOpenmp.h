@@ -1072,6 +1072,7 @@ MGARDX_KERL void OpenmpHuffmanCLCustomizedKernel(TaskType task) {
     COMPUTE_GRID(Operation3, loop1_active);
     COMPUTE_GRID(Operation4, loop1_active);
     COMPUTE_GRID(Operation5, loop1_active);
+    COMPUTE_GRID(Operation6, loop1_active);
     INHERENT_CONDITION_GRID(loop1_active, branch1_active);
     EVALUATE_CONDITION_GRID(branch_condition1, branch1_active,
                             BranchCondition1);
@@ -1079,18 +1080,18 @@ MGARDX_KERL void OpenmpHuffmanCLCustomizedKernel(TaskType task) {
       INHERENT_CONDITION_GRID(branch1_active, loop2_active);
       EVALUATE_CONDITION_GRID(loop_condition2, loop2_active, LoopCondition2);
       while (loop_condition2) {
-        COMPUTE_GRID(Operation6, loop2_active);
         COMPUTE_GRID(Operation7, loop2_active);
         COMPUTE_GRID(Operation8, loop2_active);
+        COMPUTE_GRID(Operation9, loop2_active);
         EVALUATE_CONDITION_GRID(loop_condition2, loop2_active, LoopCondition2);
       }
-      COMPUTE_GRID(Operation9, branch1_active)
-      COMPUTE_GRID(Operation10, branch1_active);
+      COMPUTE_GRID(Operation10, branch1_active)
+      COMPUTE_GRID(Operation11, branch1_active);
     }
-    COMPUTE_GRID(Operation11, loop1_active);
     COMPUTE_GRID(Operation12, loop1_active);
     COMPUTE_GRID(Operation13, loop1_active);
     COMPUTE_GRID(Operation14, loop1_active);
+    COMPUTE_GRID(Operation15, loop1_active);
     EVALUATE_CONDITION_GRID(loop_condition1, loop1_active, LoopCondition1);
   }
 
