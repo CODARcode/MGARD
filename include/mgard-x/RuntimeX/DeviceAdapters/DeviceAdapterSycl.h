@@ -891,6 +891,7 @@ SINGLE_KERNEL_3D(Operation11);
 SINGLE_KERNEL_3D(Operation12);
 SINGLE_KERNEL_3D(Operation13);
 SINGLE_KERNEL_3D(Operation14);
+SINGLE_KERNEL_3D(Operation15);
 
 #undef SINGLE_KERNEL_3D
 
@@ -944,6 +945,7 @@ SINGLE_KERNEL_1D(Operation11);
 SINGLE_KERNEL_1D(Operation12);
 SINGLE_KERNEL_1D(Operation13);
 SINGLE_KERNEL_1D(Operation14);
+SINGLE_KERNEL_1D(Operation15);
 
 #undef SINGLE_KERNEL_1D
 
@@ -977,17 +979,17 @@ public:
                     (i.get_local_id(0) / nblockx) % nblocky,
                     i.get_local_id(0) % nblockx, shared_memory);
 #endif
-    my_functor.Operation5();
+    my_functor.Operation6();
     i.barrier();
     while (my_functor.LoopCondition2()) {
-      my_functor.Operation6();
-      i.barrier();
       my_functor.Operation7();
       i.barrier();
       my_functor.Operation8();
       i.barrier();
+      my_functor.Operation9();
+      i.barrier();
     }
-    my_functor.Operation9();
+    my_functor.Operation10();
   }
 
 private:
@@ -1094,6 +1096,22 @@ template <typename Task> void SyclHuffmanCLCustomizedNoCGKernel(Task task) {
     });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
 
+    // std::cout << "calling Single_Operation4_Kernel\n";
+    q.submit([&](sycl::handler &h) {
+      LocalMemory localAccess{sm_size, h};
+#if MGARD_X_SYCL_ND_RANGE_3D
+      Single_Operation5_Kernel_3D kernel(task.GetFunctor(), localAccess);
+#endif
+#if MGARD_X_SYCL_ND_RANGE_1D
+      Single_Operation5_Kernel_1D kernel(
+          task.GetFunctor(), localAccess, task.GetGridDimZ(),
+          task.GetGridDimY(), task.GetGridDimX(), task.GetBlockDimZ(),
+          task.GetBlockDimY(), task.GetBlockDimX());
+#endif
+      h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
+    });
+    DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
+
     // std::cout << "calling BranchCondition1\n";
     if (task.GetFunctor().BranchCondition1()) {
       DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
@@ -1113,10 +1131,10 @@ template <typename Task> void SyclHuffmanCLCustomizedNoCGKernel(Task task) {
       q.submit([&](sycl::handler &h) {
         LocalMemory localAccess{sm_size, h};
 #if MGARD_X_SYCL_ND_RANGE_3D
-        Single_Operation10_Kernel_3D kernel(task.GetFunctor(), localAccess);
+        Single_Operation11_Kernel_3D kernel(task.GetFunctor(), localAccess);
 #endif
 #if MGARD_X_SYCL_ND_RANGE_1D
-        Single_Operation10_Kernel_1D kernel(
+        Single_Operation11_Kernel_1D kernel(
             task.GetFunctor(), localAccess, task.GetGridDimZ(),
             task.GetGridDimY(), task.GetGridDimX(), task.GetBlockDimZ(),
             task.GetBlockDimY(), task.GetBlockDimX());
@@ -1127,22 +1145,6 @@ template <typename Task> void SyclHuffmanCLCustomizedNoCGKernel(Task task) {
     }
 
     // std::cout << "calling Single_Operation11_Kernel\n";
-    q.submit([&](sycl::handler &h) {
-      LocalMemory localAccess{sm_size, h};
-#if MGARD_X_SYCL_ND_RANGE_3D
-      Single_Operation11_Kernel_3D kernel(task.GetFunctor(), localAccess);
-#endif
-#if MGARD_X_SYCL_ND_RANGE_1D
-      Single_Operation11_Kernel_1D kernel(
-          task.GetFunctor(), localAccess, task.GetGridDimZ(),
-          task.GetGridDimY(), task.GetGridDimX(), task.GetBlockDimZ(),
-          task.GetBlockDimY(), task.GetBlockDimX());
-#endif
-      h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
-    });
-    DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
-
-    // std::cout << "calling Single_Operation12_Kernel\n";
     q.submit([&](sycl::handler &h) {
       LocalMemory localAccess{sm_size, h};
 #if MGARD_X_SYCL_ND_RANGE_3D
@@ -1158,7 +1160,7 @@ template <typename Task> void SyclHuffmanCLCustomizedNoCGKernel(Task task) {
     });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
 
-    // std::cout << "calling Single_Operation13_Kernel\n";
+    // std::cout << "calling Single_Operation12_Kernel\n";
     q.submit([&](sycl::handler &h) {
       LocalMemory localAccess{sm_size, h};
 #if MGARD_X_SYCL_ND_RANGE_3D
@@ -1173,7 +1175,8 @@ template <typename Task> void SyclHuffmanCLCustomizedNoCGKernel(Task task) {
       h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
     });
     DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
-    // std::cout << "calling Single_Operation14_Kernel\n";
+
+    // std::cout << "calling Single_Operation13_Kernel\n";
     q.submit([&](sycl::handler &h) {
       LocalMemory localAccess{sm_size, h};
 #if MGARD_X_SYCL_ND_RANGE_3D
@@ -1181,6 +1184,21 @@ template <typename Task> void SyclHuffmanCLCustomizedNoCGKernel(Task task) {
 #endif
 #if MGARD_X_SYCL_ND_RANGE_1D
       Single_Operation14_Kernel_1D kernel(
+          task.GetFunctor(), localAccess, task.GetGridDimZ(),
+          task.GetGridDimY(), task.GetGridDimX(), task.GetBlockDimZ(),
+          task.GetBlockDimY(), task.GetBlockDimX());
+#endif
+      h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
+    });
+    DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
+    // std::cout << "calling Single_Operation14_Kernel\n";
+    q.submit([&](sycl::handler &h) {
+      LocalMemory localAccess{sm_size, h};
+#if MGARD_X_SYCL_ND_RANGE_3D
+      Single_Operation15_Kernel_3D kernel(task.GetFunctor(), localAccess);
+#endif
+#if MGARD_X_SYCL_ND_RANGE_1D
+      Single_Operation15_Kernel_1D kernel(
           task.GetFunctor(), localAccess, task.GetGridDimZ(),
           task.GetGridDimY(), task.GetGridDimX(), task.GetBlockDimZ(),
           task.GetBlockDimY(), task.GetBlockDimX());

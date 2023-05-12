@@ -353,29 +353,31 @@ MGARDX_KERL void CudaHuffmanCLCustomizedKernel(Task task) {
     SyncGrid<CUDA>::Sync();
     task.GetFunctor().Operation4();
     SyncGrid<CUDA>::Sync();
+    task.GetFunctor().Operation5();
+    SyncGrid<CUDA>::Sync();
     if (task.GetFunctor().BranchCondition1()) {
-      task.GetFunctor().Operation5();
+      task.GetFunctor().Operation6();
       SyncBlock<CUDA>::Sync();
       while (task.GetFunctor().LoopCondition2()) {
-        task.GetFunctor().Operation6();
-        SyncBlock<CUDA>::Sync();
         task.GetFunctor().Operation7();
         SyncBlock<CUDA>::Sync();
         task.GetFunctor().Operation8();
         SyncBlock<CUDA>::Sync();
+        task.GetFunctor().Operation9();
+        SyncBlock<CUDA>::Sync();
       }
-      task.GetFunctor().Operation9();
-      SyncGrid<CUDA>::Sync();
       task.GetFunctor().Operation10();
       SyncGrid<CUDA>::Sync();
+      task.GetFunctor().Operation11();
+      SyncGrid<CUDA>::Sync();
     }
-    task.GetFunctor().Operation11();
-    SyncGrid<CUDA>::Sync();
     task.GetFunctor().Operation12();
     SyncGrid<CUDA>::Sync();
     task.GetFunctor().Operation13();
     SyncGrid<CUDA>::Sync();
     task.GetFunctor().Operation14();
+    SyncGrid<CUDA>::Sync();
+    task.GetFunctor().Operation15();
     SyncGrid<CUDA>::Sync();
   }
 }
@@ -405,6 +407,7 @@ SINGLE_KERNEL(Operation11);
 SINGLE_KERNEL(Operation12);
 SINGLE_KERNEL(Operation13);
 SINGLE_KERNEL(Operation14);
+SINGLE_KERNEL(Operation15);
 
 #undef SINGLE_KERNEL
 
@@ -416,17 +419,17 @@ template <typename Task> MGARDX_KERL void CudaParallelMergeKernel(Task task) {
                          blockIdx.x, threadIdx.z, threadIdx.y, threadIdx.x,
                          shared_memory);
 
-  task.GetFunctor().Operation5();
+  task.GetFunctor().Operation6();
   SyncBlock<CUDA>::Sync();
   while (task.GetFunctor().LoopCondition2()) {
-    task.GetFunctor().Operation6();
-    SyncBlock<CUDA>::Sync();
     task.GetFunctor().Operation7();
     SyncBlock<CUDA>::Sync();
     task.GetFunctor().Operation8();
     SyncBlock<CUDA>::Sync();
+    task.GetFunctor().Operation9();
+    SyncBlock<CUDA>::Sync();
   }
-  task.GetFunctor().Operation9();
+  task.GetFunctor().Operation10();
 }
 
 template <typename Task>
@@ -1956,8 +1959,12 @@ template <typename Task> void CudaHuffmanCLCustomizedNoCGKernel(Task task) {
                                stream>>>(task);
     ErrorSyncCheck(cudaDeviceSynchronize(), task);
 
-    // std::cout << "calling Single_Operation4_Kernel\n";
     Single_Operation4_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
+                               stream>>>(task);
+    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+
+    // std::cout << "calling Single_Operation4_Kernel\n";
+    Single_Operation5_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                stream>>>(task);
     ErrorSyncCheck(cudaDeviceSynchronize(), task);
 
@@ -1971,28 +1978,28 @@ template <typename Task> void CudaHuffmanCLCustomizedNoCGKernel(Task task) {
       ErrorSyncCheck(cudaDeviceSynchronize(), task);
 
       // std::cout << "calling Single_Operation10_Kernel\n";
-      Single_Operation10_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
+      Single_Operation11_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                   stream>>>(task);
       ErrorSyncCheck(cudaDeviceSynchronize(), task);
     }
 
     // std::cout << "calling Single_Operation11_Kernel\n";
-    Single_Operation11_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
-                                stream>>>(task);
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
-
-    // std::cout << "calling Single_Operation12_Kernel\n";
     Single_Operation12_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                 stream>>>(task);
     ErrorSyncCheck(cudaDeviceSynchronize(), task);
 
-    // std::cout << "calling Single_Operation13_Kernel\n";
+    // std::cout << "calling Single_Operation12_Kernel\n";
     Single_Operation13_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                 stream>>>(task);
     ErrorSyncCheck(cudaDeviceSynchronize(), task);
 
-    // std::cout << "calling Single_Operation14_Kernel\n";
+    // std::cout << "calling Single_Operation13_Kernel\n";
     Single_Operation14_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
+                                stream>>>(task);
+    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+
+    // std::cout << "calling Single_Operation14_Kernel\n";
+    Single_Operation15_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                 stream>>>(task);
     ErrorSyncCheck(cudaDeviceSynchronize(), task);
   }
