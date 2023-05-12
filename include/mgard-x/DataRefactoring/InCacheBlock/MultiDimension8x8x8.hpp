@@ -5,8 +5,8 @@
  * Date: Jan. 15, 2023
  */
 
-#ifndef MGARD_X_IN_CACHE_BLOCK_DATA_REFACTORING_KERNEL_TEMPLATE
-#define MGARD_X_IN_CACHE_BLOCK_DATA_REFACTORING_KERNEL_TEMPLATE
+#ifndef MGARD_X_MULTI_DIMENSION_8x8x8_KERNEL_TEMPLATE
+#define MGARD_X_MULTI_DIMENSION_8x8x8_KERNEL_TEMPLATE
 
 #include "../../RuntimeX/RuntimeX.h"
 
@@ -42,12 +42,12 @@ c8(512) c5( 98)  c3(19)  c2( 8)
 
 template <DIM D, typename T, SIZE Z, SIZE Y, SIZE X, OPTION OP,
           typename DeviceType>
-class DataRefactoringFunctor : public Functor<DeviceType> {
+class MultiDimension8x8x8Functor : public Functor<DeviceType> {
 public:
-  MGARDX_CONT DataRefactoringFunctor() {}
-  MGARDX_CONT DataRefactoringFunctor(SubArray<D, T, DeviceType> v,
-                                     SubArray<D, T, DeviceType> coarse,
-                                     SubArray<1, T, DeviceType> coeff)
+  MGARDX_CONT MultiDimension8x8x8Functor() {}
+  MGARDX_CONT MultiDimension8x8x8Functor(SubArray<D, T, DeviceType> v,
+                                         SubArray<D, T, DeviceType> coarse,
+                                         SubArray<1, T, DeviceType> coeff)
       : v(v), coarse(coarse), coeff(coeff) {
     Functor<DeviceType>();
   }
@@ -574,21 +574,21 @@ private:
   // #endif
 };
 
-template <DIM D, typename T, SIZE Z, SIZE Y, SIZE X, OPTION OP,
-          typename DeviceType>
-class DataRefactoringKernel : public Kernel {
+template <DIM D, typename T, OPTION OP, typename DeviceType>
+class MultiDimension8x8x8Kernel : public Kernel {
 public:
   constexpr static bool EnableAutoTuning() { return false; }
   constexpr static std::string_view Name = "lwpk";
   MGARDX_CONT
-  DataRefactoringKernel(SubArray<D, T, DeviceType> v,
-                        SubArray<D, T, DeviceType> coarse,
-                        SubArray<1, T, DeviceType> coeff)
+  MultiDimension8x8x8Kernel(SubArray<D, T, DeviceType> v,
+                            SubArray<D, T, DeviceType> coarse,
+                            SubArray<1, T, DeviceType> coeff)
       : v(v), coarse(coarse), coeff(coeff) {}
 
-  MGARDX_CONT Task<DataRefactoringFunctor<D, T, Z, Y, X, OP, DeviceType>>
+  MGARDX_CONT Task<MultiDimension8x8x8Functor<D, T, 8, 8, 8, OP, DeviceType>>
   GenTask(int queue_idx) {
-    using FunctorType = DataRefactoringFunctor<D, T, Z, Y, X, OP, DeviceType>;
+    using FunctorType =
+        MultiDimension8x8x8Functor<D, T, 8, 8, 8, OP, DeviceType>;
     FunctorType functor(v, coarse, coeff);
 
     SIZE total_thread_z = v.shape(D - 3);
@@ -597,9 +597,9 @@ public:
 
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
-    tbz = Z;
-    tby = Y;
-    tbx = X;
+    tbz = 8;
+    tby = 8;
+    tbx = 8;
     gridz = ceil((float)total_thread_z / tbz);
     gridy = ceil((float)total_thread_y / tby);
     gridx = ceil((float)total_thread_x / tbx);
