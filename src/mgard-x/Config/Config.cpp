@@ -16,7 +16,7 @@ Config::Config() {
   dev_id = 0;
   num_dev = 1;
   domain_decomposition = domain_decomposition_type::MaxDim;
-  decomposition = decomposition_type::Hybrid;
+  decomposition = decomposition_type::MultiDim;
   estimate_outlier_ratio = 1.0;
   huff_dict_size = 8192;
   huff_block_size = 1024 * 20;
