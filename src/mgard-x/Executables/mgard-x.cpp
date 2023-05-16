@@ -343,7 +343,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     srand(7117);
     T c = 0;
     for (size_t i = 0; i < original_size; i++) {
-      original_data[i] = 0; // rand() % 10 + 1;
+      original_data[i] = rand() % 10 + 1;
     }
   } else {
     in_size = readfile(input_file, original_data);

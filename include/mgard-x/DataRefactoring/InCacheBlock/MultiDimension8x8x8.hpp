@@ -110,7 +110,9 @@ public:
         x_gl < v.shape(D - 1)) {
       sm_v[offset] = *v(z_gl, y_gl, x_gl);
     }
+  }
 
+  MGARDX_EXEC void Operation2() {
     // #ifdef MGARDX_COMPILE_CUDA
     // start = clock();
     // #endif
@@ -149,7 +151,7 @@ public:
   }
 
   // MassTransX
-  MGARDX_EXEC void Operation2() {
+  MGARDX_EXEC void Operation3() {
 
     // #ifdef MGARDX_COMPILE_CUDA
     // __syncthreads();
@@ -179,14 +181,6 @@ public:
       T const *dist = MassTrans_Weights_8x8x8<T>(index[6]);
       sm_x[index[5]] =
           a * dist[0] + b * dist[1] + c * dist[2] + d * dist[3] + e * dist[4];
-      // if (tid == 0) {
-      //   printf("%f %f %f %f %f\n", a, b, c, d, e);
-      //   printf("%f %f %f %f %f\n", dist[0], dist[1], dist[2], dist[3],
-      //   dist[4]);
-      // }
-      // sm_x[index[5]] = mass_trans(a, b, c, d, e, (T)1.0, (T)1.0, (T)1.0,
-      // (T)1.0, (T)0.5, (T)0.5,
-      //                             (T)0.5, (T)0.5);
     }
 
     // #ifdef MGARDX_COMPILE_CUDA
@@ -209,7 +203,7 @@ public:
   }
 
   // MassTransY
-  MGARDX_EXEC void Operation3() {
+  MGARDX_EXEC void Operation4() {
     if (tid < 200) {
       int const *index = MassTrans_Y_Offset_8x8x8(tid);
       T a = sm_x[index[0]];
@@ -220,9 +214,6 @@ public:
       T const *dist = MassTrans_Weights_8x8x8<T>(index[6]);
       sm_y[index[5]] =
           a * dist[0] + b * dist[1] + c * dist[2] + d * dist[3] + e * dist[4];
-      // sm_y[index[5]] = mass_trans(a, b, c, d, e, (T)1.0, (T)1.0, (T)1.0,
-      // (T)1.0, (T)0.5, (T)0.5,
-      //                             (T)0.5, (T)0.5);
     }
 
     // #ifdef MGARDX_COMPILE_CUDA
@@ -245,7 +236,7 @@ public:
   }
 
   // MassTransZ
-  MGARDX_EXEC void Operation4() {
+  MGARDX_EXEC void Operation5() {
     if (tid < 125) {
       int const *index = MassTrans_Z_Offset_8x8x8(tid);
       T a = sm_y[index[0]];
@@ -256,9 +247,6 @@ public:
       T const *dist = MassTrans_Weights_8x8x8<T>(index[6]);
       sm_z[index[5]] =
           a * dist[0] + b * dist[1] + c * dist[2] + d * dist[3] + e * dist[4];
-      // sm_z[index[5]] = mass_trans(a, b, c, d, e, (T)1.0, (T)1.0, (T)1.0,
-      // (T)1.0, (T)0.5, (T)0.5,
-      //                             (T)0.5, (T)0.5);
     }
 
     // #ifdef MGARDX_COMPILE_CUDA
@@ -281,7 +269,7 @@ public:
   }
 
   // TriadiagX
-  MGARDX_EXEC void Operation5() {
+  MGARDX_EXEC void Operation6() {
     if (tid < 25) {
       int const *index = TriDiag_X_Offset_8x8x8(tid);
       T a = sm_z[index[0]];
@@ -290,40 +278,11 @@ public:
       T d = sm_z[index[3]];
       T e = sm_z[index[4]];
 
-      // if (tid == 0) {
-      //   printf("%f %f %f %f %f %f\n",
-      //           am_8x8x8<T>(0),
-      //           am_8x8x8<T>(1),
-      //           am_8x8x8<T>(2),
-      //           am_8x8x8<T>(3),
-      //           am_8x8x8<T>(4),
-      //           am_8x8x8<T>(5));
-
-      //   printf("%f %f %f %f %f %f\n",
-      //           bm_8x8x8<T>(0),
-      //           bm_8x8x8<T>(1),
-      //           bm_8x8x8<T>(2),
-      //           bm_8x8x8<T>(3),
-      //           bm_8x8x8<T>(4),
-      //           bm_8x8x8<T>(5));
-      // }
-      // a -= 0 * (am_8x8x8<T>(0) / bm_8x8x8<T>(0));
-      // b -= a * (am_8x8x8<T>(1) / bm_8x8x8<T>(1));
-      // c -= b * (am_8x8x8<T>(2) / bm_8x8x8<T>(2));
-      // d -= c * (am_8x8x8<T>(3) / bm_8x8x8<T>(3));
-      // e -= d * (am_8x8x8<T>(4) / bm_8x8x8<T>(4));
-
       a += 0 * amxbm_8x8x8<T>(0);
       b += a * amxbm_8x8x8<T>(1);
       c += b * amxbm_8x8x8<T>(2);
       d += c * amxbm_8x8x8<T>(3);
       e += d * amxbm_8x8x8<T>(4);
-
-      // e = (e - am_8x8x8<T>(5) * 0) / bm_8x8x8<T>(5);
-      // d = (d - am_8x8x8<T>(4) * e) / bm_8x8x8<T>(4);
-      // c = (c - am_8x8x8<T>(3) * d) / bm_8x8x8<T>(3);
-      // b = (b - am_8x8x8<T>(2) * c) / bm_8x8x8<T>(2);
-      // a = (a - am_8x8x8<T>(1) * b) / bm_8x8x8<T>(1);
 
       e = (e + am_8x8x8<T>(5) * 0) * bm_8x8x8<T>(5);
       d = (d + am_8x8x8<T>(4) * e) * bm_8x8x8<T>(4);
@@ -331,17 +290,6 @@ public:
       b = (b + am_8x8x8<T>(2) * c) * bm_8x8x8<T>(2);
       a = (a + am_8x8x8<T>(1) * b) * bm_8x8x8<T>(1);
 
-      // a = tridiag_forward2((T)0.0, (T)0.000000, (T)1.000000, a);
-      // b = tridiag_forward2((T)a, (T)0.333333, (T)0.666667, b);
-      // c = tridiag_forward2((T)b, (T)0.333333, (T)1.166667, c);
-      // d = tridiag_forward2((T)c, (T)0.333333, (T)1.238095, d);
-      // e = tridiag_forward2((T)d, (T)0.166667, (T)0.910256, e);
-
-      // e = tridiag_backward2((T)0.0, (T)0.000000, (T)1.000000, e);
-      // d = tridiag_backward2((T)e, (T)0.333333, (T)0.666667, d);
-      // c = tridiag_backward2((T)d, (T)0.333333, (T)1.166667, c);
-      // b = tridiag_backward2((T)c, (T)0.333333, (T)1.238095, b);
-      // a = tridiag_backward2((T)b, (T)0.166667, (T)0.910256, a);
       sm_z[index[0]] = a;
       sm_z[index[1]] = b;
       sm_z[index[2]] = c;
@@ -369,7 +317,7 @@ public:
   }
 
   // TriadiagY
-  MGARDX_EXEC void Operation6() {
+  MGARDX_EXEC void Operation7() {
     if (tid < 25) {
       int const *index = TriDiag_Y_Offset_8x8x8(tid);
       T a = sm_z[index[0]];
@@ -377,40 +325,18 @@ public:
       T c = sm_z[index[2]];
       T d = sm_z[index[3]];
       T e = sm_z[index[4]];
-      // a -= 0 * (am_8x8x8<T>(0) / bm_8x8x8<T>(0));
-      // b -= a * (am_8x8x8<T>(1) / bm_8x8x8<T>(1));
-      // c -= b * (am_8x8x8<T>(2) / bm_8x8x8<T>(2));
-      // d -= c * (am_8x8x8<T>(3) / bm_8x8x8<T>(3));
-      // e -= d * (am_8x8x8<T>(4) / bm_8x8x8<T>(4));
+
       a += 0 * amxbm_8x8x8<T>(0);
       b += a * amxbm_8x8x8<T>(1);
       c += b * amxbm_8x8x8<T>(2);
       d += c * amxbm_8x8x8<T>(3);
       e += d * amxbm_8x8x8<T>(4);
 
-      // e = (e - am_8x8x8<T>(5) * 0) / bm_8x8x8<T>(5);
-      // d = (d - am_8x8x8<T>(4) * e) / bm_8x8x8<T>(4);
-      // c = (c - am_8x8x8<T>(3) * d) / bm_8x8x8<T>(3);
-      // b = (b - am_8x8x8<T>(2) * c) / bm_8x8x8<T>(2);
-      // a = (a - am_8x8x8<T>(1) * b) / bm_8x8x8<T>(1);
-
       e = (e + am_8x8x8<T>(5) * 0) * bm_8x8x8<T>(5);
       d = (d + am_8x8x8<T>(4) * e) * bm_8x8x8<T>(4);
       c = (c + am_8x8x8<T>(3) * d) * bm_8x8x8<T>(3);
       b = (b + am_8x8x8<T>(2) * c) * bm_8x8x8<T>(2);
       a = (a + am_8x8x8<T>(1) * b) * bm_8x8x8<T>(1);
-
-      // a = tridiag_forward2((T)0.0, (T)0.000000, (T)1.000000, a);
-      // b = tridiag_forward2((T)a, (T)0.333333, (T)0.666667, b);
-      // c = tridiag_forward2((T)b, (T)0.333333, (T)1.166667, c);
-      // d = tridiag_forward2((T)c, (T)0.333333, (T)1.238095, d);
-      // e = tridiag_forward2((T)d, (T)0.166667, (T)0.910256, e);
-
-      // e = tridiag_backward2((T)0.0, (T)0.000000, (T)1.000000, e);
-      // d = tridiag_backward2((T)e, (T)0.333333, (T)0.666667, d);
-      // c = tridiag_backward2((T)d, (T)0.333333, (T)1.166667, c);
-      // b = tridiag_backward2((T)c, (T)0.333333, (T)1.238095, b);
-      // a = tridiag_backward2((T)b, (T)0.166667, (T)0.910256, a);
 
       sm_z[index[0]] = a;
       sm_z[index[1]] = b;
@@ -438,7 +364,7 @@ public:
   }
 
   // TriadiagZ
-  MGARDX_EXEC void Operation7() {
+  MGARDX_EXEC void Operation8() {
     if (tid < 25) {
       int const *index = TriDiag_Z_Offset_8x8x8(tid);
       T a = sm_z[index[0]];
@@ -446,40 +372,18 @@ public:
       T c = sm_z[index[2]];
       T d = sm_z[index[3]];
       T e = sm_z[index[4]];
-      // a -= 0 * (am_8x8x8<T>(0) / bm_8x8x8<T>(0));
-      // b -= a * (am_8x8x8<T>(1) / bm_8x8x8<T>(1));
-      // c -= b * (am_8x8x8<T>(2) / bm_8x8x8<T>(2));
-      // d -= c * (am_8x8x8<T>(3) / bm_8x8x8<T>(3));
-      // e -= d * (am_8x8x8<T>(4) / bm_8x8x8<T>(4));
+
       a += 0 * amxbm_8x8x8<T>(0);
       b += a * amxbm_8x8x8<T>(1);
       c += b * amxbm_8x8x8<T>(2);
       d += c * amxbm_8x8x8<T>(3);
       e += d * amxbm_8x8x8<T>(4);
 
-      // e = (e - am_8x8x8<T>(5) * 0) / bm_8x8x8<T>(5);
-      // d = (d - am_8x8x8<T>(4) * e) / bm_8x8x8<T>(4);
-      // c = (c - am_8x8x8<T>(3) * d) / bm_8x8x8<T>(3);
-      // b = (b - am_8x8x8<T>(2) * c) / bm_8x8x8<T>(2);
-      // a = (a - am_8x8x8<T>(1) * b) / bm_8x8x8<T>(1);
-
       e = (e + am_8x8x8<T>(5) * 0) * bm_8x8x8<T>(5);
       d = (d + am_8x8x8<T>(4) * e) * bm_8x8x8<T>(4);
       c = (c + am_8x8x8<T>(3) * d) * bm_8x8x8<T>(3);
       b = (b + am_8x8x8<T>(2) * c) * bm_8x8x8<T>(2);
       a = (a + am_8x8x8<T>(1) * b) * bm_8x8x8<T>(1);
-
-      // a = tridiag_forward2((T)0.0, (T)0.000000, (T)1.000000, a);
-      // b = tridiag_forward2((T)a, (T)0.333333, (T)0.666667, b);
-      // c = tridiag_forward2((T)b, (T)0.333333, (T)1.166667, c);
-      // d = tridiag_forward2((T)c, (T)0.333333, (T)1.238095, d);
-      // e = tridiag_forward2((T)d, (T)0.166667, (T)0.910256, e);
-
-      // e = tridiag_backward2((T)0.0, (T)0.000000, (T)1.000000, e);
-      // d = tridiag_backward2((T)e, (T)0.333333, (T)0.666667, d);
-      // c = tridiag_backward2((T)d, (T)0.333333, (T)1.166667, c);
-      // b = tridiag_backward2((T)c, (T)0.333333, (T)1.238095, b);
-      // a = tridiag_backward2((T)b, (T)0.166667, (T)0.910256, a);
 
       sm_z[index[0]] = a;
       sm_z[index[1]] = b;
@@ -489,13 +393,13 @@ public:
     }
     // #ifdef MGARDX_COMPILE_CUDA
     // __syncthreads();
-    // if (tid == 0) {
+    // if (bid == 0 && tid == 0) {
     //   printf("tri - z\n");
     //   for (int i = 0; i < 5; i++) {
     //     printf("sm[i = %d]\n", i);
     //     for (int j = 0; j < 5; j++) {
     //       for (int k = 0; k < 5; k++) {
-    //         printf("%.6f ", sm_z[get_idx(5, 5, i, j, k)]);
+    //         printf("%10.2f ", sm_z[get_idx(5, 5, i, j, k)]);
     //       }
     //       printf("\n");
     //     }
@@ -507,9 +411,9 @@ public:
   }
 
   // Apply Correction
-  MGARDX_EXEC void Operation8() {
+  MGARDX_EXEC void Operation9() {
     if (tid < 125) {
-      sm_v[Coarse_Offset_8x8x8(tid)] += sm_z[tid];
+      sm_v[Coarse_Offset_8x8x8(tid)] = sm_z[tid];
       int const *index = Coarse_Reorder_8x8x8(tid);
       *coarse(z_tb * 5 + index[0], y_tb * 5 + index[1], x_tb * 5 + index[2]) =
           sm_v[Coarse_Offset_8x8x8(tid)];
@@ -532,12 +436,12 @@ public:
 
     // #ifdef MGARDX_COMPILE_CUDA
     // __syncthreads();
-    // if (tid == 0) {
+    // if (bid == 0 && tid == 0) {
     //   for (int i = 0; i < 8; i++) {
     //     printf("sm[i = %d]\n", i);
     //     for (int j = 0; j < 8; j++) {
     //       for (int k = 0; k < 8; k++) {
-    //         printf("%.6f ", sm_v[get_idx(8, 8, i, j, k)]);
+    //         printf("%10.2f ", sm_v[get_idx(8, 8, i, j, k)]);
     //       }
     //       printf("\n");
     //     }
