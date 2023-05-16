@@ -130,7 +130,7 @@ if (MGARD_ENABLE_SERIAL OR
   if(MGARD_ENABLE_MDR)
     add_executable(mdr-x ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/mdr-x.cpp)
     target_link_libraries(mdr-x mgard-library  ${CMAKE_DL_LIBS})
-    target_include_directories(mgard-x PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    target_include_directories(mdr-x PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                               $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
     install(TARGETS mdr-x)
   endif()

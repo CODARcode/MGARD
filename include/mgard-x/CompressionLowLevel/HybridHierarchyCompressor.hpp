@@ -104,6 +104,48 @@ void HybridHierarchyCompressor<D, T, DeviceType>::LosslessCompress(
   Array<1, QUANTIZED_UNSIGNED_INT, DeviceType> hybrid_quantized_liearized_array(
       {hierarchy.total_num_elems()},
       (QUANTIZED_UNSIGNED_INT *)hybrid_quantized_array.data());
+
+  // SIZE ori_size = 512*512*512;
+  // SIZE coarse_size = 320*320*320;
+
+  //   SIZE ori_size = 64*64*64;
+  // SIZE coarse_size = 40*40*40;
+  // SIZE coeff_size = ori_size-coarse_size;
+
+  // Array<1, QUANTIZED_UNSIGNED_INT, DeviceType>
+  // hybrid_quantized_liearized_array1(
+  //     {coeff_size},
+  //     (QUANTIZED_UNSIGNED_INT *)hybrid_quantized_array.data()+coarse_size);
+
+  // Array<1, QUANTIZED_UNSIGNED_INT, DeviceType>
+  // hybrid_quantized_liearized_array2(
+  //     {coarse_size},
+  //     (QUANTIZED_UNSIGNED_INT *)hybrid_quantized_array.data());
+
+  // PrintSubarray("coeff", SubArray(hybrid_quantized_liearized_array1));
+  // PrintSubarray("coarse", SubArray(hybrid_quantized_liearized_array2));
+  // PrintSubarray("hh", SubArray(hybrid_quantized_liearized_array));
+
+  // DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+  // DumpSubArray("quantized_hh.dat",
+  // SubArray(hybrid_quantized_liearized_array));
+  // DumpSubArray("quantized_coarse.dat",
+  // SubArray(hybrid_quantized_liearized_array2));
+  // DumpSubArray("quantized_coeff.dat",
+  // SubArray(hybrid_quantized_liearized_array1));
+  // DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+  // std::cout << "done dumping....\n";
+
+  // LosslessCompressorType lossless_compressor1(coeff_size, config);
+
+  // lossless_compressor1.Compress(hybrid_quantized_liearized_array1,
+  //                              compressed_data, queue_idx);
+
+  // LosslessCompressorType lossless_compressor2(coarse_size, config);
+
+  // lossless_compressor2.Compress(hybrid_quantized_liearized_array2,
+  //                              compressed_data, queue_idx);
+
   lossless_compressor.Compress(hybrid_quantized_liearized_array,
                                compressed_data, queue_idx);
 }

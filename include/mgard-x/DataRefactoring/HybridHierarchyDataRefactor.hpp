@@ -33,8 +33,8 @@ public:
       for (int l = 0; l < config.num_local_refactoring_level; l++) {
         SIZE last_level_size = 1, curr_level_size = 1;
 
-        std::cout << coarse_shape[0] << " " << coarse_shape[1] << " "
-                  << coarse_shape[2] << "\n";
+        // std::cout << coarse_shape[0] << " " << coarse_shape[1] << " "
+        //           << coarse_shape[2] << "\n";
         for (DIM d = 0; d < D; d++) {
           coarse_shape[d] = ((coarse_shape[d] - 1) / 8 + 1) * 8;
           last_level_size *= coarse_shape[d];
@@ -42,15 +42,15 @@ public:
           curr_level_size *= coarse_shape[d];
         }
 
-        std::cout << coarse_shape[0] << " " << coarse_shape[1] << " "
-                  << coarse_shape[2] << "\n";
+        // std::cout << coarse_shape[0] << " " << coarse_shape[1] << " "
+        //           << coarse_shape[2] << "\n";
         coarse_shapes.push_back(coarse_shape);
         coarse_num_elems.push_back(last_level_size);
         if (l == 0) {
           coarse_array = Array<D, T, DeviceType>(coarse_shape);
         }
         local_coeff_size.push_back(last_level_size - curr_level_size);
-        std::cout << local_coeff_size[local_coeff_size.size() - 1] << "\n";
+        // std::cout << local_coeff_size[local_coeff_size.size() - 1] << "\n";
       }
     }
 
@@ -91,8 +91,8 @@ public:
             {local_coeff_size[l]},
             decomposed_data(decomposed_data.shape(0) -
                             accumulated_local_coeff_size));
-        std::cout << "accumulated_local_coeff_size: "
-                  << accumulated_local_coeff_size << "\n";
+        // std::cout << "accumulated_local_coeff_size: "
+        //           << accumulated_local_coeff_size << "\n";
         in_cache_block::decompose<D, T, DeviceType>(data, coarse_data,
                                                     local_coeff, queue_idx);
 
@@ -115,6 +115,9 @@ public:
                     " GB/s");
           timer.clear();
         }
+
+        // bool check = true;
+        // VerifySubArray("coarse", coarse_data, !check, check);
       }
     }
 
