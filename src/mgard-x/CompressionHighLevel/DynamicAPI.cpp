@@ -178,38 +178,47 @@ compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol, double s,
 
   enum device_type dev_type = auto_detect_device();
 
+  if (Config().adjust_shape) {
+    adjust_shape(shape);
+  }
+
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
-    compress<SERIAL>(D, dtype, shape, tol, s, mode, original_data,
-                     compressed_data, compressed_size, output_pre_allocated);
+    return compress<SERIAL>(D, dtype, shape, tol, s, mode, original_data,
+                            compressed_data, compressed_size,
+                            output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
-    compress<OPENMP>(D, dtype, shape, tol, s, mode, original_data,
-                     compressed_data, compressed_size, output_pre_allocated);
+    return compress<OPENMP>(D, dtype, shape, tol, s, mode, original_data,
+                            compressed_data, compressed_size,
+                            output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
-                   compressed_data, compressed_size, output_pre_allocated);
+    return compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
+                          compressed_data, compressed_size,
+                          output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
-                  compressed_size, output_pre_allocated);
+    return compress<HIP>(D, dtype, shape, tol, s, mode, original_data,
+                         compressed_data, compressed_size,
+                         output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    compress<SYCL>(D, dtype, shape, tol, s, mode, original_data,
-                   compressed_data, compressed_size, output_pre_allocated);
+    return compress<SYCL>(D, dtype, shape, tol, s, mode, original_data,
+                          compressed_data, compressed_size,
+                          output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
@@ -230,42 +239,47 @@ compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol, double s,
     dev_type = auto_detect_device();
   }
 
+  if (config.adjust_shape) {
+    adjust_shape(shape);
+  }
+
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
-    compress<SERIAL>(D, dtype, shape, tol, s, mode, original_data,
-                     compressed_data, compressed_size, coords, config,
-                     output_pre_allocated);
+    return compress<SERIAL>(D, dtype, shape, tol, s, mode, original_data,
+                            compressed_data, compressed_size, coords, config,
+                            output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
-    compress<OPENMP>(D, dtype, shape, tol, s, mode, original_data,
-                     compressed_data, compressed_size, coords, config,
-                     output_pre_allocated);
+    return compress<OPENMP>(D, dtype, shape, tol, s, mode, original_data,
+                            compressed_data, compressed_size, coords, config,
+                            output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
-                   compressed_data, compressed_size, coords, config,
-                   output_pre_allocated);
+    return compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
+                          compressed_data, compressed_size, coords, config,
+                          output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
-                  compressed_size, coords, config, output_pre_allocated);
+    return compress<HIP>(D, dtype, shape, tol, s, mode, original_data,
+                         compressed_data, compressed_size, coords, config,
+                         output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    compress<SYCL>(D, dtype, shape, tol, s, mode, original_data,
-                   compressed_data, compressed_size, coords, config,
-                   output_pre_allocated);
+    return compress<SYCL>(D, dtype, shape, tol, s, mode, original_data,
+                          compressed_data, compressed_size, coords, config,
+                          output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
@@ -282,42 +296,47 @@ compress(DIM D, data_type dtype, std::vector<SIZE> shape, double tol, double s,
 
   enum device_type dev_type = auto_detect_device();
 
+  if (Config().adjust_shape) {
+    adjust_shape(shape);
+  }
+
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
-    compress<SERIAL>(D, dtype, shape, tol, s, mode, original_data,
-                     compressed_data, compressed_size, coords,
-                     output_pre_allocated);
+    return compress<SERIAL>(D, dtype, shape, tol, s, mode, original_data,
+                            compressed_data, compressed_size, coords,
+                            output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
-    compress<OPENMP>(D, dtype, shape, tol, s, mode, original_data,
-                     compressed_data, compressed_size, coords,
-                     output_pre_allocated);
+    return compress<OPENMP>(D, dtype, shape, tol, s, mode, original_data,
+                            compressed_data, compressed_size, coords,
+                            output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
-                   compressed_data, compressed_size, coords,
-                   output_pre_allocated);
+    return compress<CUDA>(D, dtype, shape, tol, s, mode, original_data,
+                          compressed_data, compressed_size, coords,
+                          output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    compress<HIP>(D, dtype, shape, tol, s, mode, original_data, compressed_data,
-                  compressed_size, coords, output_pre_allocated);
+    return compress<HIP>(D, dtype, shape, tol, s, mode, original_data,
+                         compressed_data, compressed_size, coords,
+                         output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    compress<SYCL>(D, dtype, shape, tol, s, mode, original_data,
-                   compressed_data, compressed_size, coords,
-                   output_pre_allocated);
+    return compress<SYCL>(D, dtype, shape, tol, s, mode, original_data,
+                          compressed_data, compressed_size, coords,
+                          output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
