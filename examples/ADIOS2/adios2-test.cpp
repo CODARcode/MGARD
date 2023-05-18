@@ -250,7 +250,7 @@ void print_statistics(double s, std::string eb_mode,
     }
   } else {
     actual_error =
-        mgard_x::L_inf_error(n, original_data, decompressed_data, mgard_x::error_bound_type::ABS);
+        mgard_x::L_2_error(shape, original_data, decompressed_data, mgard_x::error_bound_type::ABS, normalize_coordinates);
     if (eb_mode.compare("abs") == 0) {
       std::cout << mgard_x::log::log_info
                 << "Absoluate L_2 error: " << actual_error << " ("
@@ -260,7 +260,7 @@ void print_statistics(double s, std::string eb_mode,
                 << "\n";
     } else if (eb_mode.compare("rel") == 0) {
       actual_error =
-        mgard_x::L_inf_error(n, original_data, decompressed_data, mgard_x::error_bound_type::REL);
+        mgard_x::L_2_error(shape, original_data, decompressed_data, mgard_x::error_bound_type::REL, normalize_coordinates);
       std::cout << mgard_x::log::log_info
                 << "Relative L_2 error: " << actual_error << " ("
                 << (actual_error < tol ? "\e[32mSatisified\e[0m"
@@ -308,7 +308,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   adios2::IO read_io = adios.DeclareIO("Input Data");
   adios2::IO write_io = adios.DeclareIO("Output Data");
   read_io.SetEngine("BP5");
-  write_io.SetEngine("BP5");
+  write_io.SetEngine("BP4");
   adios2::Engine reader = read_io.Open(input_file, adios2::Mode::Read);
   adios2::Engine writer = write_io.Open(output_file, adios2::Mode::Write);
 
@@ -364,6 +364,14 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     if (sim_iter >= step_start) {
       reader.Get<T>(org_var, var_data_vec, adios2::Mode::Sync);
       writer.Put<T>(cmp_var, var_data_vec.data(), adios2::Mode::Sync);
+
+      // std::fstream myfile;
+      // myfile.open("wrf"+std::to_string(sim_iter) + ".dat", std::ios::out | std::ios::binary);
+      // if (!myfile) {
+      //   printf("Error: cannot open file\n");
+      // }
+      // myfile.write((char *)var_data_vec.data(), 1200*1500 * sizeof(T));
+      // myfile.close();
     }
     
     reader.EndStep(); 
@@ -377,7 +385,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
 template <typename T>
 int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
-                    std::string org_file, std::string dec_file,
+                    std::string org_file, std::string cmp_file, std::string dec_file,
                     std::string var_name, int step_start, int step_end, 
                     std::vector<size_t> shape, 
                     double tol, double s, std::string eb_mode) {
@@ -387,13 +395,17 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   adios2::ADIOS adios(MPI_COMM_WORLD);
   adios2::IO org_io = adios.DeclareIO("Original Data");
+  adios2::IO cmp_io = adios.DeclareIO("Compressed Data");
   adios2::IO dec_io = adios.DeclareIO("Decompressed Data");
   org_io.SetEngine("BP5");
-  dec_io.SetEngine("BP5");
+  cmp_io.SetEngine("BP4");
+  dec_io.SetEngine("BP4");
   adios2::Engine org_reader = org_io.Open(org_file, adios2::Mode::Read);
-  adios2::Engine dec_reader = dec_io.Open(dec_file, adios2::Mode::Read);
+  adios2::Engine cmp_reader = cmp_io.Open(cmp_file, adios2::Mode::Read);
+  adios2::Engine dec_writer = dec_io.Open(dec_file, adios2::Mode::Write);
 
   adios2::Variable<T> org_var;
+  adios2::Variable<T> cmp_var;
   adios2::Variable<T> dec_var;
 
   adios2::Dims var_shape = shape;
@@ -413,11 +425,13 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   adios2::Dims var_start_local(var_shape.size(), 0);
   var_start_local[largest_idx] = block_size*rank;
 
+  bool first = true;
 
   for (int sim_iter = 0; sim_iter <= step_end; sim_iter++) {
     std::vector<T> org_vec, dec_vec;
     org_reader.BeginStep();
-    dec_reader.BeginStep(); 
+    cmp_reader.BeginStep();
+    dec_writer.BeginStep(); 
 
     // Original variable
     org_var = org_io.InquireVariable<T>(var_name);
@@ -428,21 +442,31 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     print_shape(var_count_local);
     std::cout << "\n";
 
-    // Decompressed variable
-    dec_var = dec_io.InquireVariable<T>(var_name);
-    dec_var.SetSelection(sel);
+    // Ccompressed variable
+    cmp_var = cmp_io.InquireVariable<T>(var_name);
+    cmp_var.SetSelection(sel);
+
+    if (first) {
+      // Output variable
+      dec_var = dec_io.DefineVariable<T>(var_name, var_shape, 
+                                            var_start_local, var_count_local);
+      first = false;
+    }
     
     if (sim_iter >= step_start) {
       org_reader.Get<T>(org_var, org_vec, adios2::Mode::Sync);
-      dec_reader.Get<T>(dec_var, dec_vec, adios2::Mode::Sync);
+      cmp_reader.Get<T>(cmp_var, dec_vec, adios2::Mode::Sync);
+      dec_writer.Put<T>(dec_var, dec_vec.data(), adios2::Mode::Sync);
     }
 
     org_reader.EndStep(); 
-    dec_reader.EndStep(); 
+    cmp_reader.EndStep(); 
+    dec_writer.EndStep(); 
     print_statistics(s, eb_mode, var_count_local, org_vec.data(), dec_vec.data(), tol, true);
   }
   org_reader.Close();
-  dec_reader.Close();
+  cmp_reader.Close();
+  dec_writer.Close();
   return 0;
 }
 
@@ -464,10 +488,13 @@ bool try_exec(int argc, char *argv[]) {
 
   std::string input_file = get_arg(argc, argv, "-i");
   std::string output_file = get_arg(argc, argv, "-c");
+  std::string decompressed_file = get_arg(argc, argv, "-o");
 
   if (!rank) std::cout << mgard_x::log::log_info << "input data: " << input_file
             << "\n";
   if (!rank) std::cout << mgard_x::log::log_info << "output data: " << output_file
+            << "\n";
+  if (!rank) std::cout << mgard_x::log::log_info << "decompressed data: " << decompressed_file
             << "\n";
 
   enum mgard_x::data_type dtype;
@@ -527,9 +554,9 @@ bool try_exec(int argc, char *argv[]) {
     }
   } else {
     if (dtype == mgard_x::data_type::Double) {
-      launch_decompress<double>(D, dtype, input_file, output_file, var_name, step_start, step_end, shape, tol, s, eb_mode);
+      launch_decompress<double>(D, dtype, input_file, output_file, decompressed_file, var_name, step_start, step_end, shape, tol, s, eb_mode);
     } else if (dtype == mgard_x::data_type::Float) {
-      launch_decompress<float>(D, dtype, input_file, output_file, var_name, step_start, step_end, shape, tol, s, eb_mode);
+      launch_decompress<float>(D, dtype, input_file, output_file, decompressed_file, var_name, step_start, step_end, shape, tol, s, eb_mode);
     }
   }
   return true;
