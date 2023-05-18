@@ -307,14 +307,15 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   adios2::ADIOS adios(MPI_COMM_WORLD);
   adios2::IO read_io = adios.DeclareIO("Input Data");
   adios2::IO write_io = adios.DeclareIO("Output Data");
-  read_io.SetEngine("BP4");
-  write_io.SetEngine("BP4");
+  read_io.SetEngine("BP5");
+  write_io.SetEngine("BP5");
   adios2::Engine reader = read_io.Open(input_file, adios2::Mode::Read);
-  
+  adios2::Engine writer = write_io.Open(output_file, adios2::Mode::Write);
 
-  // Input variable
-  adios2::Variable<T> org_var = read_io.InquireVariable<T>(var_name);
-  adios2::Dims var_shape = org_var.Shape();
+  adios2::Variable<T> org_var;
+  adios2::Variable<T> cmp_var;
+
+  adios2::Dims var_shape = shape;
   int largest_idx = 0; size_t largest_dim = var_shape[largest_idx];
   for (int i = 1; i < var_shape.size(); i++) {
     if (var_shape[i] > largest_dim) {
@@ -327,53 +328,45 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   size_t var_size = std::min(block_size, leftover_size);
 
   adios2::Dims var_count_local = var_shape;
-  var_count_local[largest_idx] = 100;var_size;
+  var_count_local[largest_idx] = var_size;
   adios2::Dims var_start_local(var_shape.size(), 0);
   var_start_local[largest_idx] = block_size*rank;
-  adios2::Box<adios2::Dims> sel(var_start_local, var_count_local);
-  org_var.SetSelection(sel);
-  std::cout << "rank " << rank << ": ";
-  print_shape(var_start_local);
-  print_shape(var_count_local);
-  std::cout << "\n";
 
-  // std::cout << "define\n";
-  // Output variable
-  adios2::Variable<T> cmp_var = 
-                   write_io.DefineVariable<T>(var_name, var_shape, 
-                                        var_start_local, var_count_local);
-  // std::cout << "done define\n";
+  bool first = true;
 
-  string eb_mode_adios;
-  if (eb_mode.compare("abs") == 0) eb_mode_adios = "ABS";
-  else eb_mode_adios = "REL";
+  for (int sim_iter = 0; sim_iter <= step_end; sim_iter++) {
+    std::vector<T> var_data_vec;
+    reader.BeginStep();
+    writer.BeginStep();
 
-  // std::cout << "add operator\n";
-  cmp_var.AddOperation("mgard", {{"tolerance", std::to_string(tol)},
-                                  {"mode", eb_mode_adios},
-                                  {"s", std::to_string(s)}});
+    // Input variable
+    org_var = read_io.InquireVariable<T>(var_name);
+    adios2::Box<adios2::Dims> sel(var_start_local, var_count_local);
+    org_var.SetSelection(sel);
+    std::cout << "rank " << rank << ": ";
+    print_shape(var_start_local);
+    print_shape(var_count_local);
+    std::cout << "\n";
 
-  // std::cout << "done add operator\n";
+    if (first) {
+      // Output variable
+      cmp_var = write_io.DefineVariable<T>(var_name, var_shape, 
+                                            var_start_local, var_count_local);
+      string eb_mode_adios;
+      if (eb_mode.compare("abs") == 0) eb_mode_adios = "ABS";
+      else eb_mode_adios = "REL";
 
-  adios2::Engine writer = write_io.Open(output_file, adios2::Mode::Write);
-
-  for (int sim_iter = 0; sim_iter < step_end; sim_iter++) {
-    std::vector<T> var_data_vec;//(8*37*100*33);
-    // T * data = new T[8*37*100*33];
-    reader.BeginStep(); 
+      cmp_var.AddOperation("mgard", {{"tolerance", std::to_string(tol)},
+                                      {"mode", eb_mode_adios},
+                                      {"s", std::to_string(s)}});
+      first = false;
+    }
     if (sim_iter >= step_start) {
-      // std::cout << "get\n";
       reader.Get<T>(org_var, var_data_vec, adios2::Mode::Sync);
-      // std::cout << "done get\n";
-    }
-    reader.EndStep(); 
-
-    writer.BeginStep(); 
-    if (sim_iter >= step_start) { 
-      // std::cout << "put\n"; 
       writer.Put<T>(cmp_var, var_data_vec.data(), adios2::Mode::Sync);
-      // std::cout << "done put\n";
     }
+    
+    reader.EndStep(); 
     writer.EndStep(); 
   }
   // reader.Close();
@@ -395,14 +388,15 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   adios2::ADIOS adios(MPI_COMM_WORLD);
   adios2::IO org_io = adios.DeclareIO("Original Data");
   adios2::IO dec_io = adios.DeclareIO("Decompressed Data");
-  org_io.SetEngine("BP4");
-  dec_io.SetEngine("BP4");
+  org_io.SetEngine("BP5");
+  dec_io.SetEngine("BP5");
   adios2::Engine org_reader = org_io.Open(org_file, adios2::Mode::Read);
   adios2::Engine dec_reader = dec_io.Open(dec_file, adios2::Mode::Read);
 
-  // Original variable
-  adios2::Variable<T> org_var = org_io.InquireVariable<T>(var_name);
-  adios2::Dims var_shape = org_var.Shape();
+  adios2::Variable<T> org_var;
+  adios2::Variable<T> dec_var;
+
+  adios2::Dims var_shape = shape;
   int largest_idx = 0; size_t largest_dim = var_shape[largest_idx];
   for (int i = 1; i < var_shape.size(); i++) {
     if (var_shape[i] > largest_dim) {
@@ -415,32 +409,35 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   size_t var_size = std::min(block_size, leftover_size);
 
   adios2::Dims var_count_local = var_shape;
-  var_count_local[largest_idx] = 100;var_size;
+  var_count_local[largest_idx] = var_size;
   adios2::Dims var_start_local(var_shape.size(), 0);
   var_start_local[largest_idx] = block_size*rank;
-  adios2::Box<adios2::Dims> sel(var_start_local, var_count_local);
-  org_var.SetSelection(sel);
-  std::cout << "rank " << rank << ": ";
-  print_shape(var_start_local);
-  print_shape(var_count_local);
-  std::cout << "\n";
 
-  // Decompressed variable
-  adios2::Variable<T> dec_var = dec_io.InquireVariable<T>(var_name);
-  dec_var.SetSelection(sel);
 
-  for (int sim_iter = 0; sim_iter < step_end; sim_iter++) {
+  for (int sim_iter = 0; sim_iter <= step_end; sim_iter++) {
     std::vector<T> org_vec, dec_vec;
-    org_reader.BeginStep(); 
+    org_reader.BeginStep();
+    dec_reader.BeginStep(); 
+
+    // Original variable
+    org_var = org_io.InquireVariable<T>(var_name);
+    adios2::Box<adios2::Dims> sel(var_start_local, var_count_local);
+    org_var.SetSelection(sel);
+    std::cout << "rank " << rank << ": ";
+    print_shape(var_start_local);
+    print_shape(var_count_local);
+    std::cout << "\n";
+
+    // Decompressed variable
+    dec_var = dec_io.InquireVariable<T>(var_name);
+    dec_var.SetSelection(sel);
+    
     if (sim_iter >= step_start) {
       org_reader.Get<T>(org_var, org_vec, adios2::Mode::Sync);
-    }
-    org_reader.EndStep(); 
-
-    dec_reader.BeginStep(); 
-    if (sim_iter >= step_start) {  
       dec_reader.Get<T>(dec_var, dec_vec, adios2::Mode::Sync);
     }
+
+    org_reader.EndStep(); 
     dec_reader.EndStep(); 
     print_statistics(s, eb_mode, var_count_local, org_vec.data(), dec_vec.data(), tol, true);
   }
