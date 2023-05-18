@@ -222,7 +222,8 @@ void writefile(const char *output_file, size_t num_bytes, T *out_buff) {
 template <typename T>
 void print_statistics(double s, std::string eb_mode,
                       std::vector<mgard_x::SIZE> shape, T *original_data,
-                      T *decompressed_data, double tol, bool normalize_coordinates) {
+                      T *decompressed_data, double tol,
+                      bool normalize_coordinates) {
   mgard_x::SIZE n = 1;
   for (mgard_x::DIM d = 0; d < shape.size(); d++)
     n *= shape[d];
@@ -230,8 +231,8 @@ void print_statistics(double s, std::string eb_mode,
   std::cout << std::scientific;
   if (s == std::numeric_limits<T>::infinity()) {
     if (eb_mode.compare("abs") == 0) {
-      actual_error =
-        mgard_x::L_inf_error(n, original_data, decompressed_data, mgard_x::error_bound_type::ABS);
+      actual_error = mgard_x::L_inf_error(n, original_data, decompressed_data,
+                                          mgard_x::error_bound_type::ABS);
       std::cout << mgard_x::log::log_info
                 << "Absoluate L_inf error: " << actual_error << " ("
                 << (actual_error < tol ? "\e[32mSatisified\e[0m"
@@ -239,8 +240,8 @@ void print_statistics(double s, std::string eb_mode,
                 << ")"
                 << "\n";
     } else if (eb_mode.compare("rel") == 0) {
-      actual_error =
-        mgard_x::L_inf_error(n, original_data, decompressed_data, mgard_x::error_bound_type::REL);
+      actual_error = mgard_x::L_inf_error(n, original_data, decompressed_data,
+                                          mgard_x::error_bound_type::REL);
       std::cout << mgard_x::log::log_info
                 << "Relative L_inf error: " << actual_error << " ("
                 << (actual_error < tol ? "\e[32mSatisified\e[0m"
@@ -249,8 +250,9 @@ void print_statistics(double s, std::string eb_mode,
                 << "\n";
     }
   } else {
-    actual_error =
-        mgard_x::L_2_error(shape, original_data, decompressed_data, mgard_x::error_bound_type::ABS, normalize_coordinates);
+    actual_error = mgard_x::L_2_error(shape, original_data, decompressed_data,
+                                      mgard_x::error_bound_type::ABS,
+                                      normalize_coordinates);
     if (eb_mode.compare("abs") == 0) {
       std::cout << mgard_x::log::log_info
                 << "Absoluate L_2 error: " << actual_error << " ("
@@ -259,8 +261,9 @@ void print_statistics(double s, std::string eb_mode,
                 << ")"
                 << "\n";
     } else if (eb_mode.compare("rel") == 0) {
-      actual_error =
-        mgard_x::L_2_error(shape, original_data, decompressed_data, mgard_x::error_bound_type::REL, normalize_coordinates);
+      actual_error = mgard_x::L_2_error(shape, original_data, decompressed_data,
+                                        mgard_x::error_bound_type::REL,
+                                        normalize_coordinates);
       std::cout << mgard_x::log::log_info
                 << "Relative L_2 error: " << actual_error << " ("
                 << (actual_error < tol ? "\e[32mSatisified\e[0m"
@@ -293,13 +296,12 @@ void print_shape(adios2::Dims shape) {
   std::cout << ")";
 }
 
-
 template <typename T>
 int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     std::string input_file, std::string output_file,
-                    std::string var_name, int step_start, int step_end, 
-                    std::vector<size_t> shape, 
-                    double tol, double s, std::string eb_mode) {
+                    std::string var_name, int step_start, int step_end,
+                    std::vector<size_t> shape, double tol, double s,
+                    std::string eb_mode) {
 
   int comm_size, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
@@ -316,7 +318,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   adios2::Variable<T> cmp_var;
 
   adios2::Dims var_shape = shape;
-  int largest_idx = 0; size_t largest_dim = var_shape[largest_idx];
+  int largest_idx = 0;
+  size_t largest_dim = var_shape[largest_idx];
   for (int i = 1; i < var_shape.size(); i++) {
     if (var_shape[i] > largest_dim) {
       largest_idx = i;
@@ -324,13 +327,13 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     }
   }
   size_t block_size = var_shape[largest_idx] / comm_size;
-  size_t leftover_size = var_shape[largest_idx] - block_size*rank;
+  size_t leftover_size = var_shape[largest_idx] - block_size * rank;
   size_t var_size = std::min(block_size, leftover_size);
 
   adios2::Dims var_count_local = var_shape;
   var_count_local[largest_idx] = var_size;
   adios2::Dims var_start_local(var_shape.size(), 0);
-  var_start_local[largest_idx] = block_size*rank;
+  var_start_local[largest_idx] = block_size * rank;
 
   bool first = true;
 
@@ -350,15 +353,17 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
     if (first) {
       // Output variable
-      cmp_var = write_io.DefineVariable<T>(var_name, var_shape, 
-                                            var_start_local, var_count_local);
+      cmp_var = write_io.DefineVariable<T>(var_name, var_shape, var_start_local,
+                                           var_count_local);
       string eb_mode_adios;
-      if (eb_mode.compare("abs") == 0) eb_mode_adios = "ABS";
-      else eb_mode_adios = "REL";
+      if (eb_mode.compare("abs") == 0)
+        eb_mode_adios = "ABS";
+      else
+        eb_mode_adios = "REL";
 
       cmp_var.AddOperation("mgard", {{"tolerance", std::to_string(tol)},
-                                      {"mode", eb_mode_adios},
-                                      {"s", std::to_string(s)}});
+                                     {"mode", eb_mode_adios},
+                                     {"s", std::to_string(s)}});
       first = false;
     }
     if (sim_iter >= step_start) {
@@ -366,16 +371,16 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
       writer.Put<T>(cmp_var, var_data_vec.data(), adios2::Mode::Sync);
 
       // std::fstream myfile;
-      // myfile.open("wrf"+std::to_string(sim_iter) + ".dat", std::ios::out | std::ios::binary);
-      // if (!myfile) {
+      // myfile.open("wrf"+std::to_string(sim_iter) + ".dat", std::ios::out |
+      // std::ios::binary); if (!myfile) {
       //   printf("Error: cannot open file\n");
       // }
       // myfile.write((char *)var_data_vec.data(), 1200*1500 * sizeof(T));
       // myfile.close();
     }
-    
-    reader.EndStep(); 
-    writer.EndStep(); 
+
+    reader.EndStep();
+    writer.EndStep();
   }
   // reader.Close();
   writer.Close();
@@ -385,10 +390,10 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
 template <typename T>
 int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
-                    std::string org_file, std::string cmp_file, std::string dec_file,
-                    std::string var_name, int step_start, int step_end, 
-                    std::vector<size_t> shape, 
-                    double tol, double s, std::string eb_mode) {
+                      std::string org_file, std::string cmp_file,
+                      std::string dec_file, std::string var_name,
+                      int step_start, int step_end, std::vector<size_t> shape,
+                      double tol, double s, std::string eb_mode) {
 
   int comm_size, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
@@ -409,7 +414,8 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   adios2::Variable<T> dec_var;
 
   adios2::Dims var_shape = shape;
-  int largest_idx = 0; size_t largest_dim = var_shape[largest_idx];
+  int largest_idx = 0;
+  size_t largest_dim = var_shape[largest_idx];
   for (int i = 1; i < var_shape.size(); i++) {
     if (var_shape[i] > largest_dim) {
       largest_idx = i;
@@ -417,13 +423,13 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     }
   }
   size_t block_size = var_shape[largest_idx] / comm_size;
-  size_t leftover_size = var_shape[largest_idx] - block_size*rank;
+  size_t leftover_size = var_shape[largest_idx] - block_size * rank;
   size_t var_size = std::min(block_size, leftover_size);
 
   adios2::Dims var_count_local = var_shape;
   var_count_local[largest_idx] = var_size;
   adios2::Dims var_start_local(var_shape.size(), 0);
-  var_start_local[largest_idx] = block_size*rank;
+  var_start_local[largest_idx] = block_size * rank;
 
   bool first = true;
 
@@ -431,7 +437,7 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     std::vector<T> org_vec, dec_vec;
     org_reader.BeginStep();
     cmp_reader.BeginStep();
-    dec_writer.BeginStep(); 
+    dec_writer.BeginStep();
 
     // Original variable
     org_var = org_io.InquireVariable<T>(var_name);
@@ -448,21 +454,22 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
     if (first) {
       // Output variable
-      dec_var = dec_io.DefineVariable<T>(var_name, var_shape, 
-                                            var_start_local, var_count_local);
+      dec_var = dec_io.DefineVariable<T>(var_name, var_shape, var_start_local,
+                                         var_count_local);
       first = false;
     }
-    
+
     if (sim_iter >= step_start) {
       org_reader.Get<T>(org_var, org_vec, adios2::Mode::Sync);
       cmp_reader.Get<T>(cmp_var, dec_vec, adios2::Mode::Sync);
       dec_writer.Put<T>(dec_var, dec_vec.data(), adios2::Mode::Sync);
     }
 
-    org_reader.EndStep(); 
-    cmp_reader.EndStep(); 
-    dec_writer.EndStep(); 
-    print_statistics(s, eb_mode, var_count_local, org_vec.data(), dec_vec.data(), tol, true);
+    org_reader.EndStep();
+    cmp_reader.EndStep();
+    dec_writer.EndStep();
+    print_statistics(s, eb_mode, var_count_local, org_vec.data(),
+                     dec_vec.data(), tol, true);
   }
   org_reader.Close();
   cmp_reader.Close();
@@ -478,10 +485,12 @@ bool try_exec(int argc, char *argv[]) {
   int compress_or_decompress;
   if (has_arg(argc, argv, "-z")) {
     compress_or_decompress = 0;
-    if (!rank) std::cout << mgard_x::log::log_info << "mode: compression\n";
+    if (!rank)
+      std::cout << mgard_x::log::log_info << "mode: compression\n";
   } else if (has_arg(argc, argv, "-x")) {
     compress_or_decompress = 1;
-    if (!rank) std::cout << mgard_x::log::log_info << "mode: decompress\n";
+    if (!rank)
+      std::cout << mgard_x::log::log_info << "mode: decompress\n";
   } else {
     return false;
   }
@@ -490,27 +499,34 @@ bool try_exec(int argc, char *argv[]) {
   std::string output_file = get_arg(argc, argv, "-c");
   std::string decompressed_file = get_arg(argc, argv, "-o");
 
-  if (!rank) std::cout << mgard_x::log::log_info << "input data: " << input_file
-            << "\n";
-  if (!rank) std::cout << mgard_x::log::log_info << "output data: " << output_file
-            << "\n";
-  if (!rank) std::cout << mgard_x::log::log_info << "decompressed data: " << decompressed_file
-            << "\n";
+  if (!rank)
+    std::cout << mgard_x::log::log_info << "input data: " << input_file << "\n";
+  if (!rank)
+    std::cout << mgard_x::log::log_info << "output data: " << output_file
+              << "\n";
+  if (!rank)
+    std::cout << mgard_x::log::log_info
+              << "decompressed data: " << decompressed_file << "\n";
 
   enum mgard_x::data_type dtype;
   std::string dt = get_arg(argc, argv, "-t");
   if (dt.compare("s") == 0) {
     dtype = mgard_x::data_type::Float;
-    if (!rank) std::cout << mgard_x::log::log_info << "data type: Single precision\n";
+    if (!rank)
+      std::cout << mgard_x::log::log_info << "data type: Single precision\n";
   } else if (dt.compare("d") == 0) {
     dtype = mgard_x::data_type::Double;
-    if (!rank) std::cout << mgard_x::log::log_info << "data type: Double precision\n";
+    if (!rank)
+      std::cout << mgard_x::log::log_info << "data type: Double precision\n";
   } else {
-    if (!rank) print_usage_message("wrong data type.");
+    if (!rank)
+      print_usage_message("wrong data type.");
   }
 
   std::string var_name = get_arg(argc, argv, "-v");
-  if (!rank) std::cout << mgard_x::log::log_info << "Variable name: " << var_name << "\n";
+  if (!rank)
+    std::cout << mgard_x::log::log_info << "Variable name: " << var_name
+              << "\n";
 
   mgard_x::DIM D = get_arg_int(argc, argv, "-n");
   std::vector<mgard_x::SIZE> shape = get_arg_dims(argc, argv, "-n");
@@ -521,42 +537,53 @@ bool try_exec(int argc, char *argv[]) {
     shape_string = shape_string + ")";
   }
 
-
   std::string eb_mode = get_arg(argc, argv, "-m");
   if (eb_mode.compare("rel") == 0) {
-    if (!rank) std::cout << mgard_x::log::log_info << "error bound mode: Relative\n";
+    if (!rank)
+      std::cout << mgard_x::log::log_info << "error bound mode: Relative\n";
   } else if (eb_mode.compare("abs") == 0) {
-    if (!rank) std::cout << mgard_x::log::log_info << "error bound mode: Absolute\n";
+    if (!rank)
+      std::cout << mgard_x::log::log_info << "error bound mode: Absolute\n";
   } else {
-    if (!rank) print_usage_message("wrong error bound mode.");
+    if (!rank)
+      print_usage_message("wrong error bound mode.");
   }
 
   double tol = get_arg_double(argc, argv, "-e");
   double s = get_arg_double(argc, argv, "-s");
 
   std::cout << std::scientific;
-  if (!rank) std::cout << mgard_x::log::log_info << "error bound: " << tol << "\n";
+  if (!rank)
+    std::cout << mgard_x::log::log_info << "error bound: " << tol << "\n";
   std::cout << std::defaultfloat;
-  if (!rank) std::cout << mgard_x::log::log_info << "s: " << s << "\n";
+  if (!rank)
+    std::cout << mgard_x::log::log_info << "s: " << s << "\n";
 
   int step_start = get_arg_int(argc, argv, "-b");
   int step_end = get_arg_int(argc, argv, "-d");
 
   if (!rank) {
-    std::cout << mgard_x::log::log_info << "step: " << step_start << " - " << step_end << "\n";
+    std::cout << mgard_x::log::log_info << "step: " << step_start << " - "
+              << step_end << "\n";
   }
 
   if (compress_or_decompress == 0) {
     if (dtype == mgard_x::data_type::Double) {
-      launch_compress<double>(D, dtype, input_file, output_file, var_name, step_start, step_end, shape, tol, s, eb_mode);
+      launch_compress<double>(D, dtype, input_file, output_file, var_name,
+                              step_start, step_end, shape, tol, s, eb_mode);
     } else if (dtype == mgard_x::data_type::Float) {
-      launch_compress<float>(D, dtype, input_file, output_file, var_name, step_start, step_end, shape, tol, s, eb_mode);
+      launch_compress<float>(D, dtype, input_file, output_file, var_name,
+                             step_start, step_end, shape, tol, s, eb_mode);
     }
   } else {
     if (dtype == mgard_x::data_type::Double) {
-      launch_decompress<double>(D, dtype, input_file, output_file, decompressed_file, var_name, step_start, step_end, shape, tol, s, eb_mode);
+      launch_decompress<double>(D, dtype, input_file, output_file,
+                                decompressed_file, var_name, step_start,
+                                step_end, shape, tol, s, eb_mode);
     } else if (dtype == mgard_x::data_type::Float) {
-      launch_decompress<float>(D, dtype, input_file, output_file, decompressed_file, var_name, step_start, step_end, shape, tol, s, eb_mode);
+      launch_decompress<float>(D, dtype, input_file, output_file,
+                               decompressed_file, var_name, step_start,
+                               step_end, shape, tol, s, eb_mode);
     }
   }
   return true;
