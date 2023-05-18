@@ -33,8 +33,10 @@ void LZ4Compress(Array<1, Byte, DeviceType> &data, size_t chunk_size) {
       nvcomp_manager.get_compressed_output_size(output_data.data());
   DeviceRuntime<DeviceType>::SyncQueue(0);
   log::info("LZ4 block size: " + std::to_string(chunk_size));
-  log::info("LZ4 compress ratio: " +
-            std::to_string((double)(input_count) / output_data.shape(0)));
+
+  log::info("LZ4 compress ratio: " + std::to_string(input_count) + "/" +
+            std::to_string(output_data.shape(0)) + " (" +
+            std::to_string((double)(input_count) / output_data.shape(0)) + ")");
   if (log::level & log::TIME) {
     timer.end();
     timer.print("LZ4 compress");
