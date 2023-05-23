@@ -9,7 +9,7 @@
 set -e
 set -x
 
-module load cuda/11.4
+module load cuda/11.7.1
 module load gcc/9
 module load cmake
 

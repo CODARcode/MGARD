@@ -222,7 +222,7 @@ public:
     if (log::level & log::TIME) {
       timer.end();
       timer.print("Huffman compress");
-      log::info("Huffmen compression throughput: " +
+      log::info("Huffman compression throughput: " +
                 std::to_string((double)primary_count * sizeof(Q) / timer.get() /
                                1e9) +
                 " GB/s");
