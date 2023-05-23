@@ -382,7 +382,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     reader.EndStep();
     writer.EndStep();
   }
-  // reader.Close();
+  reader.Close();
   writer.Close();
 
   return 0;
