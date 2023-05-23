@@ -3,22 +3,57 @@
 set -e
 set -x
 
+exec=./build/adios2-test-external-compressor
+
 IN_DATA=/home/jieyang/dev/data/xgc.f0.00200.bp
-OUT_DATA=/home/jieyang/dev/data/xgc.f0.00200-out.bp
+OUT_DATA=$IN_DATA.cmp.bp
+DEC_DATA=$IN_DATA.dec.bp
+# IN_DATA=/home/jieyang/dev/data/wrfout_d01_2019-11-26_23:50:00.bp
+# OUT_DATA=/home/jieyang/dev/data/wrfout_d01_2019-11-26_23:50:00.mgard.bp
+# DEC_DATA=/home/jieyang/dev/data/wrfout_d01_2019-11-26_23:50:00.mgard_dec_linf_1e-6.bp
 
-IN_DATA=/home/jieyang/dev/data/wrfout_d01_2019-11-26_23:50:00.bp
-OUT_DATA=/home/jieyang/dev/data/wrfout_d01_2019-11-26_23:50:00.mgard.bp
-DEC_DATA=/home/jieyang/dev/data/wrfout_d01_2019-11-26_23:50:00.mgard_dec_linf_1e-6.bp
-
-eb6=1.5e-5
-eb4=2.5e-3
+# eb6=1.5e-5
+# eb4=2.5e-3
 eb2=2.5e-1
 
 ./build_script.sh
 rm -rf $OUT_DATA
-./build/adios2-test -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 2 1200 1500 -m rel -e $eb6 -s inf -v T2 -b 0 -d 0 
-./build/adios2-test -x -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 2 1200 1500 -m rel -e $eb6 -s inf -v T2 -b 0 -d 0 
+# ./build/adios2-test -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 2 1200 1500 -m rel -e $eb6 -s inf -v T2 -b 0 -d 0 
+# ./build/adios2-test -x -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 2 1200 1500 -m rel -e $eb6 -s inf -v T2 -b 0 -d 0 
 
+# IN_DATA=../../reconstructed_subarray1e3.dat
+# IN_DATA=../../reconstructed_subarray1e2.dat
+# IN_DATA=../../reconstructed_subarray1e1.dat
+# IN_DATA=../../reconstructed_subarray1e0.dat
+# IN_DATA=../../partial_reconstructed_subarray1e3.dat
+# IN_DATA=../../partial_reconstructed_subarray1e2.dat
+# IN_DATA=../../partial_reconstructed_subarray1e1.dat
+# IN_DATA=../../partial_reconstructed_subarray1e0.dat
+# OUT_DATA=$IN_DATA.bp
+# ./build/adios2-test -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 2 1200 1500 -m rel -e $eb6 -s inf -v T2 -b 0 -d 0 
+
+
+# ./build/adios2-test-external-compressor -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 264 10000 37 -m abs -e 25 -s inf -v i_f -b 0 -d 0 -p 0 -u 1
+# ./build/adios2-test-external-compressor -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 264 10000 37 -m abs -e 25 -s inf -v i_f -b 0 -d 0 -p 1 -u 1
+
+# ./build/adios2-test-external-compressor -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 2 1200 1500 -m abs -e 25 -s inf -v T2 -b 0 -d 0 -p 0
+# ./build/adios2-test-external-compressor -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 2 1200 1500 -m abs -e 25 -s inf -v T2 -b 0 -d 0 -p 1
+
+
+IN_DATA=$HOME/dev/data/SDRBENCH-EXASKY-NYX-512x512x512/baryon_density.f32
+OUT_DATA=$IN_DATA.cmp.bp
+# DEC_DATA=$IN_DATA.dec.bp
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 512 512 512 -m abs -e 1e3 -s inf -v i_f -b 0 -d 0 -p 0 -u 0 -r 10
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 512 512 512 -m abs -e 1e3 -s inf -v i_f -b 0 -d 0 -p 1 -u 0 -r 10
+$exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 512 512 512 -m abs -e 1e3 -s inf -v i_f -b 0 -d 0 -p 2 -u 0 -r 10
+$exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 512 512 512 -m abs -e 7 -s inf -v i_f -b 0 -d 0 -p 3 -u 0 -r 10
+
+IN_DATA=$HOME/dev/data/d3d_coarse_v2_700.bin
+OUT_DATA=$IN_DATA.cmp.bp
+DEC_DATA=$IN_DATA.dec.bp
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 50 50 50 -m abs -e 1e19 -s inf -v i_f -b 0 -d 0 -p 0 -u 0 -r 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 50 50 50 -m abs -e 1e19 -s inf -v i_f -b 0 -d 0 -p 1 -u 0 -r 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 50 50 50 -m abs -e 20 -s inf -v i_f -b 0 -d 0 -p 2 -u 0 -r 1
 
 # eb6=2e-6
 # eb4=2.3e-4
