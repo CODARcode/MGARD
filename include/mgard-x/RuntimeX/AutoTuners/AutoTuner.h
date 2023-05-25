@@ -16,7 +16,7 @@
 namespace mgard_x {
 
 const int tBLK_ENCODE = 256;
-const int tBLK_DEFLATE = 128;
+const int tBLK_DEFLATE = 256;
 const int tBLK_CANONICAL = 128;
 
 template <typename T> MGARDX_CONT constexpr int TypeToIdx() {
