@@ -350,7 +350,8 @@ double mgard_compress(mgard_x::DIM D, T *original_data, void *compressed_data,
 
   mgard_x::Config config;
   // config.log_level = mgard_x::log::ERR | mgard_x::log::INFO |
-  // mgard_x::log::TIME; config.lossless = mgard_x::lossless_type::Huffman_LZ4;
+  // mgard_x::log::TIME; 
+  // config.lossless = mgard_x::lossless_type::Huffman_LZ4;
   config.lossless = mgard_x::lossless_type::Huffman;
 
   mgard_x::compress_status_type ret;
@@ -384,10 +385,10 @@ double mgard_decompress(void *compressed_data, size_t compressed_size,
   return timer.get();
 }
 
-cusz_header header;
+cusz_header * header;
 
 template <typename T>
-double sz_compress(mgard_x::DIM D, T *original_data, uint8_t *compressed_data,
+double sz_compress(cusz_header * header, mgard_x::DIM D, T *original_data, uint8_t *compressed_data,
                 size_t &compressed_size, std::vector<mgard_x::SIZE> shape,
                 double tol, double s, std::string eb_mode) {
   mgard_x::Timer timer;
@@ -449,7 +450,7 @@ double sz_compress(mgard_x::DIM D, T *original_data, uint8_t *compressed_data,
   cusz::TimeRecord compress_timerecord;
 
   cusz_compress(comp, config, d_original_data, uncomp_len, &d_compressed_data,
-                &compressed_size, &header, &compress_timerecord, stream);
+                &compressed_size, header, &compress_timerecord, stream);
   cudaStreamSynchronize(stream);
 
   cudaMemcpy(compressed_data, d_compressed_data, compressed_size,
@@ -469,6 +470,37 @@ double sz_compress(mgard_x::DIM D, T *original_data, uint8_t *compressed_data,
                 size_t &compressed_size, std::vector<mgard_x::SIZE> shape,
                 double tol, double s, std::string eb_mode, int input_multiplier) {
   
+  header = new cusz_header[input_multiplier];
+
+  shape[0] /= input_multiplier;
+  size_t original_size = 1;
+  for (mgard_x::DIM i = 0; i < D; i++)
+    original_size *= shape[i];
+
+  size_t total_compressed_buffer_size = compressed_size;
+  size_t total_compressed_size = 0;
+  double time = 0;
+  for (int i = 0; i < input_multiplier; i++) {
+    compressed_size = total_compressed_buffer_size - total_compressed_size;
+    time += sz_compress(&header[i], D, original_data, compressed_data+sizeof(size_t),
+                compressed_size, shape, tol, s, eb_mode);
+    cudaDeviceReset();
+    cudaFree(0);
+    *(size_t*)compressed_data = compressed_size;
+    // std::cout << "compressed_size: " << compressed_size << "\n";
+    total_compressed_size += compressed_size+sizeof(size_t);
+    original_data += original_size;
+    compressed_data += compressed_size+sizeof(size_t);
+  }
+  compressed_size = total_compressed_size;
+  return time;
+}
+
+template <typename T>
+double sz_compress2(mgard_x::DIM D, T *original_data, uint8_t *compressed_data,
+                size_t &compressed_size, std::vector<mgard_x::SIZE> shape,
+                double tol, double s, std::string eb_mode, int input_multiplier) {
+  header = new cusz_header[input_multiplier];
   shape[0] /= input_multiplier;
   size_t original_size = 1;
   for (mgard_x::DIM i = 0; i < D; i++)
@@ -483,7 +515,7 @@ double sz_compress(mgard_x::DIM D, T *original_data, uint8_t *compressed_data,
     compressed_size = total_compressed_buffer_size - total_compressed_size;
     if (!first_compressed_data) {
       mgard_x::Timer timer;
-      time = sz_compress(D, original_data, compressed_data,
+      time = sz_compress(&header[i], D, original_data, compressed_data,
                   compressed_size, shape, tol, s, eb_mode);
       first_compressed_data = compressed_data;
       first_compressed_size = compressed_size;
@@ -499,7 +531,7 @@ double sz_compress(mgard_x::DIM D, T *original_data, uint8_t *compressed_data,
 }
 
 template <typename T>
-double sz_decompress(mgard_x::DIM D, uint8_t *compressed_data, size_t compressed_size,
+double sz_decompress(cusz_header * header, mgard_x::DIM D, uint8_t *compressed_data, size_t compressed_size,
                   T *decompressed_data, std::vector<mgard_x::SIZE> shape) {
   mgard_x::Timer timer;
   MPI_Barrier(MPI_COMM_WORLD);
@@ -546,7 +578,7 @@ double sz_decompress(mgard_x::DIM D, uint8_t *compressed_data, size_t compressed
 
   cusz::TimeRecord compress_timerecord;
 
-  cusz_decompress(comp, &header, d_compressed_data, compressed_size,
+  cusz_decompress(comp, header, d_compressed_data, compressed_size,
                   d_decompressed_data, decomp_len, &compress_timerecord, stream);
   cudaStreamSynchronize(stream);
 
@@ -565,6 +597,28 @@ double sz_decompress(mgard_x::DIM D, uint8_t *compressed_data, size_t compressed
 template <typename T>
 double sz_decompress(mgard_x::DIM D, uint8_t *compressed_data, size_t compressed_size,
                   T *decompressed_data, std::vector<mgard_x::SIZE> shape, int input_multiplier) {
+  shape[0] /= input_multiplier;
+  size_t original_size = 1;
+  for (mgard_x::DIM i = 0; i < D; i++)
+    original_size *= shape[i];
+  double time = 0;
+  for (int i = 0; i < input_multiplier; i++) {
+    compressed_size = *(size_t*)compressed_data;
+    // std::cout << "compressed_size: " << compressed_size << "\n";
+    time += sz_decompress(&header[i], D, compressed_data+sizeof(size_t), compressed_size,
+                  decompressed_data, shape);
+    cudaDeviceReset();
+    cudaFree(0);
+    decompressed_data += original_size;
+    compressed_data += compressed_size+sizeof(size_t);
+  }
+  delete header;
+  return time;
+}
+
+template <typename T>
+double sz_decompress2(mgard_x::DIM D, uint8_t *compressed_data, size_t compressed_size,
+                  T *decompressed_data, std::vector<mgard_x::SIZE> shape, int input_multiplier) {
   compressed_size /= input_multiplier;
   shape[0] /= input_multiplier;
   size_t original_size = 1;
@@ -575,7 +629,7 @@ double sz_decompress(mgard_x::DIM D, uint8_t *compressed_data, size_t compressed
 
   for (int i = 0; i < input_multiplier; i++) {
     if (!first_decompressed_data) {
-      time = sz_decompress(D, compressed_data, compressed_size,
+      time = sz_decompress(&header[i], D, compressed_data, compressed_size,
                     decompressed_data, shape);
       first_decompressed_data = decompressed_data;
     } else {
@@ -584,6 +638,7 @@ double sz_decompress(mgard_x::DIM D, uint8_t *compressed_data, size_t compressed
     decompressed_data += original_size;
     compressed_data += compressed_size;
   }
+  delete header;
   return time * input_multiplier;
 }
 
@@ -677,11 +732,12 @@ double zfp_compress(mgard_x::DIM D, T *original_data, uint8_t *compressed_data,
   size_t total_compressed_size = 0;
   for (int i = 0; i < input_multiplier; i++) {
     compressed_size = total_compressed_buffer_size - total_compressed_size;
-    time += zfp_compress(D, original_data, compressed_data,
+    time += zfp_compress(D, original_data, compressed_data+sizeof(size_t),
                  compressed_size, shape, tol, s, eb_mode);
-    total_compressed_size += compressed_size;
+    *(size_t*)compressed_data = compressed_size;
+    total_compressed_size += compressed_size+sizeof(size_t);
     original_data += original_size;
-    compressed_data += compressed_size;
+    compressed_data += compressed_size+sizeof(size_t);
   }
   compressed_size = total_compressed_size;
   return time;
@@ -758,31 +814,31 @@ double zfp_decompress(mgard_x::DIM D, uint8_t *compressed_data,
 
 template <typename T>
 double zfp_decompress(mgard_x::DIM D, uint8_t *compressed_data,
-                   size_t &compressed_size, T *decompressed_data,
+                   size_t compressed_size, T *decompressed_data,
                    std::vector<mgard_x::SIZE> shape, double tol, double s,
                    std::string eb_mode, int input_multiplier) {
   double time = 0;
-  compressed_size /= input_multiplier;
   shape[0] /= input_multiplier;
   size_t original_size = 1;
   for (mgard_x::DIM i = 0; i < D; i++)
     original_size *= shape[i];
   for (int i = 0; i < input_multiplier; i++) {
-    time += zfp_decompress(D, compressed_data, compressed_size, decompressed_data,
+    compressed_size = *(size_t*)compressed_data;
+    time += zfp_decompress(D, compressed_data+sizeof(size_t), compressed_size, decompressed_data,
                    shape, tol, s, eb_mode);
     decompressed_data += original_size;
-    compressed_data += compressed_size;
+    compressed_data += compressed_size+sizeof(size_t);
   }
   return time;
 }
 
 template <typename T>
 int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
-                    std::string input_file, std::string output_file,
+                    std::string input_file, std::string output_file, std::string log_file,
                     std::string var_name, int step_start, int step_end,
                     std::vector<size_t> shape, double tol, double s,
                     std::string eb_mode, int compressor_type,
-                    int input_file_type, int input_multiplier) {
+                    int input_file_type, int input_multiplier, int compress_block) {
 
   int comm_size, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
@@ -791,7 +847,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   adios2::IO read_io = adios.DeclareIO("Input Data");
   adios2::IO write_io = adios.DeclareIO("Output Data");
   read_io.SetEngine("BP4");
-  write_io.SetEngine("BP4");
+  write_io.SetEngine("BP5");
   adios2::Engine reader;
   if (input_file_type) {
     reader = read_io.Open(input_file, adios2::Mode::Read);
@@ -829,6 +885,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
       org_var = read_io.InquireVariable<T>(var_name);
       if (sim_iter >= step_start) {
         reader.Get<T>(org_var, var_data_vec, adios2::Mode::Sync);
+        var_data_vec.resize(original_size_multiplied);
       }
       reader.EndStep();
     } else {
@@ -854,7 +911,6 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                           mgard_x::Config());
       mgard_x::pin_memory(compressed_data, compressed_size, mgard_x::Config());
     }
-
     
     // call externl compressors
     if (compressor_type == 0) {
@@ -864,11 +920,11 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
       compress_time = mgard_compress(D, var_data_vec.data(), compressed_data, compressed_size,
                      shape, tol, s, eb_mode);
     } else if (compressor_type == 2) {
-      compress_time = sz_compress(D, var_data_vec.data(), (C*)compressed_data, compressed_size,
-                  shape, tol, s, eb_mode, input_multiplier);
+      compress_time = sz_compress2(D, var_data_vec.data(), (C*)compressed_data, compressed_size,
+                  shape, tol, s, eb_mode, input_multiplier * compress_block);
     } else if (compressor_type == 3) {
       compress_time = zfp_compress(D, var_data_vec.data(), (C*)compressed_data, compressed_size,
-                   shape, tol, s, eb_mode, input_multiplier);
+                   shape, tol, s, eb_mode, input_multiplier * compress_block);
     }
 
     if (compressor_type != 3) {
@@ -897,11 +953,11 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     if (sim_iter >= step_start) {
       writer.Put<C>(cmp_var, (C *)compressed_data, adios2::Mode::Sync);
       // std::fstream myfile;
-      // myfile.open("wrf"+std::to_string(sim_iter) + ".dat", std::ios::out |
+      // myfile.open("e3sm_"+ var_name + ".dat", std::ios::out |
       // std::ios::binary); if (!myfile) {
       //   printf("Error: cannot open file\n");
       // }
-      // myfile.write((char *)var_data_vec.data(), 1200*1500 * sizeof(T));
+      // myfile.write((char *)var_data_vec.data(), original_size * sizeof(T));
       // myfile.close();
     }
     MPI_Barrier(MPI_COMM_WORLD);
@@ -911,6 +967,12 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     timer.clear();
 
     if (!rank) {
+      double compress_throughput = 
+                  (double)original_size_multiplied * sizeof(T) * comm_size /
+                       compress_time / 1e9;
+      double write_throughput = (double)original_size_multiplied * sizeof(T) * comm_size /
+                       (compress_time + write_time) / 1e9;
+
       std::cout << mgard_x::log::log_info << "Compression ratio: "
                 << (double)original_size_multiplied * sizeof(T) /
                        compressed_size
@@ -918,17 +980,19 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
       std::cout << mgard_x::log::log_info
                 << "Compression time: " << compress_time << " s.\n";
       std::cout << mgard_x::log::log_info << "Compression throughput: "
-                << (double)original_size_multiplied * sizeof(T) * comm_size /
-                       compress_time / 1e9
-                << " GB/s.\n";
+                << compress_throughput << " GB/s.\n";
       std::cout << mgard_x::log::log_info << "Write time: " << write_time
                 << " s.\n";
       std::cout << mgard_x::log::log_info << "Write throughput: "
-                << (double)compressed_size * comm_size / write_time / 1e9
-                << " GB/s.\n";
-      std::cout << mgard_x::log::log_info
-                << "Compress + Write time: " << compress_time + write_time
-                << " s.\n";
+                << write_throughput << " GB/s.\n";
+
+      std::fstream myfile;
+      myfile.open(log_file, std::ios::out | std::ios::trunc);
+      myfile << compress_time << ",";
+      myfile << compress_throughput << ",";
+      myfile << write_time << ",";
+      myfile << write_throughput << ",";
+      myfile.close();
     }
   }
   if (input_file_type)
@@ -940,14 +1004,15 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   return 0;
 }
 
+
 template <typename T>
 int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                       std::string org_file, std::string cmp_file,
-                      std::string dec_file, std::string var_name,
+                      std::string log_file, std::string var_name,
                       int step_start, int step_end, std::vector<size_t> shape,
                       double tol, double s, std::string eb_mode,
                       int compressor_type, int input_file_type,
-                      int input_multiplier) {
+                      int input_multiplier, int compress_block) {
 
   int comm_size, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
@@ -955,8 +1020,8 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   adios2::ADIOS adios(MPI_COMM_WORLD);
   adios2::IO org_io = adios.DeclareIO("Original Data");
   adios2::IO cmp_io = adios.DeclareIO("Compressed Data");
-  org_io.SetEngine("BP5");
-  cmp_io.SetEngine("BP4");
+  org_io.SetEngine("BP4");
+  cmp_io.SetEngine("BP5");
   adios2::Engine org_reader;
   if (input_file_type) {
     org_reader = org_io.Open(org_file, adios2::Mode::Read);
@@ -989,8 +1054,11 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
     if (input_file_type) {
       org_reader.BeginStep();
-      org_var = org_io.InquireVariable<T>(var_name);
-      org_reader.Get<T>(org_var, org_vec, adios2::Mode::Sync);
+      if (sim_iter >= step_start) {
+        org_var = org_io.InquireVariable<T>(var_name);
+        org_reader.Get<T>(org_var, org_vec, adios2::Mode::Sync);
+        org_vec.resize(original_size_multiplied);
+      }
       org_reader.EndStep();
     } else {
       std::fstream myfile;
@@ -1034,9 +1102,8 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     MPI_Barrier(MPI_COMM_WORLD);
     cmp_reader.EndStep();
     timer.end();
-    decompress_time = timer.get();
-    timer.clear();
     read_time = timer.get();
+    timer.clear();
 
     if (compressor_type != 3) {
       mgard_x::pin_memory(decompressed_data, original_size_multiplied * sizeof(T),
@@ -1050,11 +1117,11 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
       decompress_time = mgard_decompress((void *)cmp_vec.data(), compressed_size,
                        decompressed_data);
     } else if (compressor_type == 2) {
-      decompress_time = sz_decompress(D, cmp_vec.data(), compressed_size,
-                    (T *)decompressed_data, shape, input_multiplier);
+      decompress_time = sz_decompress2(D, cmp_vec.data(), compressed_size,
+                    (T *)decompressed_data, shape, input_multiplier * compress_block);
     } else if (compressor_type == 3) {
       decompress_time = zfp_decompress(D, cmp_vec.data(), compressed_size,
-                     (T *)decompressed_data, shape, tol, s, eb_mode, input_multiplier);
+                     (T *)decompressed_data, shape, tol, s, eb_mode, input_multiplier * compress_block);
     }
 
     if (compressor_type != 3) {
@@ -1063,22 +1130,29 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     }
 
     if (!rank) {
+      double decompress_throughput = (double)original_size_multiplied * sizeof(T) * comm_size /
+                       decompress_time / 1e9;
+      double read_throughput = (double)original_size_multiplied * sizeof(T) * comm_size /
+                       (decompress_time + read_time) / 1e9;
       std::cout << mgard_x::log::log_info
                 << "Decompression time: " << decompress_time << " s.\n";
       std::cout << mgard_x::log::log_info << "Decompression throughput: "
-                << (double)original_size_multiplied * sizeof(T) * comm_size /
-                       decompress_time / 1e9
-                << " GB/s.\n";
+                << decompress_throughput << " GB/s.\n";
       std::cout << mgard_x::log::log_info << "Read time: " << read_time
                 << " s.\n";
       std::cout << mgard_x::log::log_info << "Read throughput: "
-                << (double)compressed_size * comm_size / read_time / 1e9
-                << " GB/s.\n";
-      std::cout << mgard_x::log::log_info
-                << "Decompress + Read time: " << decompress_time + read_time
-                << " s.\n";
+                << read_throughput << " GB/s.\n";
+
       print_statistics(s, eb_mode, shape, org_vec.data(), (T *)decompressed_data,
                      tol, true);
+
+      std::fstream myfile;
+      myfile.open(log_file, std::ios::out | std::ios::app);
+      myfile << decompress_time << ",";
+      myfile << decompress_throughput << ",";
+      myfile << read_time << ",";
+      myfile << read_throughput << ",";
+      myfile.close();
     }
 
     
@@ -1099,7 +1173,7 @@ bool try_exec(int argc, char *argv[]) {
 
   std::string input_file = get_arg(argc, argv, "-i");
   std::string output_file = get_arg(argc, argv, "-c");
-  std::string decompressed_file = get_arg(argc, argv, "-o");
+  std::string log_file = get_arg(argc, argv, "-o");
 
   if (!rank)
     std::cout << mgard_x::log::log_info << "input data: " << input_file << "\n";
@@ -1108,7 +1182,7 @@ bool try_exec(int argc, char *argv[]) {
               << "\n";
   if (!rank)
     std::cout << mgard_x::log::log_info
-              << "decompressed data: " << decompressed_file << "\n";
+              << "log_file: " << log_file << "\n";
 
   enum mgard_x::data_type dtype;
   std::string dt = get_arg(argc, argv, "-t");
@@ -1175,23 +1249,26 @@ bool try_exec(int argc, char *argv[]) {
 
   int input_multiplier = get_arg_int(argc, argv, "-r");
 
+  int compress_block = get_arg_int(argc, argv, "-k");
+
+
   // if (compress_or_decompress == 0) {
   if (dtype == mgard_x::data_type::Double) {
-    launch_compress<double>(D, dtype, input_file, output_file, var_name,
+    launch_compress<double>(D, dtype, input_file, output_file, log_file, var_name,
                             step_start, step_end, shape, tol, s, eb_mode,
-                            compressor_type, input_file_type, input_multiplier);
+                            compressor_type, input_file_type, input_multiplier, compress_block);
     launch_decompress<double>(D, dtype, input_file, output_file,
-                              decompressed_file, var_name, step_start, step_end,
+                              log_file, var_name, step_start, step_end,
                               shape, tol, s, eb_mode, compressor_type,
-                              input_file_type, input_multiplier);
+                              input_file_type, input_multiplier, compress_block);
   } else if (dtype == mgard_x::data_type::Float) {
-    launch_compress<float>(D, dtype, input_file, output_file, var_name,
+    launch_compress<float>(D, dtype, input_file, output_file, log_file, var_name,
                            step_start, step_end, shape, tol, s, eb_mode,
-                           compressor_type, input_file_type, input_multiplier);
+                           compressor_type, input_file_type, input_multiplier, compress_block);
     launch_decompress<float>(D, dtype, input_file, output_file,
-                             decompressed_file, var_name, step_start, step_end,
+                             log_file, var_name, step_start, step_end,
                              shape, tol, s, eb_mode, compressor_type,
-                             input_file_type, input_multiplier);
+                             input_file_type, input_multiplier, compress_block);
   }
   // } else {
   //   if (dtype == mgard_x::data_type::Double) {
@@ -1213,5 +1290,6 @@ int main(int argc, char *argv[]) {
     print_usage_message("");
   }
   MPI_Finalize();
+  exit(0);
   return 0;
 }
