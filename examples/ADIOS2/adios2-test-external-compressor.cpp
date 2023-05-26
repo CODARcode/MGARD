@@ -25,6 +25,10 @@
 
 #include "zfp.h"
 
+#include "nvcomp.hpp"
+#include "nvcomp/lz4.hpp"
+#include "nvcomp/nvcompManagerFactory.hpp"
+
 #define OUTPUT_SAFTY_OVERHEAD 1e6
 
 using namespace std::chrono;
@@ -833,6 +837,136 @@ double zfp_decompress(mgard_x::DIM D, uint8_t *compressed_data,
 }
 
 template <typename T>
+double nvcomp_compress(mgard_x::DIM D, T *original_data, uint8_t *compressed_data,
+                size_t &compressed_size, std::vector<mgard_x::SIZE> shape,
+                double tol, double s, std::string eb_mode) {
+  mgard_x::Timer timer;
+  MPI_Barrier(MPI_COMM_WORLD);
+  timer.start();
+
+  size_t original_size = 1;
+  for (mgard_x::DIM i = 0; i < D; i++)
+    original_size *= shape[i];
+
+  T *d_original_data;
+  uint8_t *d_compressed_data;
+  cudaMalloc(&d_original_data, sizeof(T) * original_size);
+  cudaMalloc(&d_compressed_data, compressed_size);
+  cudaMemcpy(d_original_data, original_data, sizeof(T) * original_size,
+             cudaMemcpyHostToDevice);
+  cudaStream_t stream;
+  cudaStreamCreate(&stream);
+
+  size_t chunk_size = 1 << 15;
+  nvcompType_t dtype = NVCOMP_TYPE_UCHAR;
+  nvcomp::LZ4Manager nvcomp_manager{chunk_size, dtype, stream};
+  size_t input_count = original_size * sizeof(T);
+  nvcomp::CompressionConfig comp_config =
+      nvcomp_manager.configure_compression(input_count);
+  nvcomp_manager.compress((uint8_t *)d_original_data, d_compressed_data, comp_config);
+  compressed_size = nvcomp_manager.get_compressed_output_size(d_compressed_data);
+  cudaStreamSynchronize(stream);
+
+  cudaMemcpy(compressed_data, d_compressed_data, compressed_size,
+             cudaMemcpyDeviceToHost);
+
+  cudaFree(d_original_data);
+  cudaFree(d_compressed_data);
+  cudaStreamDestroy(stream);
+  MPI_Barrier(MPI_COMM_WORLD);
+  timer.end();
+  return timer.get();
+}
+
+template <typename T>
+double nvcomp_compress(mgard_x::DIM D, T *original_data, uint8_t *compressed_data,
+                size_t &compressed_size, std::vector<mgard_x::SIZE> shape,
+                double tol, double s, std::string eb_mode, int input_multiplier) {
+  
+  shape[0] /= input_multiplier;
+  size_t original_size = 1;
+  for (mgard_x::DIM i = 0; i < D; i++)
+    original_size *= shape[i];
+
+  size_t total_compressed_buffer_size = compressed_size;
+  size_t total_compressed_size = 0;
+  double time = 0;
+  for (int i = 0; i < input_multiplier; i++) {
+    compressed_size = total_compressed_buffer_size - total_compressed_size;
+    time += nvcomp_compress(D, original_data, compressed_data+sizeof(size_t),
+                compressed_size, shape, tol, s, eb_mode);
+    *(size_t*)compressed_data = compressed_size;
+    total_compressed_size += compressed_size+sizeof(size_t);
+    original_data += original_size;
+    compressed_data += compressed_size+sizeof(size_t);
+  }
+  compressed_size = total_compressed_size;
+  return time;
+}
+
+template <typename T>
+double nvcomp_decompress(mgard_x::DIM D, uint8_t *compressed_data, size_t compressed_size,
+                  T *decompressed_data, std::vector<mgard_x::SIZE> shape) {
+  mgard_x::Timer timer;
+  MPI_Barrier(MPI_COMM_WORLD);
+  timer.start();
+  size_t original_size = 1;
+  for (mgard_x::DIM i = 0; i < D; i++)
+    original_size *= shape[i];
+
+  uint8_t *d_compressed_data;
+  cudaMalloc(&d_compressed_data, compressed_size);
+  cudaMemcpy(d_compressed_data, compressed_data, compressed_size,
+             cudaMemcpyHostToDevice);
+
+  T *d_decompressed_data;
+  cudaMalloc(&d_decompressed_data, sizeof(T) * original_size);
+
+  cudaStream_t stream;
+  cudaStreamCreate(&stream);
+
+  auto decomp_nvcomp_manager = nvcomp::create_manager(
+      d_compressed_data, stream);
+
+  nvcomp::DecompressionConfig decomp_config =
+      decomp_nvcomp_manager->configure_decompression(d_compressed_data);
+
+  decomp_nvcomp_manager->decompress((uint8_t*)d_decompressed_data, d_compressed_data,
+                                    decomp_config);
+  cudaStreamSynchronize(stream);
+  cudaMemcpy(decompressed_data, d_decompressed_data, sizeof(T) * original_size,
+             cudaMemcpyDeviceToHost);
+
+  cudaFree(d_decompressed_data);
+  cudaFree(d_compressed_data);
+  cudaStreamDestroy(stream);
+  MPI_Barrier(MPI_COMM_WORLD);
+  timer.end();
+  return timer.get();
+}
+
+template <typename T>
+double nvcomp_decompress(mgard_x::DIM D, uint8_t *compressed_data, size_t compressed_size,
+                  T *decompressed_data, std::vector<mgard_x::SIZE> shape, int input_multiplier) {
+  shape[0] /= input_multiplier;
+  size_t original_size = 1;
+  for (mgard_x::DIM i = 0; i < D; i++)
+    original_size *= shape[i];
+  double time = 0;
+  for (int i = 0; i < input_multiplier; i++) {
+    compressed_size = *(size_t*)compressed_data;
+    // std::cout << "compressed_size: " << compressed_size << "\n";
+    time += nvcomp_decompress(D, compressed_data+sizeof(size_t), compressed_size,
+                  decompressed_data, shape);
+    decompressed_data += original_size;
+    compressed_data += compressed_size+sizeof(size_t);
+  }
+  delete header;
+  return time;
+}
+
+
+template <typename T>
 int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     std::string input_file, std::string output_file, std::string log_file,
                     std::string var_name, int step_start, int step_end,
@@ -925,6 +1059,9 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     } else if (compressor_type == 3) {
       compress_time = zfp_compress(D, var_data_vec.data(), (C*)compressed_data, compressed_size,
                    shape, tol, s, eb_mode, input_multiplier * compress_block);
+    } else if (compressor_type == 4) {
+      compress_time = nvcomp_compress(D, var_data_vec.data(), (C*)compressed_data, compressed_size,
+                  shape, tol, s, eb_mode, input_multiplier * compress_block);
     }
 
     if (compressor_type != 3) {
@@ -1122,6 +1259,9 @@ int launch_decompress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     } else if (compressor_type == 3) {
       decompress_time = zfp_decompress(D, cmp_vec.data(), compressed_size,
                      (T *)decompressed_data, shape, tol, s, eb_mode, input_multiplier * compress_block);
+    } else if (compressor_type == 4) {
+      decompress_time = nvcomp_decompress(D, cmp_vec.data(), compressed_size,
+                    (T *)decompressed_data, shape, input_multiplier * compress_block);
     }
 
     if (compressor_type != 3) {
