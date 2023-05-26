@@ -41,13 +41,12 @@ rm -rf $OUT_DATA
 
 
 IN_DATA=$HOME/dev/data/SDRBENCH-EXASKY-NYX-512x512x512/baryon_density.f32
-OUT_DATA=$IN_DATA.cmp.bp
-# DEC_DATA=$IN_DATA.dec.bp
-# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 512 512 512 -m abs -e 1e3 -s inf -v i_f -b 0 -d 0 -p 0 -u 0 -r 10 -k 10
-# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 512 512 512 -m abs -e 1e3 -s inf -v i_f -b 0 -d 0 -p 1 -u 0 -r 10 -k 10
-# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 512 512 512 -m abs -e 1e3 -s inf -v i_f -b 0 -d 0 -p 2 -u 0 -r 10 -k 1
-# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 512 512 512 -m abs -e 7 -s inf -v i_f -b 0 -d 0 -p 3 -u 0 -r 1 -k 1
-
+OUT_DATA=$IN_DATA.cmp
+# $exec -z -i $IN_DATA -c $OUT_DATA -o nocomp_${N}_${i}.csv -t s -n 3 512 512 512 -m abs -e 1e4 -s inf -v i_f -b 0 -d 0 -p 0 -u 0 -r 10 -k 1
+$exec -z -i $IN_DATA -c $OUT_DATA -o mgard_${N}_${i}.csv  -t s -n 3 512 512 512 -m abs -e 1e4 -s inf -v i_f -b 0 -d 0 -p 1 -u 0 -r 10 -k 1
+$exec -z -i $IN_DATA -c $OUT_DATA -o sz_${N}_${i}.csv     -t s -n 3 512 512 512 -m abs -e 1e3 -s inf -v i_f -b 0 -d 0 -p 2 -u 0 -r 10 -k 1
+$exec -z -i $IN_DATA -c $OUT_DATA -o zfp_${N}_${i}.csv    -t s -n 3 512 512 512 -m abs -e 11   -s inf -v i_f -b 0 -d 0 -p 3 -u 0 -r 10 -k 1
+$exec -z -i $IN_DATA -c $OUT_DATA -o lz4_${N}_${i}.csv    -t s -n 3 512 512 512 -m abs -e 11   -s inf -v i_f -b 0 -d 0 -p 4 -u 0 -r 1 -k 1
 
 IN_DATA=$HOME/dev/data/summit.20220527.hires_atm.hifreq_write.F2010.ne120pg2_r0125_oRRS18to6v3.eam.h6.0001_side.bp
 # IN_DATA=$HOME/dev/data/e3sm_PSL.dat
@@ -67,10 +66,10 @@ N=1
 IN_DATA=$HOME/dev/data/summit.20220527.hires_atm.hifreq_write.F2010.ne120pg2_r0125_oRRS18to6v3.eam.h5.0001-01-01-00000_side.bp
 OUT_DATA=$IN_DATA.cmp.bp
 DEC_DATA=$IN_DATA.dec.bp
-$exec -z -i $IN_DATA -c $OUT_DATA -o nocomp_${N}_${i}.csv -t s -n 3 720 240 960 -m abs -e 1e3 -s inf -v PSL -b 0 -d 0 -p 0 -u 1 -r 10 -k 1
-$exec -z -i $IN_DATA -c $OUT_DATA -o mgard_${N}_${i}.csv  -t s -n 3 720 240 960 -m abs -e 1e4 -s inf -v PSL -b 0 -d 0 -p 1 -u 1 -r 10 -k 1
-$exec -z -i $IN_DATA -c $OUT_DATA -o sz_${N}_${i}.csv     -t s -n 3 720 240 960 -m abs -e 1e2 -s inf -v PSL -b 0 -d 0 -p 2 -u 1 -r 10 -k 1
-$exec -z -i $IN_DATA -c $OUT_DATA -o zfp_${N}_${i}.csv    -t s -n 3 720 240 960 -m abs -e 6   -s inf -v PSL -b 0 -d 0 -p 3 -u 1 -r 10 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o nocomp_${N}_${i}.csv -t s -n 3 720 240 960 -m abs -e 1e3 -s inf -v PSL -b 0 -d 0 -p 0 -u 1 -r 10 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o mgard_${N}_${i}.csv  -t s -n 3 720 240 960 -m abs -e 1e4 -s inf -v PSL -b 0 -d 0 -p 1 -u 1 -r 10 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o sz_${N}_${i}.csv     -t s -n 3 720 240 960 -m abs -e 1e2 -s inf -v PSL -b 0 -d 0 -p 2 -u 1 -r 10 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o zfp_${N}_${i}.csv    -t s -n 3 720 240 960 -m abs -e 6   -s inf -v PSL -b 0 -d 0 -p 3 -u 1 -r 10 -k 1
 
 IN_DATA=$HOME/dev/data/d3d_coarse_v2_700.bin
 OUT_DATA=$IN_DATA.cmp.bp
