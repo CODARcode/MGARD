@@ -30,12 +30,20 @@ public:
                 config.estimate_outlier_ratio) {
     static_assert(!std::is_floating_point<T>::value,
                   "ComposedLosslessCompressor: Type of T must be integer.");
+    if (config.lossless == lossless_type::Huffman_LZ4) {
+      lz4 = LZ4<DeviceType>(n * sizeof(H));
+    }
   }
 
   static size_t EstimateMemoryFootprint(SIZE primary_count, Config config) {
-    return Huffman<Q, S, H, DeviceType>::EstimateMemoryFootprint(
+    size_t size = Huffman<Q, S, H, DeviceType>::EstimateMemoryFootprint(
         primary_count, config.huff_dict_size, config.huff_block_size,
         config.estimate_outlier_ratio);
+    if (config.lossless == lossless_type::Huffman_LZ4) {
+      size +=
+          LZ4<DeviceType>::EstimateMemoryFootprint(primary_count * sizeof(H));
+    }
+    return size;
   }
 
   void Compress(Array<1, T, DeviceType> &original_data,
@@ -44,7 +52,7 @@ public:
     huffman.CompressPrimary(original_data, compressed_data, queue_idx);
 
     if (config.lossless == lossless_type::Huffman_LZ4) {
-      LZ4Compress(compressed_data, config.lz4_block_size);
+      lz4.Compress(compressed_data, config.lz4_block_size, queue_idx);
     }
 
     if (config.lossless == lossless_type::Huffman_Zstd) {
@@ -56,7 +64,7 @@ public:
                   Array<1, T, DeviceType> &decompressed_data, int queue_idx) {
 
     if (config.lossless == lossless_type::Huffman_LZ4) {
-      LZ4Decompress(compressed_data);
+      lz4.Decompress(compressed_data, queue_idx);
     }
 
     if (config.lossless == lossless_type::Huffman_Zstd) {
@@ -69,6 +77,7 @@ public:
   SIZE n;
   Config config;
   Huffman<Q, S, H, DeviceType> huffman;
+  LZ4<DeviceType> lz4;
 };
 
 } // namespace mgard_x
