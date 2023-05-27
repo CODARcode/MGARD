@@ -42,11 +42,11 @@ rm -rf $OUT_DATA
 
 IN_DATA=$HOME/dev/data/SDRBENCH-EXASKY-NYX-512x512x512/baryon_density.f32
 OUT_DATA=$IN_DATA.cmp
-# $exec -z -i $IN_DATA -c $OUT_DATA -o nocomp_${N}_${i}.csv -t s -n 3 512 512 512 -m abs -e 1e4 -s inf -v i_f -b 0 -d 0 -p 0 -u 0 -r 10 -k 1
-$exec -z -i $IN_DATA -c $OUT_DATA -o mgard_${N}_${i}.csv  -t s -n 3 512 512 512 -m abs -e 1e4 -s inf -v i_f -b 0 -d 0 -p 1 -u 0 -r 10 -k 1
-$exec -z -i $IN_DATA -c $OUT_DATA -o sz_${N}_${i}.csv     -t s -n 3 512 512 512 -m abs -e 1e3 -s inf -v i_f -b 0 -d 0 -p 2 -u 0 -r 10 -k 1
-$exec -z -i $IN_DATA -c $OUT_DATA -o zfp_${N}_${i}.csv    -t s -n 3 512 512 512 -m abs -e 11   -s inf -v i_f -b 0 -d 0 -p 3 -u 0 -r 10 -k 1
-$exec -z -i $IN_DATA -c $OUT_DATA -o lz4_${N}_${i}.csv    -t s -n 3 512 512 512 -m abs -e 11   -s inf -v i_f -b 0 -d 0 -p 4 -u 0 -r 1 -k 1
+$exec -z -i $IN_DATA -c $OUT_DATA -o nocomp_${N}_${i}.csv -t s -n 3 512 512 512 -m abs -e 1e4 -s inf -v i_f -b 0 -d 0 -p 0 -u 0 -r 5 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o mgard_${N}_${i}.csv  -t s -n 3 512 512 512 -m abs -e 1e4 -s inf -v i_f -b 0 -d 0 -p 1 -u 0 -r 5 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o sz_${N}_${i}.csv     -t s -n 3 512 512 512 -m abs -e 1e3 -s inf -v i_f -b 0 -d 0 -p 2 -u 0 -r 5 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o zfp_${N}_${i}.csv    -t s -n 3 512 512 512 -m abs -e 11   -s inf -v i_f -b 0 -d 0 -p 3 -u 0 -r 10 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o lz4_${N}_${i}.csv    -t s -n 3 512 512 512 -m abs -e 11   -s inf -v i_f -b 0 -d 0 -p 4 -u 0 -r 10 -k 1
 
 IN_DATA=$HOME/dev/data/summit.20220527.hires_atm.hifreq_write.F2010.ne120pg2_r0125_oRRS18to6v3.eam.h6.0001_side.bp
 # IN_DATA=$HOME/dev/data/e3sm_PSL.dat
