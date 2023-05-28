@@ -26,10 +26,9 @@ public:
     if (log::level & log::TIME)
       timer.start();
     // Make a copy of the input data
-    input_data.resize({data.shape(0)});
+    input_data.resize({data.shape(0)}, false, false, queue_idx);
     MemoryManager<DeviceType>::Copy1D(input_data.data(), data.data(),
                                       data.shape(0), queue_idx);
-    // Array<1, Byte, DeviceType> input_data = data;
     Array<1, Byte, DeviceType> &output_data = data;
     nvcompType_t dtype = NVCOMP_TYPE_UCHAR;
     nvcomp::LZ4Manager nvcomp_manager{
@@ -37,7 +36,8 @@ public:
     size_t input_count = input_data.shape(0);
     nvcomp::CompressionConfig comp_config =
         nvcomp_manager.configure_compression(input_count);
-    output_data.resize({(SIZE)comp_config.max_compressed_buffer_size});
+    output_data.resize({(SIZE)comp_config.max_compressed_buffer_size}, false,
+                       false, queue_idx);
     nvcomp_manager.compress((uint8_t *)input_data.data(), output_data.data(),
                             comp_config);
     output_data.shape(0) =
@@ -62,7 +62,6 @@ public:
   }
 
   void Decompress(Array<1, Byte, DeviceType> &data, int queue_idx) {
-// DeviceRuntime<DeviceType>::SyncDevice();
 #ifdef MGARDX_COMPILE_CUDA
     Timer timer;
     if (log::level & log::TIME)
@@ -71,14 +70,14 @@ public:
     input_data.resize({data.shape(0)});
     MemoryManager<DeviceType>::Copy1D(input_data.data(), data.data(),
                                       data.shape(0), queue_idx);
-    // Array<1, Byte, DeviceType> input_data = data;
     Array<1, Byte, DeviceType> &output_data = data;
     auto decomp_nvcomp_manager = nvcomp::create_manager(
         input_data.data(), DeviceRuntime<DeviceType>::GetQueue(queue_idx));
     size_t input_size = input_data.shape(0);
     nvcomp::DecompressionConfig decomp_config =
         decomp_nvcomp_manager->configure_decompression(input_data.data());
-    output_data.resize({(SIZE)decomp_config.decomp_data_size});
+    output_data.resize({(SIZE)decomp_config.decomp_data_size}, false, false,
+                       queue_idx);
     decomp_nvcomp_manager->decompress(output_data.data(), input_data.data(),
                                       decomp_config);
     output_data.shape(0) = decomp_config.decomp_data_size;
@@ -93,7 +92,6 @@ public:
              "in development.");
     exit(-1);
 #endif
-    // DeviceRuntime<DeviceType>::SyncDevice();
   }
 
   // Workspace
