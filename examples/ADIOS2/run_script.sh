@@ -42,7 +42,7 @@ rm -rf $OUT_DATA
 
 IN_DATA=$HOME/dev/data/SDRBENCH-EXASKY-NYX-512x512x512/baryon_density.f32
 OUT_DATA=$IN_DATA.cmp
-$exec -z -i $IN_DATA -c $OUT_DATA -o nocomp_${N}_${i}.csv -t s -n 3 512 512 512 -m abs -e 1e4 -s inf -v i_f -b 0 -d 0 -p 0 -u 0 -r 5 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o nocomp_${N}_${i}.csv -t s -n 3 512 512 512 -m abs -e 1e4 -s inf -v i_f -b 0 -d 0 -p 0 -u 0 -r 5 -k 1
 # $exec -z -i $IN_DATA -c $OUT_DATA -o mgard_${N}_${i}.csv  -t s -n 3 512 512 512 -m abs -e 1e4 -s inf -v i_f -b 0 -d 0 -p 1 -u 0 -r 5 -k 1
 # $exec -z -i $IN_DATA -c $OUT_DATA -o sz_${N}_${i}.csv     -t s -n 3 512 512 512 -m abs -e 1e3 -s inf -v i_f -b 0 -d 0 -p 2 -u 0 -r 5 -k 1
 # $exec -z -i $IN_DATA -c $OUT_DATA -o zfp_${N}_${i}.csv    -t s -n 3 512 512 512 -m abs -e 11   -s inf -v i_f -b 0 -d 0 -p 3 -u 0 -r 10 -k 1
@@ -67,22 +67,33 @@ IN_DATA=$HOME/dev/data/summit.20220527.hires_atm.hifreq_write.F2010.ne120pg2_r01
 OUT_DATA=$IN_DATA.cmp.bp
 DEC_DATA=$IN_DATA.dec.bp
 # $exec -z -i $IN_DATA -c $OUT_DATA -o nocomp_${N}_${i}.csv -t s -n 3 720 240 960 -m abs -e 1e3 -s inf -v PSL -b 0 -d 0 -p 0 -u 1 -r 10 -k 1
-# $exec -z -i $IN_DATA -c $OUT_DATA -o mgard_${N}_${i}.csv  -t s -n 3 720 240 960 -m abs -e 1e4 -s inf -v PSL -b 0 -d 0 -p 1 -u 1 -r 10 -k 1
-# $exec -z -i $IN_DATA -c $OUT_DATA -o sz_${N}_${i}.csv     -t s -n 3 720 240 960 -m abs -e 1e2 -s inf -v PSL -b 0 -d 0 -p 2 -u 1 -r 10 -k 1
-# $exec -z -i $IN_DATA -c $OUT_DATA -o zfp_${N}_${i}.csv    -t s -n 3 720 240 960 -m abs -e 6   -s inf -v PSL -b 0 -d 0 -p 3 -u 1 -r 10 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o mgard_${N}_${i}.csv  -t s -n 3 720 240 960 -m abs -e 4e3 -s inf -v PSL -b 0 -d 0 -p 1 -u 1 -r 1 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o sz_${N}_${i}.csv     -t s -n 3 720 240 960 -m abs -e 1e2 -s inf -v PSL -b 0 -d 0 -p 2 -u 1 -r 1 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o zfp_${N}_${i}.csv    -t s -n 3 720 240 960 -m abs -e 6   -s inf -v PSL -b 0 -d 0 -p 3 -u 1 -r 1 -k 1
 
 IN_DATA=$HOME/dev/data/d3d_coarse_v2_700.bin
 OUT_DATA=$IN_DATA.cmp.bp
 DEC_DATA=$IN_DATA.dec.bp
-# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 50 50 50 -m abs -e 1e19 -s inf -v i_f -b 0 -d 0 -p 0 -u 0 -r 1
-# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 50 50 50 -m abs -e 1e19 -s inf -v i_f -b 0 -d 0 -p 1 -u 0 -r 1
-# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 50 50 50 -m abs -e 20 -s inf -v i_f -b 0 -d 0 -p 2 -u 0 -r 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 312 1093 585 -m abs -e 4e16 -s inf -v i_f -b 0 -d 0 -p 1 -u 0 -r 1 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 312 1093 585 -m abs -e 1e15 -s inf -v i_f -b 0 -d 0 -p 2 -u 0 -r 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 312 1093 585 -m abs -e 12 -s inf -v i_f -b 0 -d 0 -p 3 -u 0 -r 1 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 312 1093 585 -m abs -e 12 -s inf -v i_f -b 0 -d 0 -p 4 -u 0 -r 1 -k 1
 
-# eb6=2e-6
-# eb4=2.3e-4
-# eb2=2.6e-2
 
-# ./build_script.sh
-# rm -rf $OUT_DATA
-# ./build/adios2-test -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 2 1200 1500 -m rel -e $eb2 -s 0 -v T2 -b 0 -d 2 
-# ./build/adios2-test -x -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 2 1200 1500 -m rel -e $eb2 -s 0 -v T2 -b 0 -d 2 
+IN_DATA=$HOME/dev/data/dataset/288x115x69x69/einspline_288_115_69_69.pre.f32
+OUT_DATA=$IN_DATA.cmp.bp
+DEC_DATA=$IN_DATA.dec.bp
+$exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 33120 69 69  -m abs -e 4e-1 -s inf -v i_f -b 0 -d 0 -p 1 -u 0 -r 10 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 33120 69 69  -m abs -e 1.6e-1 -s inf -v i_f -b 0 -d 0 -p 2 -u 0 -r 1 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 33120 69 69  -m abs -e 11 -s inf -v i_f -b 0 -d 0 -p 3 -u 0 -r 1 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 33120 69 69  -m abs -e 12 -s inf -v i_f -b 0 -d 0 -p 4 -u 0 -r 1 -k 1
+
+
+IN_DATA=$HOME/dev/data/SDRBENCH-Miranda-256x384x384/pressure.d64 
+OUT_DATA=$IN_DATA.cmp.bp
+DEC_DATA=$IN_DATA.dec.bp
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 256 384 384  -m abs -e 8e-2 -s inf -v i_f -b 0 -d 0 -p 1 -u 0 -r 10 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 256 384 384  -m abs -e 1.6e-1 -s inf -v i_f -b 0 -d 0 -p 2 -u 0 -r 1 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 256 384 384  -m abs -e 8 -s inf -v i_f -b 0 -d 0 -p 3 -u 0 -r 1 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 256 384 384  -m abs -e 8 -s inf -v i_f -b 0 -d 0 -p 4 -u 0 -r 1 -k 1
+

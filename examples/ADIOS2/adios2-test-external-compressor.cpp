@@ -353,11 +353,12 @@ double mgard_compress(mgard_x::DIM D, T *original_data, void *compressed_data,
   }
 
   mgard_x::Config config;
-  config.log_level =
-      mgard_x::log::ERR | mgard_x::log::INFO | mgard_x::log::TIME;
+  // config.log_level =
+  //     mgard_x::log::ERR | mgard_x::log::INFO | mgard_x::log::TIME;
   config.lossless = mgard_x::lossless_type::Huffman_LZ4;
   // config.lossless = mgard_x::lossless_type::Huffman;
-
+  // config.adjust_shape = true;
+  // config.max_memory_footprint = 16e9;
   mgard_x::compress_status_type ret;
   ret = mgard_x::compress(D, dtype, shape, tol, s, mode, original_data,
                           compressed_data, compressed_size, config, true);
@@ -1056,11 +1057,28 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     }
     shape[0] *= input_multiplier;
 
+    {
+      // std::fstream myfile;
+      // myfile.open("QMCPACK.dat", std::ios::out | std::ios::binary);
+      // if (!myfile) {
+      //   printf("Error: cannot open file\n");
+      // }
+      // myfile.write((char *)var_data_vec.data(),
+      //              original_size_multiplied * sizeof(T));
+      // myfile.close();
+    }
+
     if (compressor_type != 3) {
       mgard_x::pin_memory(var_data_vec.data(),
                           original_size_multiplied * sizeof(T),
                           mgard_x::Config());
       mgard_x::pin_memory(compressed_data, compressed_size, mgard_x::Config());
+    }
+
+    if (eb_mode.compare("rel") == 0 && compressor_type != 3) {
+      T norm =
+          mgard_x::L_inf_norm(original_size_multiplied, var_data_vec.data());
+      std::cout << "abs error bound: " << norm * tol;
     }
 
     // call externl compressors
@@ -1070,10 +1088,6 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     } else if (compressor_type == 1) {
       compress_time = mgard_compress(D, var_data_vec.data(), compressed_data,
                                      compressed_size, shape, tol, s, eb_mode);
-
-      // mgard_decompress(compressed_data, compressed_size,
-      //                  var_data_vec.data());
-
     } else if (compressor_type == 2) {
       compress_time = sz_compress2(D, var_data_vec.data(), (C *)compressed_data,
                                    compressed_size, shape, tol, s, eb_mode,
@@ -1113,15 +1127,6 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     }
     if (sim_iter >= step_start) {
       writer.Put<C>(cmp_var, (C *)compressed_data, adios2::Mode::Sync);
-
-      std::fstream myfile;
-      myfile.open("NYX.dat", std::ios::out | std::ios::binary);
-      if (!myfile) {
-        printf("Error: cannot open file\n");
-      }
-      myfile.write((char *)var_data_vec.data(),
-                   original_size_multiplied * sizeof(T));
-      myfile.close();
     }
     MPI_Barrier(MPI_COMM_WORLD);
     writer.EndStep();
