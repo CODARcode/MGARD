@@ -3,8 +3,8 @@
 
 Multi-precision Data Refactoring designed on top of MGARD for enabling fine-grain progressive data reconstruction with error control. Currently, there are two designs available:
 
-* ***MDR:*** Full-featured CPU serial implementaion of multi-precision data refactoring
-* ***MDR-X:*** GPU acceleratoed portable implementation of MDR. Key features are implemented with other features under development.
+* ***MGARD-DR (MDR):*** Full-featured CPU serial implementaion of multi-precision data refactoring
+* ***MGARD-XDR (MDR-X):*** GPU acceleratoed portable implementation of MDR. Key features are implemented with other features under development.
 
 ***Note: Both MDR and MDR-X are experimenal compoments of the MGARD software. Their internal algorithms and API designs are subject to change in future releases of MGARD.***
 
