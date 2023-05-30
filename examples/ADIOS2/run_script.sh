@@ -83,7 +83,7 @@ DEC_DATA=$IN_DATA.dec.bp
 IN_DATA=$HOME/dev/data/dataset/288x115x69x69/einspline_288_115_69_69.pre.f32
 OUT_DATA=$IN_DATA.cmp.bp
 DEC_DATA=$IN_DATA.dec.bp
-$exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 33120 69 69  -m abs -e 4e-1 -s inf -v i_f -b 0 -d 0 -p 1 -u 0 -r 10 -k 1
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 33120 69 69  -m abs -e 4e-1 -s inf -v i_f -b 0 -d 0 -p 1 -u 0 -r 10 -k 1
 # $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 33120 69 69  -m abs -e 1.6e-1 -s inf -v i_f -b 0 -d 0 -p 2 -u 0 -r 1 -k 1
 # $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 33120 69 69  -m abs -e 11 -s inf -v i_f -b 0 -d 0 -p 3 -u 0 -r 1 -k 1
 # $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 33120 69 69  -m abs -e 12 -s inf -v i_f -b 0 -d 0 -p 4 -u 0 -r 1 -k 1
@@ -97,3 +97,10 @@ DEC_DATA=$IN_DATA.dec.bp
 # $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 256 384 384  -m abs -e 8 -s inf -v i_f -b 0 -d 0 -p 3 -u 0 -r 1 -k 1
 # $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t d -n 3 256 384 384  -m abs -e 8 -s inf -v i_f -b 0 -d 0 -p 4 -u 0 -r 1 -k 1
 
+IN_DATA=$HOME/dev/data/100x500x500/CLOUDf48.bin.f32
+OUT_DATA=$IN_DATA.cmp.bp
+DEC_DATA=$IN_DATA.dec.bp
+# $exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 100 500 500  -m abs -e 1e-4 -s inf -v i_f -b 0 -d 0 -p 1 -u 0 -r 1 -k 1
+$exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 100 500 500  -m abs -e 1e-9 -s inf -v i_f -b 0 -d 0 -p 2 -u 0 -r 1 -k 1
+$exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 100 500 500  -m abs -e 8 -s inf -v i_f -b 0 -d 0 -p 3 -u 0 -r 1 -k 1
+$exec -z -i $IN_DATA -c $OUT_DATA -o $DEC_DATA -t s -n 3 100 500 500  -m abs -e 8 -s inf -v i_f -b 0 -d 0 -p 4 -u 0 -r 1 -k 1

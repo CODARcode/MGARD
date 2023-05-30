@@ -1,6 +1,6 @@
 
-# MGARD-GPU [***Deprecated***]
-***MGARD-GPU is being deprecated and will be removed in future releases of MGARD. Please use the MGARD-X portable version.***
+# MGARD-CUDA [***Deprecated***]
+***MGARD-CUDA is being deprecated and will be removed in future releases of MGARD. Please use the MGARD-X portable version.***
 
 MGARD-GPU is a CUDA implementation of the MGARD lossy compressor, which significantly improves MGARD's compression/decomrpession throughput via highly optimized GPU kernels.
 

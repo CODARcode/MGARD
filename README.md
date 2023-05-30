@@ -1,7 +1,11 @@
-# MGARD [![build status][push workflow badge]][push workflow] [![format status][format workflow badge]][format workflow]
+<img src="./doc/images/MGARD-logo.png" width="200" /> 
+
+[![build status][push workflow badge]][push workflow] [![format status][format workflow badge]][format workflow]
 
 MGARD (MultiGrid Adaptive Reduction of Data) is a technique for multilevel lossy compression and refactoring of scientific data based on the theory of multigrid methods.
 We encourage you to [make a GitHub issue][issue form] if you run into any problems using MGARD, have any questions or suggestions, etc.
+
+
 
 [push workflow]: https://github.com/CODARcode/MGARD/actions/workflows/build.yml
 [push workflow badge]: https://github.com/CODARcode/MGARD/actions/workflows/build.yml/badge.svg
@@ -9,7 +13,7 @@ We encourage you to [make a GitHub issue][issue form] if you run into any proble
 [format workflow badge]: https://github.com/CODARcode/MGARD/actions/workflows/format.yml/badge.svg
 [issue form]: https://github.com/CODARcode/MGARD/issues/new/choose
 
-[<img src="./doc/images/MGARD-family.png" width="800" />](./doc/images/MGARD-family.png)
+[<img src="./doc/images/MGARD-familytree.png" width="800" />](./doc/images/MGARD-familytree.png)
 
 MGARD framework consists of the following modules. Please see the detailed instructions for each module to build and install MGARD.
 
@@ -18,8 +22,8 @@ MGARD-CPU is design for running compression on CPUs. See detailed user guide in 
 
 [mgard-cpu]: doc/MGARD-CPU.md
 
-## `MGARD-GPU`: CUDA accelerated compression
-MGARD-GPU is designed for accelerating compression specifically using NVIDIA GPUs. See detailed user guide in [here][gpu instructions].
+## `MGARD-CUDA`: CUDA accelerated compression
+MGARD-CUDA is designed for accelerating compression specifically using NVIDIA GPUs. See detailed user guide in [here][gpu instructions].
 
 [gpu instructions]: doc/MGARD-GPU.md
 
@@ -28,8 +32,8 @@ MGARD-X is designed for portable compression on NVIDIA GPUs, AMD GPUs, and CPUs.
 
 [mgard_x instructions]: doc/MGARD-X.md
 
-## `MDR`/`MDR-X`: Fine-grain progressive data reconstruction
-MDR and MDR-X are designed for enabling fine-grain data refactoring and progressive data reconstruction. See detailed user guide in [here][mdr_x instructions].
+## `MGARD-DR`/`MGARD-XDR`: Fine-grain progressive data reconstruction
+MGARD-DR and MGARD-XDR are designed for enabling fine-grain data refactoring and progressive data reconstruction. See detailed user guide in [here][mdr_x instructions].
 
 [mdr_x instructions]: doc/MDR-X.md
 
