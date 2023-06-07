@@ -27,6 +27,8 @@ struct Config {
   SIZE max_memory_footprint;
   SIZE total_num_bitplanes;
   SIZE block_size;
+  SIZE temporal_dim;
+  SIZE temporal_dim_size;
   bool mdr_adaptive_resolution;
   bool collect_uncertainty;
   bool adjust_shape;

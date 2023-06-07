@@ -47,7 +47,7 @@ enum class endiness_type : uint8_t { Little_Endian, Big_Endian };
 
 enum class coordinate_location : uint8_t { Embedded, External };
 
-enum class domain_decomposition_type : uint8_t { MaxDim, Block };
+enum class domain_decomposition_type : uint8_t { MaxDim, TemporalDim, Block };
 
 enum class operation_type : uint8_t { Compression, MDR };
 

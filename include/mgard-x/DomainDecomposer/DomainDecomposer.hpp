@@ -68,7 +68,8 @@ public:
 
   std::vector<SIZE> dim_num_subdomain() {
     std::vector<SIZE> _dim_num_subdomain(D, 1);
-    if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+    if (config.domain_decomposition == domain_decomposition_type::MaxDim ||
+        config.domain_decomposition == domain_decomposition_type::TemporalDim) {
       _dim_num_subdomain[_domain_decomposed_dim] =
           (shape[_domain_decomposed_dim] - 1) / _domain_decomposed_size + 1;
     } else if (config.domain_decomposition ==
@@ -107,7 +108,9 @@ public:
     if (!_domain_decomposed) {
       return shape;
     } else {
-      if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+      if (config.domain_decomposition == domain_decomposition_type::MaxDim ||
+          config.domain_decomposition ==
+              domain_decomposition_type::TemporalDim) {
         if (subdomain_id <
             shape[_domain_decomposed_dim] / _domain_decomposed_size) {
           std::vector<SIZE> chunck_shape = shape;
@@ -211,7 +214,9 @@ public:
     if (uniform) {
       return Hierarchy<D, T, DeviceType>(subdomain_shape(subdomain_id), config);
     } else {
-      if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+      if (config.domain_decomposition == domain_decomposition_type::MaxDim ||
+          config.domain_decomposition ==
+              domain_decomposition_type::TemporalDim) {
         std::vector<T *> chunck_coords = coords;
         std::vector<SIZE> chunck_shape = subdomain_shape(subdomain_id);
         T *decompose_dim_coord = new T[chunck_shape[_domain_decomposed_dim]];
@@ -283,7 +288,8 @@ public:
       : original_data(nullptr), shape(shape), _num_devices(_num_devices),
         config(config), keep_original_data_decomposed(false) {
     if (!need_domain_decomposition(shape, false) && this->_num_devices == 1 &&
-        config.domain_decomposition != domain_decomposition_type::Block) {
+        config.domain_decomposition != domain_decomposition_type::Block &&
+        config.domain_decomposition != domain_decomposition_type::TemporalDim) {
       this->_domain_decomposed = false;
       this->_domain_decomposed_dim = 0;
       this->_domain_decomposed_size = this->shape[0];
@@ -305,6 +311,21 @@ public:
         log::info("DomainDecomposer: decomposed into " +
                   std::to_string(this->_num_subdomains) +
                   " subdomains using MaxDim method");
+      } else if (config.domain_decomposition ==
+                 domain_decomposition_type::TemporalDim) {
+        this->_domain_decomposed_dim = config.temporal_dim;
+        this->_domain_decomposed_size =
+            std::min(config.temporal_dim_size, shape[config.temporal_dim]);
+        this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
+                                    this->_domain_decomposed_size +
+                                1;
+        log::info(
+            "Domain decomposed dim: " + std::to_string(_domain_decomposed_dim) +
+            ", Domain decomposed size: " +
+            std::to_string(_domain_decomposed_size));
+        log::info("DomainDecomposer: decomposed into " +
+                  std::to_string(this->_num_subdomains) +
+                  " subdomains using TemporalDim method");
       } else if (config.domain_decomposition ==
                  domain_decomposition_type::Block) {
         this->_domain_decomposed_size = config.block_size;
@@ -358,6 +379,21 @@ public:
                   std::to_string(this->_num_subdomains) +
                   " subdomains using MaxDim method");
       } else if (config.domain_decomposition ==
+                 domain_decomposition_type::TemporalDim) {
+        this->_domain_decomposed_dim = config.temporal_dim;
+        this->_domain_decomposed_size =
+            std::min(config.temporal_dim_size, shape[config.temporal_dim]);
+        this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
+                                    this->_domain_decomposed_size +
+                                1;
+        log::info(
+            "Domain decomposed dim: " + std::to_string(_domain_decomposed_dim) +
+            ", Domain decomposed size: " +
+            std::to_string(_domain_decomposed_size));
+        log::info("DomainDecomposer: decomposed into " +
+                  std::to_string(this->_num_subdomains) +
+                  " subdomains using TemporalDim method");
+      } else if (config.domain_decomposition ==
                  domain_decomposition_type::Block) {
         this->_domain_decomposed_size = config.block_size;
         generate_block_domain_decomposition_strategy(
@@ -396,7 +432,9 @@ public:
       this->_num_subdomains = 1;
       log::info("DomainDecomposer: no decomposition used");
     } else {
-      if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+      if (config.domain_decomposition == domain_decomposition_type::MaxDim ||
+          config.domain_decomposition ==
+              domain_decomposition_type::TemporalDim) {
         this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
                                     this->_domain_decomposed_size +
                                 1;
@@ -404,9 +442,16 @@ public:
             "Domain decomposed dim: " + std::to_string(_domain_decomposed_dim) +
             ", Domain decomposed size: " +
             std::to_string(_domain_decomposed_size));
-        log::info("DomainDecomposer: decomposed into " +
-                  std::to_string(this->_num_subdomains) +
-                  " subdomains using MaxDim method");
+        if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+          log::info("DomainDecomposer: decomposed into " +
+                    std::to_string(this->_num_subdomains) +
+                    " subdomains using MaxDim method");
+        } else if (config.domain_decomposition ==
+                   domain_decomposition_type::TemporalDim) {
+          log::info("DomainDecomposer: decomposed into " +
+                    std::to_string(this->_num_subdomains) +
+                    " subdomains using TemporalDim method");
+        }
       } else if (config.domain_decomposition ==
                  domain_decomposition_type::Block) {
         this->_num_subdomains = 1;
@@ -444,7 +489,9 @@ public:
       this->_num_subdomains = 1;
       log::info("DomainDecomposer: no decomposition used");
     } else {
-      if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+      if (config.domain_decomposition == domain_decomposition_type::MaxDim ||
+          config.domain_decomposition ==
+              domain_decomposition_type::TemporalDim) {
         this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
                                     this->_domain_decomposed_size +
                                 1;
@@ -452,9 +499,16 @@ public:
             "Domain decomposed dim: " + std::to_string(_domain_decomposed_dim) +
             ", Domain decomposed size: " +
             std::to_string(_domain_decomposed_size));
-        log::info("DomainDecomposer: decomposed into " +
-                  std::to_string(this->_num_subdomains) +
-                  " subdomains using MaxDim method");
+        if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+          log::info("DomainDecomposer: decomposed into " +
+                    std::to_string(this->_num_subdomains) +
+                    " subdomains using MaxDim method");
+        } else if (config.domain_decomposition ==
+                   domain_decomposition_type::TemporalDim) {
+          log::info("DomainDecomposer: decomposed into " +
+                    std::to_string(this->_num_subdomains) +
+                    " subdomains using TemporalDim method");
+        }
       } else if (config.domain_decomposition ==
                  domain_decomposition_type::Block) {
         this->_num_subdomains = 1;
@@ -537,7 +591,8 @@ public:
   }
 
   T *original_data_ptr(int subdomain_id) {
-    if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+    if (config.domain_decomposition == domain_decomposition_type::MaxDim ||
+        config.domain_decomposition == domain_decomposition_type::TemporalDim) {
       if (!keep_original_data_decomposed) {
         SIZE offset = _domain_decomposed_size;
         for (int d = D - 1; d > (int)_domain_decomposed_dim; d--) {
@@ -605,10 +660,12 @@ public:
       assert(MemoryManager<DeviceType>::ReduceMemoryFootprint == true);
       bool pitched = false;
 
-      if (config.domain_decomposition == domain_decomposition_type::MaxDim) {
+      if (config.domain_decomposition == domain_decomposition_type::MaxDim ||
+          config.domain_decomposition ==
+              domain_decomposition_type::TemporalDim) {
         if (keep_original_data_decomposed) {
-          log::err(
-              "Do not support restoring to decomposed data when using MaxDim");
+          log::err("Do not support restoring to decomposed data when using "
+                   "MaxDim or TemporalDim");
           exit(-1);
         }
         T *data = original_data_ptr(subdomain_id);
