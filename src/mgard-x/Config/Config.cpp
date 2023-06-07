@@ -35,6 +35,8 @@ Config::Config() {
   max_memory_footprint = std::numeric_limits<SIZE>::max(); // no limit
   total_num_bitplanes = 32;
   block_size = 256;
+  temporal_dim = 0;
+  temporal_dim_size = std::numeric_limits<SIZE>::max();
   mdr_adaptive_resolution = false;
   collect_uncertainty = false;
   adjust_shape = false;
