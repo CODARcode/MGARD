@@ -265,8 +265,10 @@ public:
     if (domain_decomposed) {
       if (ddtype == domain_decomposition_type::MaxDim) {
         std::cout << "MaxDim\n";
+      } else if (ddtype == domain_decomposition_type::TemporalDim) {
+        std::cout << "TemporalDim\n";
       } else {
-        std::cout << "Linearize\n";
+        std::cout << "Block\n";
       }
       std::cout << "Decomposed Dim: " << domain_decomposed_dim << "\n";
       std::cout << "Decomposed Size: " << domain_decomposed_size << "\n";
@@ -587,6 +589,9 @@ private:
         if (ddtype == domain_decomposition_type::MaxDim) {
           domainDecomposition.set_method(
               mgard::pb::DomainDecomposition::MAX_DIMENSION);
+        } else if (ddtype == domain_decomposition_type::TemporalDim) {
+          domainDecomposition.set_method(
+              mgard::pb::DomainDecomposition::TEMPORAL_DIMENSION);
         } else if (ddtype == domain_decomposition_type::Block) {
           domainDecomposition.set_method(mgard::pb::DomainDecomposition::BLOCK);
         }
@@ -845,6 +850,9 @@ private:
         if (domainDecomposition.method() ==
             mgard::pb::DomainDecomposition::MAX_DIMENSION) {
           ddtype = domain_decomposition_type::MaxDim;
+        } else if (domainDecomposition.method() ==
+                   mgard::pb::DomainDecomposition::TEMPORAL_DIMENSION) {
+          ddtype = domain_decomposition_type::TemporalDim;
         } else if (domainDecomposition.method() ==
                    mgard::pb::DomainDecomposition::BLOCK) {
           ddtype = domain_decomposition_type::Block;

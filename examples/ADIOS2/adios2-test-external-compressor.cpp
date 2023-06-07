@@ -14,6 +14,8 @@
 #include <unistd.h>
 
 #include <adios2.h>
+#include <hdf5.h>
+
 #include <mpi.h>
 
 #include "mgard/compress_x.hpp"
