@@ -626,7 +626,7 @@ public:
       ArchitectureGeneration[d] = 1;
       SupportCooperativeGroups[d] = true;
       AvailableMemory[d] = std::numeric_limits<size_t>::max(); // unlimited
-      DeviceNames[d] = "CPU";
+      DeviceNames[d] = "CPU (Serial)";
     }
   }
 

@@ -123,13 +123,17 @@ public:
     for (int d = 0; d < NumDevices; d++) {
       MaxSharedMemorySize[d] = 1e6;
       WarpSize[d] = MGARDX_WARP_SIZE;
-      NumSMs[d] = std::thread::hardware_concurrency();
+#pragma omp parallel
+      {
+#pragma omp single
+        { NumSMs[d] = omp_get_num_threads(); }
+      }
       MaxNumThreadsPerSM[d] = 1024;
       MaxNumThreadsPerTB[d] = 1024;
       ArchitectureGeneration[d] = 1;
       SupportCooperativeGroups[d] = true;
       AvailableMemory[d] = std::numeric_limits<size_t>::max(); // unlimited
-      DeviceNames[d] = "CPU";
+      DeviceNames[d] = "CPU (OpenMP) " + std::to_string(NumSMs[d]) + " core(s)";
     }
   }
 

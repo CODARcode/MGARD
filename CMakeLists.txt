@@ -126,6 +126,12 @@ if (MGARD_ENABLE_SERIAL OR
                                                       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
   install(TARGETS mgard-x-autotuner)
 
+  add_executable(mgard-cpu ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/MgardSerialExec.cpp)
+  target_link_libraries(mgard-cpu mgard-library  ${CMAKE_DL_LIBS})
+  target_include_directories(mgard-cpu PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                      $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+  install(TARGETS mgard-cpu)
+
   if(MGARD_ENABLE_MDR)
     add_executable(mdr-x ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/mdr-x.cpp)
     target_link_libraries(mdr-x mgard-library  ${CMAKE_DL_LIBS})
