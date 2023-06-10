@@ -183,6 +183,36 @@ public:
     return true;
   }
 
+  bool generate_temporal_dim_domain_decomposition_strategy(
+      std::vector<SIZE> shape, DIM &_domain_decomposed_dim,
+      SIZE &_domain_decomposed_size, SIZE num_dev) {
+
+    std::vector<SIZE> chunck_shape = shape;
+
+    // First divide by temporal dimension
+    chunck_shape[_domain_decomposed_dim] = _domain_decomposed_size;
+
+    SIZE curr_num_subdomains = (shape[_domain_decomposed_dim] - 1) /
+                                   chunck_shape[_domain_decomposed_dim] +
+                               1;
+
+    // Need prefetch if there are more subdomains than devices
+    bool need_prefetch = curr_num_subdomains > num_dev;
+    // Then check if each chunk can fit into device memory
+    while (need_domain_decomposition(chunck_shape, need_prefetch)) {
+      // Divide by 2 and round up
+      chunck_shape[_domain_decomposed_dim] =
+          (chunck_shape[_domain_decomposed_dim] - 1) / 2 + 1;
+
+      curr_num_subdomains = (shape[_domain_decomposed_dim] - 1) /
+                                chunck_shape[_domain_decomposed_dim] +
+                            1;
+      need_prefetch = curr_num_subdomains > num_dev;
+    }
+    _domain_decomposed_size = chunck_shape[_domain_decomposed_dim];
+    return true;
+  }
+
   bool generate_block_domain_decomposition_strategy(
       std::vector<SIZE> shape, SIZE &_domain_decomposed_size, SIZE num_dev) {
     std::vector<SIZE> chunck_shape(D, _domain_decomposed_size);
@@ -316,6 +346,9 @@ public:
         this->_domain_decomposed_dim = config.temporal_dim;
         this->_domain_decomposed_size =
             std::min(config.temporal_dim_size, shape[config.temporal_dim]);
+        generate_temporal_dim_domain_decomposition_strategy(
+            shape, this->_domain_decomposed_dim, this->_domain_decomposed_size,
+            this->_num_devices);
         this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
                                     this->_domain_decomposed_size +
                                 1;
@@ -383,6 +416,9 @@ public:
         this->_domain_decomposed_dim = config.temporal_dim;
         this->_domain_decomposed_size =
             std::min(config.temporal_dim_size, shape[config.temporal_dim]);
+        generate_temporal_dim_domain_decomposition_strategy(
+            shape, this->_domain_decomposed_dim, this->_domain_decomposed_size,
+            this->_num_devices);
         this->_num_subdomains = (shape[this->_domain_decomposed_dim] - 1) /
                                     this->_domain_decomposed_size +
                                 1;
