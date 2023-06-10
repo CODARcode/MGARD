@@ -748,6 +748,70 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
   return compress_status_type::Success;
 }
 
+template <typename T> int max_dim(std::vector<T> &shape, int ignore_dim) {
+  int max_d = 0;
+  T max_n = 0;
+  for (int i = 0; i < shape.size(); i++) {
+    if (max_n < shape[i] && i != ignore_dim) {
+      max_d = i;
+      max_n = shape[i];
+    }
+  }
+  return max_d;
+}
+
+template <typename T> int min_dim(std::vector<T> &shape, int ignore_dim) {
+  int min_d = 0;
+  T min_n = SIZE_MAX;
+  for (int i = 0; i < shape.size(); i++) {
+    if (min_n > shape[i] && i != ignore_dim) {
+      min_d = i;
+      min_n = shape[i];
+    }
+  }
+  return min_d;
+}
+
+template <typename T> std::vector<T> find_refactors(T n) {
+  std::vector<T> factors;
+  T z = 2;
+  while (z * z <= n) {
+    if (n % z == 0) {
+      factors.push_back(z);
+      n /= z;
+    } else {
+      z++;
+    }
+  }
+  if (n > 1) {
+    factors.push_back(n);
+  }
+  return factors;
+}
+
+template <typename T> void adjust_shape(std::vector<T> &shape, Config config) {
+  log::info("Using shape adjustment");
+  int ignore_dim = shape.size();
+  if (config.domain_decomposition == domain_decomposition_type::TemporalDim) {
+    ignore_dim = config.temporal_dim;
+  }
+  int max_d = max_dim(shape, ignore_dim);
+  SIZE max_n = shape[max_d];
+  std::vector<SIZE> factors = find_refactors(max_n);
+  // std::cout << "factors: ";
+  // for (SIZE f : factors) std::cout << f << " ";
+  // std::cout << "\n";
+  shape[max_d] = 1;
+  for (int i = factors.size() - 1; i >= 0; i--) {
+    int min_d = min_dim(shape, shape.size());
+    shape[min_d] *= factors[i];
+  }
+  // std::cout << "shape: ";
+  // for (SIZE n : shape) {
+  //   std::cout <<  n << "\n";
+  // }
+}
+
 template <DIM D, typename T, typename DeviceType, typename CompressorType>
 enum compress_status_type
 general_compress(std::vector<SIZE> shape, T tol, T s,
@@ -767,6 +831,10 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
   }
 
   config.apply();
+
+  if (config.adjust_shape) {
+    adjust_shape(shape, config);
+  }
 
   if (config.num_dev <= 0) {
     log::err("Number of device needs to be greater than 0.");
@@ -807,7 +875,7 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
   } else if (config.decomposition == decomposition_type::Hybrid) {
     log::info("Multilevel Decomposition: hybrid");
   }
-  log::info("adjust shape: " + std::to_string(config.adjust_shape));
+
   log::info("tol: " + std::to_string(tol));
   log::info("s: " + std::to_string(s));
   log::info("coordinate normalization: " +
