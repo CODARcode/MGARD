@@ -24,26 +24,27 @@ MGARDX_CONT_EXEC void advance_with_align(SIZE &byte_offset, SIZE count) {
 
 template <typename T, typename DeviceType>
 void SerializeArray(SubArray<1, Byte, DeviceType> &array, T *data_ptr,
-                    SIZE count, SIZE &byte_offset) {
+                    SIZE count, SIZE &byte_offset, int queue_idx) {
   using Mem = MemoryManager<DeviceType>;
   align_byte_offset<T>(byte_offset);
-  Mem::Copy1D(array(byte_offset), (Byte *)data_ptr, count * sizeof(T), 0);
+  Mem::Copy1D(array(byte_offset), (Byte *)data_ptr, count * sizeof(T),
+              queue_idx);
   byte_offset += count * sizeof(T);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
 }
 
 template <typename T, typename DeviceType>
 void DeserializeArray(SubArray<1, Byte, DeviceType> &array, T *&data_ptr,
-                      SIZE count, SIZE &byte_offset, bool zero_copy) {
+                      SIZE count, SIZE &byte_offset, bool zero_copy,
+                      int queue_idx) {
   using Mem = MemoryManager<DeviceType>;
   align_byte_offset<T>(byte_offset);
   if (zero_copy) {
     data_ptr = (T *)array(byte_offset);
   } else {
-    Mem::Copy1D((Byte *)data_ptr, array(byte_offset), count * sizeof(T), 0);
+    Mem::Copy1D((Byte *)data_ptr, array(byte_offset), count * sizeof(T),
+                queue_idx);
   }
   byte_offset += count * sizeof(T);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
 }
 
 template <typename T, typename DeviceType>
