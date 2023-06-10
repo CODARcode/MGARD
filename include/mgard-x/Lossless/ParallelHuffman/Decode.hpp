@@ -163,7 +163,7 @@ public:
     size_t sm_size = functor.shared_memory_size();
     tbz = 1;
     tby = 1;
-    tbx = tBLK_DEFLATE;
+    tbx = 128; // tBLK_DEFLATE;
     gridz = 1;
     gridy = 1;
     gridx = (nchunk - 1) / tbx + 1;
@@ -189,27 +189,28 @@ void Decode(SubArray<1, H, DeviceType> densely,
             int n_chunk, SubArray<1, uint8_t, DeviceType> singleton,
             size_t singleton_size, int queue_idx) {
   int maxbytes = DeviceRuntime<DeviceType>::GetMaxSharedMemorySize();
-  if (singleton_size <= maxbytes) {
-    if (DeviceRuntime<DeviceType>::PrintKernelConfig) {
-      std::cout << log::log_info
-                << "Decode: using share memory to cache decodebook\n";
-    }
-    DeviceLauncher<DeviceType>::Execute(
-        DecodeKernel<Q, H, true, DeviceType>(densely, dH_meta, bcode, len,
-                                             chunk_size, n_chunk, singleton,
-                                             singleton_size),
-        queue_idx);
-  } else {
-    if (DeviceRuntime<DeviceType>::PrintKernelConfig) {
-      std::cout << log::log_info
-                << "Decode: not using share memory to cache decodebook\n";
-    }
-    DeviceLauncher<DeviceType>::Execute(
-        DecodeKernel<Q, H, false, DeviceType>(densely, dH_meta, bcode, len,
-                                              chunk_size, n_chunk, singleton,
-                                              singleton_size),
-        queue_idx);
+  // Shared memory is disabled as it does not provide better performance
+  // if (singleton_size <= maxbytes) {
+  //   if (DeviceRuntime<DeviceType>::PrintKernelConfig) {
+  //     std::cout << log::log_info
+  //               << "Decode: using share memory to cache decodebook\n";
+  //   }
+  //   DeviceLauncher<DeviceType>::Execute(
+  //       DecodeKernel<Q, H, true, DeviceType>(densely, dH_meta, bcode, len,
+  //                                            chunk_size, n_chunk, singleton,
+  //                                            singleton_size),
+  //       queue_idx);
+  // } else {
+  if (DeviceRuntime<DeviceType>::PrintKernelConfig) {
+    std::cout << log::log_info
+              << "Decode: not using share memory to cache decodebook\n";
   }
+  DeviceLauncher<DeviceType>::Execute(
+      DecodeKernel<Q, H, false, DeviceType>(densely, dH_meta, bcode, len,
+                                            chunk_size, n_chunk, singleton,
+                                            singleton_size),
+      queue_idx);
+  // }
 }
 
 } // namespace mgard_x

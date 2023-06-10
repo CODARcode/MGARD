@@ -832,6 +832,7 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
 
   config.apply();
 
+  log::info("adjust_shape: " + std::to_string(config.adjust_shape));
   if (config.adjust_shape) {
     adjust_shape(shape, config);
   }
