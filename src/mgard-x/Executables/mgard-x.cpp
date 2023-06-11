@@ -312,8 +312,13 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   if (domain_decomposition == 0) {
     config.domain_decomposition = mgard_x::domain_decomposition_type::MaxDim;
-  } else {
+  } else if (domain_decomposition == 1) {
     config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
+  } else if (domain_decomposition == 2) {
+    config.domain_decomposition =
+        mgard_x::domain_decomposition_type::TemporalDim;
+    config.temporal_dim = 0;
+    config.temporal_dim_size = shape[0];
   }
   config.dev_type = dev_type;
   config.num_dev = num_dev;

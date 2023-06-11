@@ -402,7 +402,7 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
     timer_series.start();
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
-  // The workspace can be resued since all subdomains should be equal/smaller
+  // The workspace can be reused since all subdomains should be equal/smaller
   // than the first one
   CompressorType compressor(hierarchy, config);
   // Two buffers one for current and one for next
@@ -419,6 +419,14 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
       {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
   device_compressed_buffer[1].resize(
       {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
+
+  if (log::level & log::TIME) {
+    DeviceRuntime<DeviceType>::SyncDevice();
+    timer_series.end();
+    timer_series.print("Prepare device environment");
+    timer_series.clear();
+    timer_series.start();
+  }
 
   // For serilization
   SIZE byte_offset = 0;
@@ -629,7 +637,7 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
     timer_series.start();
   Hierarchy<D, T, DeviceType> hierarchy =
       domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
-  // The workspace can be resued since all subdomains should be equal/smaller
+  // The workspace can be reused since all subdomains should be equal/smaller
   // than the first one
   CompressorType compressor(hierarchy, config);
   // Two buffers one for current and one for next
@@ -646,6 +654,14 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
       {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
   device_compressed_buffer[1].resize(
       {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
+
+  if (log::level & log::TIME) {
+    DeviceRuntime<DeviceType>::SyncDevice();
+    timer_series.end();
+    timer_series.print("Prepare device environment");
+    timer_series.clear();
+    timer_series.start();
+  }
 
   // Pre-fetch the first subdomain on queue 0
   int current_buffer = 0;
