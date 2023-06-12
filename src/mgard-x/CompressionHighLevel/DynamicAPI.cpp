@@ -469,6 +469,48 @@ decompress(const void *compressed_data, size_t compressed_size,
   }
 }
 
+enum compress_status_type release_cache(Config config) {
+
+  enum device_type dev_type = config.dev_type;
+  if (dev_type == device_type::AUTO) {
+    dev_type = auto_detect_device();
+  }
+
+  if (dev_type == device_type::SERIAL) {
+#if MGARD_ENABLE_SERIAL
+    return release_cache<SERIAL>();
+#else
+    return compress_status_type::BackendNotAvailableFailure;
+#endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    return release_cache<OPENMP>();
+#else
+    return compress_status_type::BackendNotAvailableFailure;
+#endif
+  } else if (dev_type == device_type::CUDA) {
+#if MGARD_ENABLE_CUDA
+    return release_cache<CUDA>();
+#else
+    return compress_status_type::BackendNotAvailableFailure;
+#endif
+  } else if (dev_type == device_type::HIP) {
+#if MGARD_ENABLE_HIP
+    return release_cache<HIP>();
+#else
+    return compress_status_type::BackendNotAvailableFailure;
+#endif
+  } else if (dev_type == device_type::SYCL) {
+#if MGARD_ENABLE_SYCL
+    return release_cache<SYCL>();
+#else
+    return compress_status_type::BackendNotAvailableFailure;
+#endif
+  } else {
+    return compress_status_type::BackendNotAvailableFailure;
+  }
+}
+
 void BeginAutoTuning(enum device_type dev_type) {
 
   if (dev_type == device_type::AUTO) {

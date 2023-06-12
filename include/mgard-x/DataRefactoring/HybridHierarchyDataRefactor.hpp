@@ -23,9 +23,10 @@ template <DIM D, typename T, typename DeviceType>
 class HybridHierarchyDataRefactor
     : public HybridHierarchyDataRefactorInterface<D, T, DeviceType> {
 public:
+  HybridHierarchyDataRefactor() : initialized(false) {}
   HybridHierarchyDataRefactor(Hierarchy<D, T, DeviceType> hierarchy,
                               Config config)
-      : hierarchy(hierarchy), config(config) {
+      : initialized(true), hierarchy(hierarchy), config(config) {
 
     coarse_shape = hierarchy.level_shape(hierarchy.l_target());
     // If we do at least one level of local refactoring
@@ -163,6 +164,7 @@ public:
     }
   }
 
+  bool initialized;
   Hierarchy<D, T, DeviceType> hierarchy;
   Hierarchy<D, T, DeviceType> global_hierarchy;
   Config config;

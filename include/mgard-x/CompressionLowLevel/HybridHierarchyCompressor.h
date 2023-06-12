@@ -41,6 +41,8 @@ class HybridHierarchyCompressor
       HybridHierarchyLinearQuantizer<D, T, QUANTIZED_INT, DeviceType>;
 
 public:
+  HybridHierarchyCompressor();
+
   HybridHierarchyCompressor(Hierarchy<D, T, DeviceType> hierarchy,
                             Config config);
 
@@ -74,6 +76,7 @@ public:
                   enum error_bound_type ebtype, T tol, T s, T &norm,
                   Array<D, T, DeviceType> &decompressed_data, int queue_idx);
 
+  bool initialized;
   Hierarchy<D, T, DeviceType> hierarchy;
   Config config;
   Array<1, T, DeviceType> norm_tmp_array;

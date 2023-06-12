@@ -24,8 +24,10 @@ public:
   using S = typename std::make_signed<T>::type;
   using Q = typename std::make_unsigned<T>::type;
 
+  ComposedLosslessCompressor() : initialized(false) {}
+
   ComposedLosslessCompressor(SIZE n, Config config)
-      : n(n), config(config),
+      : initialized(true), n(n), config(config),
         huffman(n, config.huff_dict_size, config.huff_block_size,
                 config.estimate_outlier_ratio) {
     static_assert(!std::is_floating_point<T>::value,
@@ -74,6 +76,7 @@ public:
     huffman.DecompressPrimary(compressed_data, decompressed_data, queue_idx);
   }
 
+  bool initialized;
   SIZE n;
   Config config;
   Huffman<Q, S, H, DeviceType> huffman;
