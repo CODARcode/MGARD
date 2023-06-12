@@ -9,7 +9,7 @@
 // clang-format off
 namespace mgard_x {
 
-template class Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>;   
+template class Hierarchy<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>;
 
 } // namespace mgard_x
 // clang-format on

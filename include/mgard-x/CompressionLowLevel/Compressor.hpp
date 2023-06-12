@@ -17,6 +17,7 @@
 #include "../Hierarchy/Hierarchy.h"
 #include "../RuntimeX/RuntimeX.h"
 #include "Compressor.h"
+#include "CompressorCache.hpp"
 
 #ifndef MGARD_X_COMPRESSOR_HPP
 #define MGARD_X_COMPRESSOR_HPP
@@ -26,9 +27,13 @@ namespace mgard_x {
 static bool debug_print_compression = true;
 
 template <DIM D, typename T, typename DeviceType>
+Compressor<D, T, DeviceType>::Compressor() : initialized(false) {}
+
+template <DIM D, typename T, typename DeviceType>
 Compressor<D, T, DeviceType>::Compressor(Hierarchy<D, T, DeviceType> hierarchy,
                                          Config config)
-    : hierarchy(hierarchy), config(config), refactor(hierarchy, config),
+    : initialized(true), hierarchy(hierarchy), config(config),
+      refactor(hierarchy, config),
       lossless_compressor(hierarchy.total_num_elems(), config),
       quantizer(hierarchy, config) {
 
@@ -139,7 +144,7 @@ void Compressor<D, T, DeviceType>::Compress(
   for (int d = D - 1; d >= 0; d--) {
     if (hierarchy.level_shape(hierarchy.l_target(), d) !=
         original_data.shape(d)) {
-      log::err("The shape of input array does not match the shape initilized "
+      log::err("The shape of input array does not match the shape initialized "
                "in hierarchy!");
       return;
     }

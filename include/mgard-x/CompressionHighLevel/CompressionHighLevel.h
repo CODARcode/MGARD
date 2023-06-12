@@ -72,6 +72,8 @@ decompress(const void *compressed_data, size_t compressed_size,
            void *&decompressed_data, data_type &dtype,
            std::vector<mgard_x::SIZE> &shape, bool output_pre_allocated);
 
+template <typename DeviceType> enum compress_status_type release_cache();
+
 template <typename DeviceType> void pin_memory(void *ptr, SIZE num_bytes);
 
 template <typename DeviceType> bool check_memory_pinned(void *ptr);

@@ -10,6 +10,7 @@
 namespace mgard_x {
 
 template class HybridHierarchyCompressor<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>;
+template class CompressorCache<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@, HybridHierarchyCompressor<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>>;
 
 } // namespace mgard_x
 // clang-format on

@@ -156,9 +156,11 @@ template <DIM D, typename T, typename Q, typename DeviceType>
 class HybridHierarchyLinearQuantizer
     : public QuantizationInterface<D, T, Q, DeviceType> {
 public:
+  HybridHierarchyLinearQuantizer() : initialized(false) {}
+
   HybridHierarchyLinearQuantizer(Hierarchy<D, T, DeviceType> hierarchy,
                                  Config config)
-      : hierarchy(hierarchy), config(config),
+      : initialized(true), hierarchy(hierarchy), config(config),
         global_quantizer(hierarchy, config) {
 
     coarse_shape = hierarchy.level_shape(hierarchy.l_target());
@@ -344,6 +346,7 @@ public:
                   SubArray<1, Q, DeviceType> quantized_data,
                   LosslessCompressorType &lossless_compressor, int queue_idx) {}
 
+  bool initialized;
   Hierarchy<D, T, DeviceType> hierarchy;
   Hierarchy<D, T, DeviceType> global_hierarchy;
   Config config;

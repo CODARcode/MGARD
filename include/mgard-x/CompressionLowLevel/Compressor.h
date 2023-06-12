@@ -34,6 +34,8 @@ class Compressor : public LossyCompressorInterface<D, T, DeviceType> {
   using LinearQuantizerType = LinearQuantizer<D, T, QUANTIZED_INT, DeviceType>;
 
 public:
+  Compressor();
+
   Compressor(Hierarchy<D, T, DeviceType> hierarchy, Config config);
 
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape, Config config);
@@ -66,8 +68,8 @@ public:
                   enum error_bound_type ebtype, T tol, T s, T &norm,
                   Array<D, T, DeviceType> &decompressed_data, int queue_idx);
 
+  bool initialized;
   Hierarchy<D, T, DeviceType> hierarchy;
-  Hierarchy<D, T, DeviceType> global_refactoring_hierarchy;
   Config config;
   Array<1, T, DeviceType> norm_tmp_array;
   Array<1, T, DeviceType> norm_array;

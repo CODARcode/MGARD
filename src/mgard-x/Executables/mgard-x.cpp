@@ -312,13 +312,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   if (domain_decomposition == 0) {
     config.domain_decomposition = mgard_x::domain_decomposition_type::MaxDim;
-  } else if (domain_decomposition == 1) {
+  } else {
     config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
-  } else if (domain_decomposition == 2) {
-    config.domain_decomposition =
-        mgard_x::domain_decomposition_type::TemporalDim;
-    config.temporal_dim = 0;
-    config.temporal_dim_size = shape[0];
   }
   config.dev_type = dev_type;
   config.num_dev = num_dev;
@@ -326,7 +321,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   config.prefetch = prefetch;
   config.max_memory_footprint = max_memory_footprint;
   config.huff_dict_size = 8192;
-  config.adjust_shape = false;
+  config.adjust_shape = true;
+  config.cache_compressor = false;
 
   if (lossless == 0) {
     config.lossless = mgard_x::lossless_type::Huffman;
@@ -603,6 +599,7 @@ bool try_compression(int argc, char *argv[]) {
           num_dev, verbose, prefetch, max_memory_footprint);
     }
   }
+  mgard_x::release_cache(mgard_x::Config());
   return true;
 }
 
@@ -667,6 +664,7 @@ bool try_decompression(int argc, char *argv[]) {
     launch_decompress(input_file.c_str(), output_file.c_str(), dev_type,
                       num_dev, verbose, prefetch);
   }
+  mgard_x::release_cache(mgard_x::Config());
   return true;
 }
 
@@ -677,3 +675,4 @@ int main(int argc, char *argv[]) {
   }
   return 0;
 }
+                                                                                                                                                                                                                                           
