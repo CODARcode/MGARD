@@ -19,9 +19,9 @@ namespace data_refactoring {
 template <DIM D, typename T, typename DeviceType>
 class DataRefactor : public DataRefactorInterface<D, T, DeviceType> {
 public:
-  DataRefactor() {}
+  DataRefactor() : initialized(false) {}
   DataRefactor(Hierarchy<D, T, DeviceType> hierarchy, Config config)
-      : hierarchy(hierarchy), config(config) {
+      : initialized(true), hierarchy(hierarchy), config(config) {
     std::vector<SIZE> workspace_shape =
         hierarchy.level_shape(hierarchy.l_target());
     for (DIM d = 0; d < D; d++)
@@ -125,6 +125,7 @@ public:
     Recompose(data, 0, hierarchy.l_target(), queue_idx);
   }
 
+  bool initialized;
   Hierarchy<D, T, DeviceType> hierarchy;
   Config config;
   Array<D, T, DeviceType> w_array;

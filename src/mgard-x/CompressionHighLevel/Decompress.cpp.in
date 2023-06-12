@@ -31,5 +31,9 @@ decompress<@DEVICE_TYPE@>(const void *compressed_data, size_t compressed_size,
                            void *&decompressed_data, data_type &dtype,
                            std::vector<SIZE> &shape, bool output_pre_allocated);
 
+
+template enum compress_status_type
+release_cache<@DEVICE_TYPE@>();
+
 } // namespace mgard_x
 // clang-format on

@@ -31,9 +31,12 @@ namespace mgard_x {
 template <typename Q, typename S, typename H, typename DeviceType>
 class Huffman : public LosslessCompressorInterface<S, DeviceType> {
 public:
+  Huffman() : initialized(false) {}
+
   Huffman(SIZE max_size, int dict_size, int chunk_size,
           double estimated_outlier_ratio = 1.0)
-      : max_size(max_size), dict_size(dict_size), chunk_size(chunk_size) {
+      : initialized(true), max_size(max_size), dict_size(dict_size),
+        chunk_size(chunk_size) {
     workspace = HuffmanWorkspace<Q, S, H, DeviceType>(
         max_size, dict_size, chunk_size, estimated_outlier_ratio);
   }
@@ -395,6 +398,7 @@ public:
     }
   }
 
+  bool initialized;
   SIZE max_size;
   int dict_size;
   int chunk_size;

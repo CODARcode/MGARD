@@ -153,6 +153,11 @@ decompress(const void *compressed_data, size_t compressed_size,
            void *&decompressed_data, std::vector<mgard_x::SIZE> &shape,
            data_type &dtype, bool output_pre_allocated);
 
+//! Release compression/decompression cache
+//!
+//!\param[in] config For configuring the decompression process.
+enum compress_status_type release_cache(Config config);
+
 //! Pin provided memory
 //!
 //!\param[in] ptr Pointer to the memory to be pinned.

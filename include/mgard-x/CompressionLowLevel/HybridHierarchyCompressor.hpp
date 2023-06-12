@@ -16,6 +16,7 @@
 #include "../Config/Config.h"
 #include "../Hierarchy/Hierarchy.h"
 #include "../RuntimeX/RuntimeX.h"
+#include "CompressorCache.hpp"
 #include "HybridHierarchyCompressor.h"
 
 #ifndef MGARD_X_HYBRID_HIERARCHY_COMPRESSOR_HPP
@@ -26,10 +27,14 @@ namespace mgard_x {
 static bool debug_print_compression = true;
 
 template <DIM D, typename T, typename DeviceType>
+HybridHierarchyCompressor<D, T, DeviceType>::HybridHierarchyCompressor()
+    : initialized(false) {}
+
+template <DIM D, typename T, typename DeviceType>
 HybridHierarchyCompressor<D, T, DeviceType>::HybridHierarchyCompressor(
     Hierarchy<D, T, DeviceType> hierarchy, Config config)
-    : hierarchy(hierarchy), config(config), refactor(hierarchy, config),
-      hybrid_refactor(hierarchy, config),
+    : initialized(true), hierarchy(hierarchy), config(config),
+      refactor(hierarchy, config), hybrid_refactor(hierarchy, config),
       lossless_compressor(hierarchy.total_num_elems(), config),
       quantizer(hierarchy, config), hybrid_quantizer(hierarchy, config) {
 

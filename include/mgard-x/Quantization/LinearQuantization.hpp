@@ -477,8 +477,10 @@ private:
 template <DIM D, typename T, typename Q, typename DeviceType>
 class LinearQuantizer : public QuantizationInterface<D, T, Q, DeviceType> {
 public:
+  LinearQuantizer() : initialized(false) {}
+
   LinearQuantizer(Hierarchy<D, T, DeviceType> hierarchy, Config config)
-      : hierarchy(hierarchy), config(config) {
+      : initialized(true), hierarchy(hierarchy), config(config) {
     quantizers_array = Array<1, T, DeviceType>({hierarchy.l_target() + 1});
   }
 
@@ -765,6 +767,7 @@ public:
     delete[] quantizers;
   }
 
+  bool initialized;
   Hierarchy<D, T, DeviceType> hierarchy;
   Config config;
   Array<1, T, DeviceType> quantizers_array;

@@ -6,10 +6,13 @@
  */
 
 #include "mgard-x/CompressionLowLevel/Compressor.hpp"
+
 // clang-format off
 namespace mgard_x {
 
 template class Compressor<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>;
+
+template class CompressorCache<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@, Compressor<@NUM_DIM@, @DATA_TYPE@, @DEVICE_TYPE@>>;
 
 } // namespace mgard_x
 // clang-format on
