@@ -57,9 +57,11 @@ public:
 
   bool need_domain_decomposition(std::vector<SIZE> shape,
                                  bool enable_prefetch) {
+    using Cache = CompressorCache<D, T, DeviceType, OperationType>;
     size_t estm = estimate_memory_usgae(shape, 1.0, enable_prefetch);
     size_t aval =
-        std::min((SIZE)DeviceRuntime<DeviceType>::GetAvailableMemory(),
+        std::min((SIZE)DeviceRuntime<DeviceType>::GetAvailableMemory() +
+                     Cache::cache.CacheSize(),
                  config.max_memory_footprint);
     log::info("Estimated memory usage: " + std::to_string((double)estm / 1e9) +
               "GB, Available: " + std::to_string((double)aval / 1e9) + "GB");
