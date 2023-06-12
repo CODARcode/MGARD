@@ -20,8 +20,6 @@
 #ifndef MGARD_X_COMPRESSOR_CACHE_HPP
 #define MGARD_X_COMPRESSOR_CACHE_HPP
 
-#include "Compressor.h"
-
 namespace mgard_x {
 
 template <DIM D, typename T, typename DeviceType, typename CompressorType>
@@ -59,6 +57,17 @@ public:
     if (initialized) {
       Release();
     }
+  }
+
+  size_t CacheSize() {
+    size_t size = 0;
+    if (initialized) {
+      size += CompressorType::EstimateMemoryFootprint(
+          compressor->hierarchy.level_shape(compressor->hierarchy.l_target()),
+          compressor->config);
+      size += compressor->hierarchy.total_num_elems() * sizeof(T) * 4;
+    }
+    return size;
   }
 };
 
