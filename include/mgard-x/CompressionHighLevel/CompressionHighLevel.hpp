@@ -1012,11 +1012,11 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
   return compress_status_type::Success;
 }
 
-template <typename T> int max_dim(std::vector<T> &shape, int ignore_dim) {
+template <typename T> int max_dim(std::vector<T> &shape) {
   int max_d = 0;
   T max_n = 0;
   for (int i = 0; i < shape.size(); i++) {
-    if (max_n < shape[i] && i != ignore_dim) {
+    if (max_n < shape[i]) {
       max_d = i;
       max_n = shape[i];
     }
@@ -1024,11 +1024,11 @@ template <typename T> int max_dim(std::vector<T> &shape, int ignore_dim) {
   return max_d;
 }
 
-template <typename T> int min_dim(std::vector<T> &shape, int ignore_dim) {
+template <typename T> int min_dim(std::vector<T> &shape) {
   int min_d = 0;
   T min_n = SIZE_MAX;
   for (int i = 0; i < shape.size(); i++) {
-    if (min_n > shape[i] && i != ignore_dim) {
+    if (min_n > shape[i]) {
       min_d = i;
       min_n = shape[i];
     }
@@ -1055,11 +1055,15 @@ template <typename T> std::vector<T> find_refactors(T n) {
 
 template <typename T> void adjust_shape(std::vector<T> &shape, Config config) {
   log::info("Using shape adjustment");
-  int ignore_dim = shape.size();
+  int num_timesteps;
   if (config.domain_decomposition == domain_decomposition_type::TemporalDim) {
-    ignore_dim = config.temporal_dim;
+    // If do shape adjustment with temporal dim domain decomposition
+    // the temporal dim has to be the first dim
+    assert(config.temporal_dim == 0);
+    num_timesteps = shape[0] / config.temporal_dim_size;
+    shape[0] = config.temporal_dim_size;
   }
-  int max_d = max_dim(shape, ignore_dim);
+  int max_d = max_dim(shape);
   SIZE max_n = shape[max_d];
   std::vector<SIZE> factors = find_refactors(max_n);
   // std::cout << "factors: ";
@@ -1067,13 +1071,23 @@ template <typename T> void adjust_shape(std::vector<T> &shape, Config config) {
   // std::cout << "\n";
   shape[max_d] = 1;
   for (int i = factors.size() - 1; i >= 0; i--) {
-    int min_d = min_dim(shape, shape.size());
+    int min_d = min_dim(shape);
     shape[min_d] *= factors[i];
+    // std::cout << "multiple " << factors[i] <<
+    // " to dim " << min_d << ": " << shape[min_d] << "\n";
+  }
+  if (config.domain_decomposition == domain_decomposition_type::TemporalDim) {
+    shape[0] *= num_timesteps;
   }
   // std::cout << "shape: ";
   // for (SIZE n : shape) {
   //   std::cout <<  n << "\n";
   // }
+  std::stringstream ss;
+  for (DIM d = 0; d < shape.size(); d++) {
+    ss << shape[d] << " ";
+  }
+  log::info("Shape adjusted to " + ss.str());
 }
 
 template <DIM D, typename T, typename DeviceType, typename CompressorType>
