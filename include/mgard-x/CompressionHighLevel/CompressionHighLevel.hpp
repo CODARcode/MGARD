@@ -308,6 +308,7 @@ enum compress_status_type compress_subdomain(
       device_compressed_buffer.resize(
           {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
     } else {
+      compressor.config = config;
       log::info("Reusing compressor cache.");
     }
   }
@@ -506,6 +507,7 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
       device_compressed_buffer[1].resize(
           {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
     } else {
+      compressor.config = config;
       log::info("Reusing compressor cache.");
     }
   }
@@ -575,6 +577,7 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
         device_compressed_buffer[1].resize(
             {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
       } else {
+        compressor.config = config;
         log::info("Reusing compressor cache.");
       }
     }
@@ -671,6 +674,7 @@ enum compress_status_type decompress_subdomain(
       device_compressed_buffer.resize(
           {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
     } else {
+      compressor.config = config;
       log::info("Reusing compressor cache.");
     }
   }
@@ -861,6 +865,7 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
       device_compressed_buffer[1].resize(
           {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
     } else {
+      compressor.config = config;
       log::info("Reusing compressor cache.");
     }
   }
@@ -961,6 +966,7 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
         device_compressed_buffer[1].resize(
             {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
       } else {
+        compressor.config = config;
         log::info("Reusing compressor cache.");
       }
     }
@@ -1455,6 +1461,8 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
   for (int i = 0; i < D; i++)
     total_num_elem *= shape[i];
 
+  config.apply();
+
   if (config.num_dev <= 0) {
     log::err("Number of device needs to be greater than 0.");
     exit(-1);
@@ -1469,8 +1477,6 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
   } else {
     log::info("Using " + std::to_string(adjusted_num_dev) + " devices.");
   }
-
-  config.apply();
 
   Timer timer_total, timer_each;
   if (log::level & log::TIME)
