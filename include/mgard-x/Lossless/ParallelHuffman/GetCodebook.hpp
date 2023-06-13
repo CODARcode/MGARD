@@ -95,15 +95,15 @@ void GetCodebook(int dict_size,
                                      queue_idx);
   DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
-  if (debug_print_huffman) {
+  if (log::level & log::DBG) {
     // PrintSubarray("GenerateCL::CL_subarray", workspace.CL_subarray);
     // std::cout << "GenerateCL: max_CL: " << max_CL << std::endl;
     double LC = CalculateLC(workspace.huff_array.shape(0), nz_dict_size,
                             _nz_d_freq_subarray, workspace.CL_subarray);
     double entropy = CalculateEntropy(workspace.huff_array.shape(0),
                                       nz_dict_size, _nz_d_freq_subarray);
-    log::info("LC: " + std::to_string(LC));
-    log::info("Entropy: " + std::to_string(entropy));
+    log::dbg("LC: " + std::to_string(LC));
+    log::dbg("Entropy: " + std::to_string(entropy));
   }
 
   // DumpSubArray("cl_"+std::to_string(workspace.huff_array.shape(0))+".dat",
