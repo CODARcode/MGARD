@@ -324,6 +324,10 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   config.adjust_shape = true;
   config.cache_compressor = false;
 
+  // config.domain_decomposition =
+  // mgard_x::domain_decomposition_type::TemporalDim; config.temporal_dim = 0;
+  // config.temporal_dim_size = 512;
+
   if (lossless == 0) {
     config.lossless = mgard_x::lossless_type::Huffman;
   } else if (lossless == 1) {
