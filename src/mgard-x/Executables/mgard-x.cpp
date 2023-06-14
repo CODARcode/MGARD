@@ -321,7 +321,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   config.prefetch = prefetch;
   config.max_memory_footprint = max_memory_footprint;
   config.huff_dict_size = 8192;
-  config.adjust_shape = true;
+  config.adjust_shape = false;
 
   if (lossless == 0) {
     config.lossless = mgard_x::lossless_type::Huffman;
