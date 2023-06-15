@@ -312,6 +312,7 @@ enum compress_status_type compress_subdomain(
       log::info("Reusing compressor cache.");
     }
   }
+  DeviceRuntime<DeviceType>::SyncDevice();
 
   if (log::level & log::TIME) {
     timer_series.end();
@@ -451,25 +452,7 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
-  Hierarchy<D, T, DeviceType> hierarchy; // =
-  //     domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
-  // // The workspace can be reused since all subdomains should be equal/smaller
-  // // than the first one
-  // CompressorType compressor(hierarchy, config);
-  // // Two buffers one for current and one for next
-  // Array<D, T, DeviceType> device_subdomain_buffer[2];
-  // Array<1, Byte, DeviceType> device_compressed_buffer[2];
-  // // Pre-allocate to the size of the first subdomain
-  // // Following subdomains should be no bigger than the first one
-  // // We shouldn't need to reallocate in the future
-  // device_subdomain_buffer[0].resize(
-  //     domain_decomposer.subdomain_shape(subdomain_ids[0]));
-  // device_subdomain_buffer[1].resize(
-  //     domain_decomposer.subdomain_shape(subdomain_ids[0]));
-  // device_compressed_buffer[0].resize(
-  //     {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
-  // device_compressed_buffer[1].resize(
-  //     {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
+  Hierarchy<D, T, DeviceType> hierarchy;
   using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
   Cache::cache.SafeInitialize();
   CompressorType &compressor = *Cache::cache.compressor;
@@ -511,6 +494,7 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
       log::info("Reusing compressor cache.");
     }
   }
+  DeviceRuntime<DeviceType>::SyncDevice();
 
   if (log::level & log::TIME) {
     timer_series.end();
@@ -543,24 +527,10 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
           subdomain_copy_direction::OriginalToSubdomain, next_queue);
     }
 
-    // if (!hierarchy.can_reuse(
-    //         domain_decomposer.subdomain_shape(curr_subdomain_id))) {
-    //   hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
-    //   compressor = CompressorType(hierarchy, config);
-    // }
     if (!compressor.initialized) {
       log::info("Compressor cache is empty. Creating a new one.");
       hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
       compressor = CompressorType(hierarchy, config);
-      device_subdomain_buffer[0].resize(
-          domain_decomposer.subdomain_shape(curr_subdomain_id));
-      device_subdomain_buffer[1].resize(
-          domain_decomposer.subdomain_shape(curr_subdomain_id));
-      device_compressed_buffer[0].resize(
-          {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
-      device_compressed_buffer[1].resize(
-          {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
-
     } else {
       if (!domain_decomposer.uniform ||
           !compressor.hierarchy.can_reuse(
@@ -568,14 +538,6 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
         log::info("Compressor cache cannot be reused. Creating a new one.");
         hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
         compressor = CompressorType(hierarchy, config);
-        device_subdomain_buffer[0].resize(
-            domain_decomposer.subdomain_shape(curr_subdomain_id));
-        device_subdomain_buffer[1].resize(
-            domain_decomposer.subdomain_shape(curr_subdomain_id));
-        device_compressed_buffer[0].resize(
-            {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
-        device_compressed_buffer[1].resize(
-            {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
       } else {
         compressor.config = config;
         log::info("Reusing compressor cache.");
@@ -639,8 +601,6 @@ enum compress_status_type decompress_subdomain(
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
-  // Array<D, T, DeviceType> device_subdomain_buffer;
-  // Array<1, Byte, DeviceType> device_compressed_buffer;
 
   using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
 
@@ -678,6 +638,7 @@ enum compress_status_type decompress_subdomain(
       log::info("Reusing compressor cache.");
     }
   }
+  DeviceRuntime<DeviceType>::SyncDevice();
 
   if (log::level & log::TIME) {
     timer_series.end();
@@ -813,21 +774,8 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
       domain_decomposer.subdomain_hierarchy(subdomain_ids[0]);
   // The workspace can be reused since all subdomains should be equal/smaller
   // than the first one
-  // CompressorType compressor(hierarchy, config);
-  // // Two buffers one for current and one for next
-  // Array<D, T, DeviceType> device_subdomain_buffer[2];
-  // Array<1, Byte, DeviceType> device_compressed_buffer[2];
   // For deserialization
   SIZE byte_offset = 0;
-
-  // device_subdomain_buffer[0].resize(
-  //     domain_decomposer.subdomain_shape(subdomain_ids[0]));
-  // device_subdomain_buffer[1].resize(
-  //     domain_decomposer.subdomain_shape(subdomain_ids[0]));
-  // device_compressed_buffer[0].resize(
-  //     {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
-  // device_compressed_buffer[1].resize(
-  //     {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
   using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
   Cache::cache.SafeInitialize();
   CompressorType &compressor = *Cache::cache.compressor;
@@ -869,6 +817,7 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
       log::info("Reusing compressor cache.");
     }
   }
+  DeviceRuntime<DeviceType>::SyncDevice();
 
   if (log::level & log::TIME) {
     timer_series.end();
@@ -928,28 +877,10 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
           compressed_size, next_queue);
     }
 
-    // if (!compressor.hierarchy.can_reuse(
-    //         domain_decomposer.subdomain_shape(curr_subdomain_id))) {
-    //   hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
-    //   compressor = CompressorType(hierarchy, config);
-    //   log::info("Cannot reuse low-level compressor. Creating new one.");
-    // } else {
-    //   log::info("Can reuse low-level compressor.");
-    // }
-
     if (!compressor.initialized) {
       log::info("Compressor cache is empty. Creating a new one.");
       hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
       compressor = CompressorType(hierarchy, config);
-      device_subdomain_buffer[0].resize(
-          domain_decomposer.subdomain_shape(curr_subdomain_id));
-      device_subdomain_buffer[1].resize(
-          domain_decomposer.subdomain_shape(curr_subdomain_id));
-      device_compressed_buffer[0].resize(
-          {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
-      device_compressed_buffer[1].resize(
-          {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
-
     } else {
       if (!domain_decomposer.uniform ||
           !compressor.hierarchy.can_reuse(
@@ -957,14 +888,6 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
         log::info("Compressor cache cannot be reused. Creating a new one.");
         hierarchy = domain_decomposer.subdomain_hierarchy(curr_subdomain_id);
         compressor = CompressorType(hierarchy, config);
-        device_subdomain_buffer[0].resize(
-            domain_decomposer.subdomain_shape(curr_subdomain_id));
-        device_subdomain_buffer[1].resize(
-            domain_decomposer.subdomain_shape(curr_subdomain_id));
-        device_compressed_buffer[0].resize(
-            {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
-        device_compressed_buffer[1].resize(
-            {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
       } else {
         compressor.config = config;
         log::info("Reusing compressor cache.");
@@ -994,7 +917,8 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
                           local_tol, s, norm, current_queue);
     compressor.Recompose(device_subdomain_buffer[current_buffer],
                          current_queue);
-
+    // Need to ensure decompession is complete without blocking other operations
+    DeviceRuntime<DeviceType>::SyncQueue(current_queue);
     current_buffer = next_buffer;
     current_queue = next_queue;
   }
