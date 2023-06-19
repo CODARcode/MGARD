@@ -1752,10 +1752,10 @@ public:
   template <typename T>
   MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, SYCL> v,
                               SubArray<1, T, SYCL> result,
-                              Array<1, Byte, SYCL> &workspace, int queue_idx) {
+                              Array<1, Byte, SYCL> &workspace,
+                              bool workspace_allocated, int queue_idx) {
 
-    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
-    if (workspace.hasDeviceAllocation() && data_not_null) {
+    if (workspace_allocated) {
       sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
       q.submit([&](sycl::handler &h) {
         T *res = result.data();
@@ -1771,12 +1771,12 @@ public:
   }
 
   template <typename T>
-  MGARDX_CONT static void
-  AbsMax(SIZE n, SubArray<1, T, SYCL> v, SubArray<1, T, SYCL> result,
-         Array<1, Byte, SYCL> &workspace, int queue_idx) {
+  MGARDX_CONT static void AbsMax(SIZE n, SubArray<1, T, SYCL> v,
+                                 SubArray<1, T, SYCL> result,
+                                 Array<1, Byte, SYCL> &workspace,
+                                 bool workspace_allocated, int queue_idx) {
 
-    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
-    if (workspace.hasDeviceAllocation() && data_not_null) {
+    if (workspace_allocated) {
       sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
       q.submit([&](sycl::handler &h) {
         T *res = result.data();
@@ -1792,12 +1792,12 @@ public:
   }
 
   template <typename T>
-  MGARDX_CONT static void
-  SquareSum(SIZE n, SubArray<1, T, SYCL> v, SubArray<1, T, SYCL> result,
-            Array<1, Byte, SYCL> &workspace, int queue_idx) {
+  MGARDX_CONT static void SquareSum(SIZE n, SubArray<1, T, SYCL> v,
+                                    SubArray<1, T, SYCL> result,
+                                    Array<1, Byte, SYCL> &workspace,
+                                    bool workspace_allocated, int queue_idx) {
 
-    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
-    if (workspace.hasDeviceAllocation() && data_not_null) {
+    if (workspace_allocated) {
       sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
       q.submit([&](sycl::handler &h) {
         T *res = result.data();
@@ -1817,17 +1817,20 @@ public:
   template <typename T>
   MGARDX_CONT static void
   ScanSumInclusive(SIZE n, SubArray<1, T, SYCL> v, SubArray<1, T, SYCL> result,
-                   Array<1, Byte, SYCL> &workspace, int queue_idx) {}
+                   Array<1, Byte, SYCL> &workspace, bool workspace_allocated,
+                   int queue_idx) {}
 
   template <typename T>
   MGARDX_CONT static void
   ScanSumExclusive(SIZE n, SubArray<1, T, SYCL> v, SubArray<1, T, SYCL> result,
-                   Array<1, Byte, SYCL> &workspace, int queue_idx) {}
+                   Array<1, Byte, SYCL> &workspace, bool workspace_allocated,
+                   int queue_idx) {}
 
   template <typename T>
   MGARDX_CONT static void
   ScanSumExtended(SIZE n, SubArray<1, T, SYCL> v, SubArray<1, T, SYCL> result,
-                  Array<1, Byte, SYCL> &workspace, int queue_idx) {}
+                  Array<1, Byte, SYCL> &workspace, bool workspace_allocated,
+                  int queue_idx) {}
 
   template <typename KeyT, typename ValueT>
   MGARDX_CONT static void SortByKey(SIZE n, SubArray<1, KeyT, SYCL> in_keys,
@@ -1835,12 +1838,9 @@ public:
                                     SubArray<1, KeyT, SYCL> out_keys,
                                     SubArray<1, ValueT, SYCL> out_values,
                                     Array<1, Byte, SYCL> &workspace,
-                                    int queue_idx) {
+                                    bool workspace_allocated, int queue_idx) {
 
-    bool data_not_null =
-        in_keys.data() != nullptr && in_values.data() != nullptr &&
-        out_keys.data() != nullptr && out_values.data() != nullptr;
-    if (workspace.hasDeviceAllocation() && data_not_null) {
+    if (workspace_allocated) {
       KeyT *keys_array = new KeyT[n];
       ValueT *values_array = new ValueT[n];
       MemoryManager<SYCL>::Copy1D(keys_array, in_keys.data(), n, 0);
