@@ -30,7 +30,7 @@ public:
 
     Hierarchy<D, T, DeviceType> hierarchy;
     size_t hierarchy_space = hierarchy.estimate_memory_usgae(shape);
-    // log::info("hierarchy_space: " +
+    // log::info("Hierarchy space: " +
     //           std::to_string((double)hierarchy_space / 1e9));
 
     size_t input_space = roundup((size_t)shape[D - 1] * sizeof(T), pitch_size);
@@ -40,12 +40,15 @@ public:
 
     size_t output_space = (double)input_space * reduction_ratio;
 
-    // log::info("input_space: " + std::to_string((double)input_space / 1e9));
-
     // CompressionLowLevelWorkspace<D, T, DeviceType> compression_workspace;
     estimate_memory_usgae = hierarchy_space + input_space + output_space;
     estimate_memory_usgae +=
         OperationType::EstimateMemoryFootprint(shape, config);
+
+    // log::info("Compressor space: " +
+    //           std::to_string((double)OperationType::EstimateMemoryFootprint(
+    //                              shape, config) /
+    //                          1e9));
 
     // For prefetching
     if (enable_prefetch) {

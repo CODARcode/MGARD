@@ -296,8 +296,7 @@ bool Array<D, T, DeviceType>::hasHostAllocation() {
 }
 
 template <DIM D, typename T, typename DeviceType>
-void Array<D, T, DeviceType>::resize(std::vector<SIZE> shape, bool pitched,
-                                     bool managed, int queue_idx) {
+void Array<D, T, DeviceType>::resize(std::vector<SIZE> shape, int queue_idx) {
   bool inplace_resizable = false;
   if (device_allocated) {
     if (!isPitched()) {
@@ -339,10 +338,8 @@ void Array<D, T, DeviceType>::resize(std::vector<SIZE> shape, bool pitched,
   }
   // If cannot reuse existing allocation or there is no existing allocation
   if (!inplace_resizable) {
-    bool pitched = false;
-    bool managed = false;
     initialize(shape);
-    allocate(pitched, managed, queue_idx);
+    allocate(isPitched(), isManaged(), queue_idx);
   }
 }
 

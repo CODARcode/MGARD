@@ -79,7 +79,7 @@ public:
     DeviceCollective<DeviceType>::SortByKey(
         dict_size, SubArray<1, unsigned int, DeviceType>(),
         SubArray<1, Q, DeviceType>(), SubArray<1, unsigned int, DeviceType>(),
-        SubArray<1, Q, DeviceType>(), tmp, 0);
+        SubArray<1, Q, DeviceType>(), tmp, false, 0);
     size += tmp.shape(0);
     size += dict_size * sizeof(unsigned int);
     size += dict_size * sizeof(Q);
@@ -95,7 +95,7 @@ public:
   }
 
   void allocate(SIZE primary_count, SIZE dict_size, SIZE chunk_size,
-                double estimated_outlier_ratio = 1) {
+                double estimated_outlier_ratio) {
 
     outlier_count_array = Array<1, LENGTH, DeviceType>({1}, false, false);
     outlier_idx_array = Array<1, LENGTH, DeviceType>(
@@ -121,7 +121,7 @@ public:
     DeviceCollective<DeviceType>::SortByKey(
         dict_size, SubArray<1, unsigned int, DeviceType>(),
         SubArray<1, Q, DeviceType>(), SubArray<1, unsigned int, DeviceType>(),
-        SubArray<1, Q, DeviceType>(), sort_by_key_workspace, 0);
+        SubArray<1, Q, DeviceType>(), sort_by_key_workspace, false, 0);
     _d_freq_copy_array = Array<1, unsigned int, DeviceType>({(SIZE)dict_size});
     _d_qcode_copy_array = Array<1, Q, DeviceType>({(SIZE)dict_size});
     CL_array = Array<1, unsigned int, DeviceType>({dict_size});
@@ -151,6 +151,59 @@ public:
     pre_allocated = true;
   }
 
+  void resize(SIZE primary_count, SIZE dict_size, SIZE chunk_size,
+              double estimated_outlier_ratio, int queue_idx) {
+
+    outlier_count_array.resize({1}, queue_idx);
+    outlier_idx_array.resize({(SIZE)(primary_count * estimated_outlier_ratio)},
+                             queue_idx);
+    outlier_array.resize({(SIZE)(primary_count * estimated_outlier_ratio)},
+                         queue_idx);
+
+    freq_array.resize({dict_size}, queue_idx);
+    codebook_array.resize({dict_size}, queue_idx);
+    size_t type_bw = sizeof(H) * 8;
+    size_t decodebook_size = sizeof(H) * (2 * type_bw) + sizeof(Q) * dict_size;
+    decodebook_array.resize({(SIZE)decodebook_size}, queue_idx);
+    huff_array.resize({primary_count}, queue_idx);
+    size_t nchunk = (primary_count - 1) / chunk_size + 1;
+    huff_bitwidths_array.resize({(SIZE)nchunk}, queue_idx);
+    condense_write_offsets_array.resize({(SIZE)nchunk}, queue_idx);
+    condense_actual_lengths_array.resize({(SIZE)nchunk}, queue_idx);
+    // Codebook
+    first_nonzero_index_array.resize({1}, queue_idx);
+    first_nonzero_index_array.hostCopy(); // Create host allocation
+    // // Allocate workspace
+    DeviceCollective<DeviceType>::SortByKey(
+        dict_size, SubArray<1, unsigned int, DeviceType>(),
+        SubArray<1, Q, DeviceType>(), SubArray<1, unsigned int, DeviceType>(),
+        SubArray<1, Q, DeviceType>(), sort_by_key_workspace, false, queue_idx);
+
+    _d_freq_copy_array.resize({(SIZE)dict_size}, queue_idx);
+    _d_qcode_copy_array.resize({(SIZE)dict_size}, queue_idx);
+    CL_array.resize({dict_size}, queue_idx);
+    lNodesLeader_array.resize({dict_size}, queue_idx);
+    iNodesFreq_array.resize({dict_size}, queue_idx);
+    iNodesLeader_array.resize({dict_size}, queue_idx);
+    tempFreq_array.resize({dict_size}, queue_idx);
+    tempIsLeaf_array.resize({dict_size}, queue_idx);
+    tempIndex_array.resize({dict_size}, queue_idx);
+    copyFreq_array.resize({dict_size}, queue_idx);
+    copyIsLeaf_array.resize({dict_size}, queue_idx);
+    copyIndex_array.resize({dict_size}, queue_idx);
+    _d_codebook_array_org.resize({dict_size}, queue_idx);
+    status_array.resize({(SIZE)16}, queue_idx);
+    SIZE mblocks = (DeviceRuntime<DeviceType>::GetMaxNumThreadsPerTB() /
+                    DeviceRuntime<DeviceType>::GetWarpSize()) *
+                   DeviceRuntime<DeviceType>::GetNumSMs();
+    diagonal_path_intersections_array.resize({2 * (mblocks + 1)}, queue_idx);
+    outlier_count_array.memset(0, queue_idx);
+    outlier_idx_array.memset(0, queue_idx);
+    outlier_array.memset(0, queue_idx);
+    initialize_subarray();
+    pre_allocated = true;
+  }
+
   void reset(int queue_idx) {
     outlier_count_array.memset(0, queue_idx);
     freq_array.memset(0, queue_idx);
@@ -163,7 +216,7 @@ public:
   }
 
   HuffmanWorkspace(SIZE primary_count, SIZE dict_size, SIZE chunk_size,
-                   double estimated_outlier_ratio = 1.0) {
+                   double estimated_outlier_ratio) {
     allocate(primary_count, dict_size, chunk_size, estimated_outlier_ratio);
   }
 

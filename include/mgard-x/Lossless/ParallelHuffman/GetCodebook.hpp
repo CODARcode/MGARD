@@ -49,7 +49,7 @@ void GetCodebook(int dict_size,
   DeviceCollective<DeviceType>::SortByKey(
       (SIZE)dict_size, workspace._d_freq_copy_subarray,
       workspace._d_qcode_copy_subarray, _d_freq_subarray, _d_qcode_subarray,
-      workspace.sort_by_key_workspace, queue_idx);
+      workspace.sort_by_key_workspace, true, queue_idx);
 
   DeviceLauncher<DeviceType>::Execute(
       GetFirstNonzeroIndexKernel<unsigned int, DeviceType>(

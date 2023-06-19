@@ -321,7 +321,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   config.prefetch = prefetch;
   config.max_memory_footprint = max_memory_footprint;
   config.huff_dict_size = 8192;
-  config.adjust_shape = false;
+  config.adjust_shape = true;
+  // config.cache_compressor = true;
 
   if (lossless == 0) {
     config.lossless = mgard_x::lossless_type::Huffman;
@@ -420,6 +421,7 @@ int launch_decompress(const char *input_file, const char *output_file,
   config.dev_type = dev_type;
   config.num_dev;
   config.prefetch = prefetch;
+  // config.cache_compressor = true;
 
   mgard_x::SERIALIZED_TYPE *compressed_data;
   size_t compressed_size = readfile(input_file, compressed_data);

@@ -30,6 +30,8 @@ namespace mgard_x {
 template <DIM D, typename T, typename DeviceType>
 class HybridHierarchyCompressor
     : public LossyCompressorInterface<D, T, DeviceType> {
+public:
+  using HierarchyType = Hierarchy<D, T, DeviceType>;
   using DataRefactorType = data_refactoring::DataRefactor<D, T, DeviceType>;
   using HybridHierarchyDataRefactorType =
       data_refactoring::HybridHierarchyDataRefactor<D, T, DeviceType>;
@@ -40,11 +42,13 @@ class HybridHierarchyCompressor
   using HybridHierarchyLinearQuantizerType =
       HybridHierarchyLinearQuantizer<D, T, QUANTIZED_INT, DeviceType>;
 
-public:
   HybridHierarchyCompressor();
 
-  HybridHierarchyCompressor(Hierarchy<D, T, DeviceType> hierarchy,
+  HybridHierarchyCompressor(Hierarchy<D, T, DeviceType> &hierarchy,
                             Config config);
+
+  void Adapt(Hierarchy<D, T, DeviceType> &hierarchy, Config config,
+             int queue_idx);
 
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape, Config config);
 
@@ -77,7 +81,7 @@ public:
                   Array<D, T, DeviceType> &decompressed_data, int queue_idx);
 
   bool initialized;
-  Hierarchy<D, T, DeviceType> hierarchy;
+  Hierarchy<D, T, DeviceType> *hierarchy;
   Config config;
   Array<1, T, DeviceType> norm_tmp_array;
   Array<1, T, DeviceType> norm_array;

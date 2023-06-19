@@ -158,9 +158,9 @@ class HybridHierarchyLinearQuantizer
 public:
   HybridHierarchyLinearQuantizer() : initialized(false) {}
 
-  HybridHierarchyLinearQuantizer(Hierarchy<D, T, DeviceType> hierarchy,
+  HybridHierarchyLinearQuantizer(Hierarchy<D, T, DeviceType> &hierarchy,
                                  Config config)
-      : initialized(true), hierarchy(hierarchy), config(config),
+      : initialized(true), hierarchy(&hierarchy), config(config),
         global_quantizer(hierarchy, config) {
 
     coarse_shape = hierarchy.level_shape(hierarchy.l_target());
@@ -182,6 +182,34 @@ public:
     global_hierarchy = Hierarchy<D, T, DeviceType>(coarse_shape, config);
     global_quantizer =
         LinearQuantizer<D, T, Q, DeviceType>(global_hierarchy, config);
+  }
+
+  void Adapt(Hierarchy<D, T, DeviceType> &hierarchy, Config config,
+             int queue_idx) {
+    this->initialized = true;
+    this->hierarchy = &hierarchy;
+    this->config = config;
+    coarse_shape = hierarchy.level_shape(hierarchy.l_target());
+    coarse_shapes.clear();
+    coarse_num_elems.clear();
+    local_coeff_size.clear();
+    // If we do at least one level of local refactoring
+    if (config.num_local_refactoring_level > 0) {
+      for (int l = 0; l < config.num_local_refactoring_level; l++) {
+        SIZE last_level_size = 1, curr_level_size = 1;
+        for (DIM d = 0; d < D; d++) {
+          last_level_size *= coarse_shape[d];
+          coarse_shape[d] = ((coarse_shape[d] - 1) / 8 + 1) * 5;
+          curr_level_size *= coarse_shape[d];
+        }
+        coarse_shapes.push_back(coarse_shape);
+        coarse_num_elems.push_back(last_level_size);
+        local_coeff_size.push_back(last_level_size - curr_level_size);
+      }
+    }
+
+    global_hierarchy = Hierarchy<D, T, DeviceType>(coarse_shape, config);
+    global_quantizer.Adapt(global_hierarchy, config, queue_idx);
   }
 
   void CalcQuantizers(size_t dof, enum error_bound_type type, T tol, T s,
@@ -234,8 +262,8 @@ public:
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape) {
     Hierarchy<D, T, DeviceType> hierarchy;
     size_t size = 0;
-    size += hierarchy.estimate_memory_usgae(shape);
-    size += sizeof(T) * (hierarchy.l_target() + 1);
+    size += hierarchy->estimate_memory_usgae(shape);
+    size += sizeof(T) * (hierarchy->l_target() + 1);
     return size;
   }
 
@@ -260,7 +288,7 @@ public:
                                                   quantized_data.data());
 
     T quantizer, coarse_abs_tol;
-    CalcQuantizers(hierarchy.total_num_elems(), ebtype, tol, s, norm,
+    CalcQuantizers(hierarchy->total_num_elems(), ebtype, tol, s, norm,
                    global_hierarchy.l_target(),
                    config.num_local_refactoring_level, config.decomposition,
                    true, quantizer, coarse_abs_tol);
@@ -328,10 +356,10 @@ public:
         }
         log::info("Outlier ratio: " +
                   std::to_string(lossless.huffman.workspace.outlier_count) +
-                  "/" + std::to_string(hierarchy.total_num_elems()) + " (" +
+                  "/" + std::to_string(hierarchy->total_num_elems()) + " (" +
                   std::to_string((double)100 *
                                  lossless.huffman.workspace.outlier_count /
-                                 hierarchy.total_num_elems()) +
+                                 hierarchy->total_num_elems()) +
                   "%)");
       } else {
         log::err("Not enough workspace for outliers.");
@@ -347,7 +375,7 @@ public:
                   LosslessCompressorType &lossless_compressor, int queue_idx) {}
 
   bool initialized;
-  Hierarchy<D, T, DeviceType> hierarchy;
+  Hierarchy<D, T, DeviceType> *hierarchy;
   Hierarchy<D, T, DeviceType> global_hierarchy;
   Config config;
   std::vector<SIZE> coarse_shape;

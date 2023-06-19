@@ -24,9 +24,10 @@ class HybridHierarchyDataRefactor
     : public HybridHierarchyDataRefactorInterface<D, T, DeviceType> {
 public:
   HybridHierarchyDataRefactor() : initialized(false) {}
-  HybridHierarchyDataRefactor(Hierarchy<D, T, DeviceType> hierarchy,
+  HybridHierarchyDataRefactor(Hierarchy<D, T, DeviceType> &hierarchy,
                               Config config)
-      : initialized(true), hierarchy(hierarchy), config(config) {
+      : initialized(true), hierarchy(&hierarchy), config(config),
+        global_refactor(hierarchy, config) {
 
     coarse_shape = hierarchy.level_shape(hierarchy.l_target());
     // If we do at least one level of local refactoring
@@ -49,6 +50,45 @@ public:
         coarse_num_elems.push_back(last_level_size);
         if (l == 0) {
           coarse_array = Array<D, T, DeviceType>(coarse_shape);
+        }
+        local_coeff_size.push_back(last_level_size - curr_level_size);
+        // std::cout << local_coeff_size[local_coeff_size.size() - 1] << "\n";
+      }
+    }
+
+    global_hierarchy = Hierarchy<D, T, DeviceType>(coarse_shape, config);
+    global_refactor = DataRefactor(global_hierarchy, config);
+  }
+
+  void Adapt(Hierarchy<D, T, DeviceType> &hierarchy, Config config,
+             int queue_idx) {
+    this->initialized = true;
+    this->hierarchy = &hierarchy;
+    this->config = config;
+    coarse_shape = hierarchy.level_shape(hierarchy.l_target());
+    coarse_shapes.clear();
+    coarse_num_elems.clear();
+    local_coeff_size.clear();
+    // If we do at least one level of local refactoring
+    if (config.num_local_refactoring_level > 0) {
+      for (int l = 0; l < config.num_local_refactoring_level; l++) {
+        SIZE last_level_size = 1, curr_level_size = 1;
+
+        // std::cout << coarse_shape[0] << " " << coarse_shape[1] << " "
+        //           << coarse_shape[2] << "\n";
+        for (DIM d = 0; d < D; d++) {
+          coarse_shape[d] = ((coarse_shape[d] - 1) / 8 + 1) * 8;
+          last_level_size *= coarse_shape[d];
+          coarse_shape[d] = ((coarse_shape[d] - 1) / 8 + 1) * 5;
+          curr_level_size *= coarse_shape[d];
+        }
+
+        // std::cout << coarse_shape[0] << " " << coarse_shape[1] << " "
+        //           << coarse_shape[2] << "\n";
+        coarse_shapes.push_back(coarse_shape);
+        coarse_num_elems.push_back(last_level_size);
+        if (l == 0) {
+          coarse_array.resize(coarse_shape, queue_idx);
         }
         local_coeff_size.push_back(last_level_size - curr_level_size);
         // std::cout << local_coeff_size[local_coeff_size.size() - 1] << "\n";
@@ -157,7 +197,7 @@ public:
       timer.print("Recomposition");
       log::time(
           "Recomposition throughput: " +
-          std::to_string((double)(hierarchy.total_num_elems() * sizeof(T)) /
+          std::to_string((double)(hierarchy->total_num_elems() * sizeof(T)) /
                          timer.get() / 1e9) +
           " GB/s");
       timer.clear();
@@ -165,7 +205,7 @@ public:
   }
 
   bool initialized;
-  Hierarchy<D, T, DeviceType> hierarchy;
+  Hierarchy<D, T, DeviceType> *hierarchy;
   Hierarchy<D, T, DeviceType> global_hierarchy;
   Config config;
   std::vector<SIZE> coarse_shape;

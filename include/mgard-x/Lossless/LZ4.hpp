@@ -15,7 +15,9 @@ template <typename DeviceType> class LZ4 {
 
 public:
   LZ4() {}
-  LZ4(SIZE n) { input_data = Array<1, Byte, DeviceType>({n}); }
+  LZ4(SIZE n) { input_data = Array<1, Byte, DeviceType>({n}, false, false); }
+
+  void Resize(SIZE n, int queue_idx) { input_data.resize({n}, queue_idx); }
 
   static size_t EstimateMemoryFootprint(SIZE n) { return n; }
 
@@ -26,7 +28,7 @@ public:
     if (log::level & log::TIME)
       timer.start();
     // Make a copy of the input data
-    input_data.resize({data.shape(0)}, false, false, queue_idx);
+    input_data.resize({data.shape(0)}, queue_idx);
     MemoryManager<DeviceType>::Copy1D(input_data.data(), data.data(),
                                       data.shape(0), queue_idx);
     Array<1, Byte, DeviceType> &output_data = data;
@@ -36,8 +38,8 @@ public:
     size_t input_count = input_data.shape(0);
     nvcomp::CompressionConfig comp_config =
         nvcomp_manager.configure_compression(input_count);
-    output_data.resize({(SIZE)comp_config.max_compressed_buffer_size}, false,
-                       false, queue_idx);
+    output_data.resize({(SIZE)comp_config.max_compressed_buffer_size},
+                       queue_idx);
     nvcomp_manager.compress((uint8_t *)input_data.data(), output_data.data(),
                             comp_config);
     output_data.shape(0) =
@@ -67,7 +69,7 @@ public:
     if (log::level & log::TIME)
       timer.start();
     // Make a copy of the input data
-    input_data.resize({data.shape(0)});
+    input_data.resize({data.shape(0)}, queue_idx);
     MemoryManager<DeviceType>::Copy1D(input_data.data(), data.data(),
                                       data.shape(0), queue_idx);
     Array<1, Byte, DeviceType> &output_data = data;
@@ -76,8 +78,7 @@ public:
     size_t input_size = input_data.shape(0);
     nvcomp::DecompressionConfig decomp_config =
         decomp_nvcomp_manager->configure_decompression(input_data.data());
-    output_data.resize({(SIZE)decomp_config.decomp_data_size}, false, false,
-                       queue_idx);
+    output_data.resize({(SIZE)decomp_config.decomp_data_size}, queue_idx);
     decomp_nvcomp_manager->decompress(output_data.data(), input_data.data(),
                                       decomp_config);
     output_data.shape(0) = decomp_config.decomp_data_size;
