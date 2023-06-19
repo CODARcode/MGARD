@@ -1388,12 +1388,12 @@ public:
   DeviceCollective(){};
 
   template <typename T>
-  MGARDX_CONT static void
-  Sum(SIZE n, SubArray<1, T, OPENMP> v, SubArray<1, T, OPENMP> result,
-      Array<1, Byte, OPENMP> &workspace, int queue_idx) {
+  MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, OPENMP> v,
+                              SubArray<1, T, OPENMP> result,
+                              Array<1, Byte, OPENMP> &workspace,
+                              bool workspace_allocated, int queue_idx) {
 
-    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
-    if (workspace.hasDeviceAllocation() && data_not_null) {
+    if (workspace_allocated) {
       *result((IDX)0) = std::accumulate(v((IDX)0), v((IDX)n), 0);
     } else {
       workspace.resize({(SIZE)1}, queue_idx);
@@ -1401,12 +1401,12 @@ public:
   }
 
   template <typename T>
-  MGARDX_CONT static void
-  AbsMax(SIZE n, SubArray<1, T, OPENMP> v, SubArray<1, T, OPENMP> result,
-         Array<1, Byte, OPENMP> &workspace, int queue_idx) {
+  MGARDX_CONT static void AbsMax(SIZE n, SubArray<1, T, OPENMP> v,
+                                 SubArray<1, T, OPENMP> result,
+                                 Array<1, Byte, OPENMP> &workspace,
+                                 bool workspace_allocated, int queue_idx) {
 
-    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
-    if (workspace.hasDeviceAllocation() && data_not_null) {
+    if (workspace_allocated) {
       T max_result = 0;
       for (SIZE i = 0; i < n; ++i) {
         max_result = std::max((T)fabs(*v(i)), max_result);
@@ -1418,12 +1418,12 @@ public:
   }
 
   template <typename T>
-  MGARDX_CONT static void
-  SquareSum(SIZE n, SubArray<1, T, OPENMP> v, SubArray<1, T, OPENMP> result,
-            Array<1, Byte, OPENMP> &workspace, int queue_idx) {
+  MGARDX_CONT static void SquareSum(SIZE n, SubArray<1, T, OPENMP> v,
+                                    SubArray<1, T, OPENMP> result,
+                                    Array<1, Byte, OPENMP> &workspace,
+                                    bool workspace_allocated, int queue_idx) {
 
-    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
-    if (workspace.hasDeviceAllocation() && data_not_null) {
+    if (workspace_allocated) {
       T sum_result = 0;
       for (SIZE i = 0; i < n; ++i) {
         T tmp = *v(i);
@@ -1439,12 +1439,12 @@ public:
   MGARDX_CONT static void ScanSumInclusive(SIZE n, SubArray<1, T, OPENMP> v,
                                            SubArray<1, T, OPENMP> result,
                                            Array<1, Byte, OPENMP> &workspace,
+                                           bool workspace_allocated,
                                            int queue_idx) {
 
-    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
     // Need gcc 9 and c++17
 #if (__GNUC__ >= 9)
-    if (workspace.hasDeviceAllocation() && data_not_null) {
+    if (workspace_allocated) {
       std::inclusive_scan(v((IDX)0), v((IDX)n), result((IDX)0));
     } else {
       workspace.resize({(SIZE)1}, queue_idx);
@@ -1458,12 +1458,12 @@ public:
   MGARDX_CONT static void ScanSumExclusive(SIZE n, SubArray<1, T, OPENMP> v,
                                            SubArray<1, T, OPENMP> result,
                                            Array<1, Byte, OPENMP> &workspace,
+                                           bool workspace_allocated,
                                            int queue_idx) {
 
-    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
     // Need gcc 9 and c++17
 #if (__GNUC__ >= 9)
-    if (workspace.hasDeviceAllocation() && data_not_null) {
+    if (workspace_allocated) {
       std::exclusive_scan(v((IDX)0), v((IDX)n), result((IDX)0));
     } else {
       workspace.resize({(SIZE)1}, queue_idx);
@@ -1477,12 +1477,12 @@ public:
   MGARDX_CONT static void ScanSumExtended(SIZE n, SubArray<1, T, OPENMP> v,
                                           SubArray<1, T, OPENMP> result,
                                           Array<1, Byte, OPENMP> &workspace,
+                                          bool workspace_allocated,
                                           int queue_idx) {
 
-    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
     // Need gcc 9 and c++17
 #if (__GNUC__ >= 9)
-    if (workspace.hasDeviceAllocation() && data_not_null) {
+    if (workspace_allocated) {
       std::inclusive_scan(v((IDX)0), v((IDX)n), result((IDX)1));
       *result((IDX)0) = 0;
     } else {
@@ -1499,12 +1499,9 @@ public:
                                     SubArray<1, KeyT, OPENMP> out_keys,
                                     SubArray<1, ValueT, OPENMP> out_values,
                                     Array<1, Byte, OPENMP> &workspace,
-                                    int queue_idx) {
+                                    bool workspace_allocated, int queue_idx) {
 
-    bool data_not_null =
-        in_keys.data() != nullptr && in_values.data() != nullptr &&
-        out_keys.data() != nullptr && out_values.data() != nullptr;
-    if (workspace.hasDeviceAllocation() && data_not_null) {
+    if (workspace_allocated) {
       std::vector<std::pair<KeyT, ValueT>> data(n);
       for (SIZE i = 0; i < n; ++i) {
         data[i] = std::pair<KeyT, ValueT>(*in_keys(i), *in_values(i));
