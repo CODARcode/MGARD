@@ -2425,16 +2425,20 @@ public:
   MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, CUDA> v,
                               SubArray<1, T, CUDA> result,
                               Array<1, Byte, CUDA> &workspace, int queue_idx) {
-    Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
-    size_t temp_storage_bytes =
-        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
+    Byte *d_temp_storage = workspace.hasDeviceAllocation() && data_not_null
+                               ? workspace.data()
+                               : nullptr;
+    size_t temp_storage_bytes = workspace.hasDeviceAllocation() && data_not_null
+                                    ? workspace.shape(0)
+                                    : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(),
                            result.data(), n, stream, debug);
-    if (!workspace.hasDeviceAllocation()) {
-      workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
+    if (!workspace.hasDeviceAllocation() || !data_not_null) {
+      workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
   }
 
@@ -2442,18 +2446,22 @@ public:
   MGARDX_CONT static void
   AbsMax(SIZE n, SubArray<1, T, CUDA> v, SubArray<1, T, CUDA> result,
          Array<1, Byte, CUDA> &workspace, int queue_idx) {
-    Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
-    size_t temp_storage_bytes =
-        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
+    Byte *d_temp_storage = workspace.hasDeviceAllocation() && data_not_null
+                               ? workspace.data()
+                               : nullptr;
+    size_t temp_storage_bytes = workspace.hasDeviceAllocation() && data_not_null
+                                    ? workspace.shape(0)
+                                    : 0;
     AbsMaxOp absMaxOp;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(),
                               result.data(), n, absMaxOp, static_cast<T>(0),
                               stream, debug);
-    if (!workspace.hasDeviceAllocation()) {
-      workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
+    if (!workspace.hasDeviceAllocation() && !data_not_null) {
+      workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
   }
 
@@ -2461,20 +2469,24 @@ public:
   MGARDX_CONT static void
   SquareSum(SIZE n, SubArray<1, T, CUDA> v, SubArray<1, T, CUDA> result,
             Array<1, Byte, CUDA> &workspace, int queue_idx) {
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
     SquareOp squareOp;
     cub::TransformInputIterator<T, SquareOp, T *> transformed_input_iter(
         v.data(), squareOp);
-    Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
-    size_t temp_storage_bytes =
-        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
+    Byte *d_temp_storage = workspace.hasDeviceAllocation() && data_not_null
+                               ? workspace.data()
+                               : nullptr;
+    size_t temp_storage_bytes = workspace.hasDeviceAllocation() && data_not_null
+                                    ? workspace.shape(0)
+                                    : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes,
                            transformed_input_iter, result.data(), n, stream,
                            debug);
-    if (!workspace.hasDeviceAllocation()) {
-      workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
+    if (!workspace.hasDeviceAllocation() || !data_not_null) {
+      workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
   }
 
@@ -2482,16 +2494,20 @@ public:
   MGARDX_CONT static void
   ScanSumInclusive(SIZE n, SubArray<1, T, CUDA> v, SubArray<1, T, CUDA> result,
                    Array<1, Byte, CUDA> &workspace, int queue_idx) {
-    Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
-    size_t temp_storage_bytes =
-        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
+    Byte *d_temp_storage = workspace.hasDeviceAllocation() && data_not_null
+                               ? workspace.data()
+                               : nullptr;
+    size_t temp_storage_bytes = workspace.hasDeviceAllocation() && data_not_null
+                                    ? workspace.shape(0)
+                                    : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
                                   result.data(), n, stream, debug);
-    if (!workspace.hasDeviceAllocation()) {
-      workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
+    if (!workspace.hasDeviceAllocation() || !data_not_null) {
+      workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
   }
 
@@ -2499,16 +2515,20 @@ public:
   MGARDX_CONT static void
   ScanSumExclusive(SIZE n, SubArray<1, T, CUDA> v, SubArray<1, T, CUDA> result,
                    Array<1, Byte, CUDA> &workspace, int queue_idx) {
-    Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
-    size_t temp_storage_bytes =
-        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
+    Byte *d_temp_storage = workspace.hasDeviceAllocation() && data_not_null
+                               ? workspace.data()
+                               : nullptr;
+    size_t temp_storage_bytes = workspace.hasDeviceAllocation() && data_not_null
+                                    ? workspace.shape(0)
+                                    : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
                                   result.data(), n, stream, debug);
-    if (!workspace.hasDeviceAllocation()) {
-      workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
+    if (!workspace.hasDeviceAllocation() || !data_not_null) {
+      workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
   }
 
@@ -2516,20 +2536,24 @@ public:
   MGARDX_CONT static void
   ScanSumExtended(SIZE n, SubArray<1, T, CUDA> v, SubArray<1, T, CUDA> result,
                   Array<1, Byte, CUDA> &workspace, int queue_idx) {
-    Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
-    size_t temp_storage_bytes =
-        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
+    Byte *d_temp_storage = workspace.hasDeviceAllocation() && data_not_null
+                               ? workspace.data()
+                               : nullptr;
+    size_t temp_storage_bytes = workspace.hasDeviceAllocation() && data_not_null
+                                    ? workspace.shape(0)
+                                    : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
                                   result.data() + 1, n, stream, debug);
-    if (result.hasDeviceAllocation()) {
+    if (data_not_null) {
       T zero = 0;
       MemoryManager<CUDA>().Copy1D(result.data(), &zero, 1, queue_idx);
     }
-    if (!workspace.hasDeviceAllocation()) {
-      workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
+    if (!workspace.hasDeviceAllocation() || !data_not_null) {
+      workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
   }
 
@@ -2540,18 +2564,23 @@ public:
                                     SubArray<1, ValueT, CUDA> out_values,
                                     Array<1, Byte, CUDA> &workspace,
                                     int queue_idx) {
-    Byte *d_temp_storage =
-        workspace.hasDeviceAllocation() ? workspace.data() : nullptr;
-    size_t temp_storage_bytes =
-        workspace.hasDeviceAllocation() ? workspace.shape(0) : 0;
+    bool data_not_null =
+        in_keys.data() != nullptr && in_values.data() != nullptr &&
+        out_keys.data() != nullptr && out_values.data() != nullptr;
+    Byte *d_temp_storage = workspace.hasDeviceAllocation() && data_not_null
+                               ? workspace.data()
+                               : nullptr;
+    size_t temp_storage_bytes = workspace.hasDeviceAllocation() && data_not_null
+                                    ? workspace.shape(0)
+                                    : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
                                     in_keys.data(), out_keys.data(),
                                     in_values.data(), out_values.data(), n, 0,
                                     sizeof(KeyT) * 8, stream, debug);
-    if (!workspace.hasDeviceAllocation()) {
-      workspace = Array<1, Byte, CUDA>({(SIZE)temp_storage_bytes});
+    if (!workspace.hasDeviceAllocation() || !data_not_null) {
+      workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
   }
 

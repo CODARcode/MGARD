@@ -1753,7 +1753,9 @@ public:
   MGARDX_CONT static void Sum(SIZE n, SubArray<1, T, SYCL> v,
                               SubArray<1, T, SYCL> result,
                               Array<1, Byte, SYCL> &workspace, int queue_idx) {
-    if (workspace.hasDeviceAllocation()) {
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
+    if (workspace.hasDeviceAllocation() && data_not_null) {
       sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
       q.submit([&](sycl::handler &h) {
         T *res = result.data();
@@ -1764,7 +1766,7 @@ public:
       });
       DeviceRuntime<SYCL>::SyncDevice();
     } else {
-      workspace = Array<1, Byte, SYCL>({(SIZE)1});
+      workspace.resize({(SIZE)1}, queue_idx);
     }
   }
 
@@ -1772,7 +1774,9 @@ public:
   MGARDX_CONT static void
   AbsMax(SIZE n, SubArray<1, T, SYCL> v, SubArray<1, T, SYCL> result,
          Array<1, Byte, SYCL> &workspace, int queue_idx) {
-    if (workspace.hasDeviceAllocation()) {
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
+    if (workspace.hasDeviceAllocation() && data_not_null) {
       sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
       q.submit([&](sycl::handler &h) {
         T *res = result.data();
@@ -1783,7 +1787,7 @@ public:
       });
       DeviceRuntime<SYCL>::SyncDevice();
     } else {
-      workspace = Array<1, Byte, SYCL>({(SIZE)1});
+      workspace.resize({(SIZE)1}, queue_idx);
     }
   }
 
@@ -1791,7 +1795,9 @@ public:
   MGARDX_CONT static void
   SquareSum(SIZE n, SubArray<1, T, SYCL> v, SubArray<1, T, SYCL> result,
             Array<1, Byte, SYCL> &workspace, int queue_idx) {
-    if (workspace.hasDeviceAllocation()) {
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
+    if (workspace.hasDeviceAllocation() && data_not_null) {
       sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
       q.submit([&](sycl::handler &h) {
         T *res = result.data();
@@ -1804,7 +1810,7 @@ public:
       });
       DeviceRuntime<SYCL>::SyncDevice();
     } else {
-      workspace = Array<1, Byte, SYCL>({(SIZE)1});
+      workspace.resize({(SIZE)1}, queue_idx);
     }
   }
 
@@ -1830,7 +1836,11 @@ public:
                                     SubArray<1, ValueT, SYCL> out_values,
                                     Array<1, Byte, SYCL> &workspace,
                                     int queue_idx) {
-    if (workspace.hasDeviceAllocation()) {
+
+    bool data_not_null =
+        in_keys.data() != nullptr && in_values.data() != nullptr &&
+        out_keys.data() != nullptr && out_values.data() != nullptr;
+    if (workspace.hasDeviceAllocation() && data_not_null) {
       KeyT *keys_array = new KeyT[n];
       ValueT *values_array = new ValueT[n];
       MemoryManager<SYCL>::Copy1D(keys_array, in_keys.data(), n, 0);
@@ -1853,7 +1863,7 @@ public:
       delete[] keys_array;
       delete[] values_array;
     } else {
-      workspace = Array<1, Byte, SYCL>({(SIZE)1});
+      workspace.resize({(SIZE)1}, queue_idx);
     }
   }
 
