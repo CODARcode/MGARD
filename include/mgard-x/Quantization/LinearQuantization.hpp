@@ -479,9 +479,17 @@ class LinearQuantizer : public QuantizationInterface<D, T, Q, DeviceType> {
 public:
   LinearQuantizer() : initialized(false) {}
 
-  LinearQuantizer(Hierarchy<D, T, DeviceType> hierarchy, Config config)
-      : initialized(true), hierarchy(hierarchy), config(config) {
+  LinearQuantizer(Hierarchy<D, T, DeviceType> &hierarchy, Config config)
+      : initialized(true), hierarchy(&hierarchy), config(config) {
     quantizers_array = Array<1, T, DeviceType>({hierarchy.l_target() + 1});
+  }
+
+  void Adapt(Hierarchy<D, T, DeviceType> &hierarchy, Config config,
+             int queue_idx) {
+    this->initialized = true;
+    this->hierarchy = &hierarchy;
+    this->config = config;
+    quantizers_array.resize({hierarchy.l_target() + 1}, queue_idx);
   }
 
   void CalcQuantizers(size_t dof, T *quantizers, enum error_bound_type type,
@@ -560,18 +568,18 @@ public:
 
     bool prep_huffman =
         config.lossless != lossless_type::CPU_Lossless; // always do Huffman
-    SIZE total_elems = hierarchy.total_num_elems();
+    SIZE total_elems = hierarchy->total_num_elems();
     SubArray<2, SIZE, DeviceType> level_ranges_subarray(
-        hierarchy.level_ranges());
-    SubArray<2, int, DeviceType> level_marks_subarray(hierarchy.level_marks());
+        hierarchy->level_ranges());
+    SubArray<2, int, DeviceType> level_marks_subarray(hierarchy->level_marks());
     SubArray<3, T, DeviceType> level_volumes_subarray(
-        hierarchy.level_volumes(false));
+        hierarchy->level_volumes(false));
     SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
-    T *quantizers = new T[hierarchy.l_target() + 1];
+    T *quantizers = new T[hierarchy->l_target() + 1];
     CalcQuantizers(total_elems, quantizers, ebtype, tol, s, norm,
-                   hierarchy.l_target(), config.decomposition, true);
+                   hierarchy->l_target(), config.decomposition, true);
     MemoryManager<DeviceType>::Copy1D(quantizers_subarray.data(), quantizers,
-                                      hierarchy.l_target() + 1, queue_idx);
+                                      hierarchy->l_target() + 1, queue_idx);
     LENGTH zero = 0;
     MemoryManager<DeviceType>::Copy1D(
         lossless.huffman.workspace.outlier_count_subarray.data(), &zero, 1,
@@ -582,10 +590,10 @@ public:
 
     if (config.reorder) { // only if we need linerization
       quantized_linearized_v_host =
-          new SubArray<1, Q, DeviceType>[hierarchy.l_target() + 1];
+          new SubArray<1, Q, DeviceType>[hierarchy->l_target() + 1];
       SIZE *ranges_h = level_ranges_subarray.dataHost();
       SIZE last_level_size = 0;
-      for (SIZE l = 0; l < hierarchy.l_target() + 1; l++) {
+      for (SIZE l = 0; l < hierarchy->l_target() + 1; l++) {
         SIZE level_size = 1;
         for (DIM d = 0; d < D; d++) {
           level_size *= ranges_h[(l + 1) * D + d];
@@ -596,11 +604,11 @@ public:
       }
 
       MemoryManager<DeviceType>::Malloc1D(quantized_linearized_v,
-                                          hierarchy.l_target() + 1, queue_idx);
+                                          hierarchy->l_target() + 1, queue_idx);
       DeviceRuntime<DeviceType>::SyncDevice();
       MemoryManager<DeviceType>::Copy1D(quantized_linearized_v,
                                         quantized_linearized_v_host,
-                                        hierarchy.l_target() + 1, queue_idx);
+                                        hierarchy->l_target() + 1, queue_idx);
       DeviceRuntime<DeviceType>::SyncDevice();
     }
 
@@ -612,10 +620,11 @@ public:
     while (!done_quantization) {
       DeviceLauncher<DeviceType>::Execute(
           LevelwiseLinearQuantizerKernel<D, T, MGARDX_QUANTIZE, DeviceType>(
-              level_ranges_subarray, level_marks_subarray, hierarchy.l_target(),
-              quantizers_subarray, level_volumes_subarray, s,
-              config.huff_dict_size, original_data, quantized_data,
-              prep_huffman, config.reorder, quantized_linearized_v,
+              level_ranges_subarray, level_marks_subarray,
+              hierarchy->l_target(), quantizers_subarray,
+              level_volumes_subarray, s, config.huff_dict_size, original_data,
+              quantized_data, prep_huffman, config.reorder,
+              quantized_linearized_v,
               lossless.huffman.workspace.outlier_count_subarray,
               lossless.huffman.workspace.outlier_idx_subarray,
               lossless.huffman.workspace.outlier_subarray),
@@ -633,11 +642,11 @@ public:
         if (log::level & log::TIME) {
           timer.end();
           timer.print("Quantization");
-          log::time(
-              "Quantization throughput: " +
-              std::to_string((double)(hierarchy.total_num_elems() * sizeof(T)) /
-                             timer.get() / 1e9) +
-              " GB/s");
+          log::time("Quantization throughput: " +
+                    std::to_string(
+                        (double)(hierarchy->total_num_elems() * sizeof(T)) /
+                        timer.get() / 1e9) +
+                    " GB/s");
           timer.clear();
         }
         log::info("Outlier ratio: " +
@@ -677,34 +686,34 @@ public:
                   SubArray<D, Q, DeviceType> quantized_data,
                   LosslessCompressorType &lossless_compressor, int queue_idx) {
 
-    SIZE total_elems = hierarchy.total_num_elems();
+    SIZE total_elems = hierarchy->total_num_elems();
     MemoryManager<DeviceType>::Copy1D(
         lossless_compressor.huffman.workspace.outlier_count_subarray.data(),
         &lossless_compressor.huffman.workspace.outlier_count, 1, queue_idx);
     SubArray<2, SIZE, DeviceType> level_ranges_subarray(
-        hierarchy.level_ranges());
-    SubArray<2, int, DeviceType> level_marks_subarray(hierarchy.level_marks());
+        hierarchy->level_ranges());
+    SubArray<2, int, DeviceType> level_marks_subarray(hierarchy->level_marks());
     SubArray<3, T, DeviceType> level_volumes_subarray(
-        hierarchy.level_volumes(true));
+        hierarchy->level_volumes(true));
 
     bool prep_huffman = config.lossless != lossless_type::CPU_Lossless;
 
     SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
-    T *quantizers = new T[hierarchy.l_target() + 1];
+    T *quantizers = new T[hierarchy->l_target() + 1];
     CalcQuantizers(total_elems, quantizers, ebtype, tol, s, norm,
-                   hierarchy.l_target(), config.decomposition, false);
+                   hierarchy->l_target(), config.decomposition, false);
     MemoryManager<DeviceType>::Copy1D(quantizers_subarray.data(), quantizers,
-                                      hierarchy.l_target() + 1, queue_idx);
+                                      hierarchy->l_target() + 1, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
     SubArray<1, Q, DeviceType> *quantized_linearized_v_host = nullptr;
     SubArray<1, Q, DeviceType> *quantized_linearized_v = nullptr;
     if (config.reorder) { // only if we need linerization
       quantized_linearized_v_host =
-          new SubArray<1, Q, DeviceType>[hierarchy.l_target() + 1];
+          new SubArray<1, Q, DeviceType>[hierarchy->l_target() + 1];
       SIZE *ranges_h = level_ranges_subarray.dataHost();
       SIZE last_level_size = 0;
-      for (SIZE l = 0; l < hierarchy.l_target() + 1; l++) {
+      for (SIZE l = 0; l < hierarchy->l_target() + 1; l++) {
         SIZE level_size = 1;
         for (DIM d = 0; d < D; d++) {
           level_size *= ranges_h[(l + 1) * D + d];
@@ -715,11 +724,11 @@ public:
       }
 
       MemoryManager<DeviceType>::Malloc1D(quantized_linearized_v,
-                                          hierarchy.l_target() + 1, queue_idx);
+                                          hierarchy->l_target() + 1, queue_idx);
       DeviceRuntime<DeviceType>::SyncDevice();
       MemoryManager<DeviceType>::Copy1D(quantized_linearized_v,
                                         quantized_linearized_v_host,
-                                        hierarchy.l_target() + 1, queue_idx);
+                                        hierarchy->l_target() + 1, queue_idx);
       DeviceRuntime<DeviceType>::SyncDevice();
     }
 
@@ -739,7 +748,7 @@ public:
 
     DeviceLauncher<DeviceType>::Execute(
         LevelwiseLinearQuantizerKernel<D, T, MGARDX_DEQUANTIZE, DeviceType>(
-            level_ranges_subarray, level_marks_subarray, hierarchy.l_target(),
+            level_ranges_subarray, level_marks_subarray, hierarchy->l_target(),
             quantizers_subarray, level_volumes_subarray, s,
             config.huff_dict_size, original_data, quantized_data, prep_huffman,
             config.reorder, quantized_linearized_v,
@@ -754,7 +763,7 @@ public:
       timer.print("Dequantization");
       log::time(
           "Dequantization throughput: " +
-          std::to_string((double)(hierarchy.total_num_elems() * sizeof(T)) /
+          std::to_string((double)(hierarchy->total_num_elems() * sizeof(T)) /
                          timer.get() / 1e9) +
           " GB/s");
       timer.clear();
@@ -768,7 +777,7 @@ public:
   }
 
   bool initialized;
-  Hierarchy<D, T, DeviceType> hierarchy;
+  Hierarchy<D, T, DeviceType> *hierarchy;
   Config config;
   Array<1, T, DeviceType> quantizers_array;
 };

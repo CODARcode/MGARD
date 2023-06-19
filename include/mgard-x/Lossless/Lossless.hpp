@@ -37,6 +37,17 @@ public:
     }
   }
 
+  void Adapt(SIZE n, Config config, int queue_idx) {
+    this->initialized = true;
+    this->n = n;
+    this->config = config;
+    huffman.Resize(n, config.huff_dict_size, config.huff_block_size,
+                   config.estimate_outlier_ratio, queue_idx);
+    if (config.lossless == lossless_type::Huffman_LZ4) {
+      lz4.Resize(n * sizeof(H), queue_idx);
+    }
+  }
+
   static size_t EstimateMemoryFootprint(SIZE primary_count, Config config) {
     size_t size = Huffman<Q, S, H, DeviceType>::EstimateMemoryFootprint(
         primary_count, config.huff_dict_size, config.huff_block_size,

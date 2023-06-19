@@ -34,11 +34,21 @@ public:
   Huffman() : initialized(false) {}
 
   Huffman(SIZE max_size, int dict_size, int chunk_size,
-          double estimated_outlier_ratio = 1.0)
+          double estimated_outlier_ratio)
       : initialized(true), max_size(max_size), dict_size(dict_size),
         chunk_size(chunk_size) {
     workspace = HuffmanWorkspace<Q, S, H, DeviceType>(
         max_size, dict_size, chunk_size, estimated_outlier_ratio);
+  }
+
+  void Resize(SIZE max_size, int dict_size, int chunk_size,
+              double estimated_outlier_ratio, int queue_idx) {
+    this->initialized = true;
+    this->max_size = max_size;
+    this->dict_size = dict_size;
+    this->chunk_size = chunk_size;
+    workspace.resize(max_size, dict_size, chunk_size, estimated_outlier_ratio,
+                     queue_idx);
   }
 
   static size_t EstimateMemoryFootprint(SIZE primary_count, SIZE dict_size,

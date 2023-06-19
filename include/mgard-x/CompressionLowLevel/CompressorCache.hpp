@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <iostream>
 #include <numeric>
+#include <unordered_map>
 #include <vector>
 
 #include "../Utilities/Types.h"
@@ -25,14 +26,58 @@ namespace mgard_x {
 template <DIM D, typename T, typename DeviceType, typename CompressorType>
 class CompressorBundle {
 public:
+  using HierarchyType = typename CompressorType::HierarchyType;
+  HierarchyType * hierarchy;
+  std::unordered_map<std::string, HierarchyType> *hierarchy_cache;
   CompressorType *compressor = nullptr;
   Array<D, T, DeviceType> *device_subdomain_buffer = nullptr;
   Array<1, Byte, DeviceType> *device_compressed_buffer = nullptr;
 
   bool initialized = false;
 
+  std::string GenHierarchyKey(std::vector<SIZE> shape) {
+    std::stringstream ss;
+    for (int i = 0; i < shape.size(); i++) {
+      ss << std::setfill('0') << std::setw(20) << shape[i] << std::fixed;
+    }
+    return ss.str();
+  }
+
+  bool InHierarchyCache(std::vector<SIZE> shape, bool uniform) {
+    if (!uniform)
+      return false;
+    if (hierarchy_cache->find(GenHierarchyKey(shape)) == hierarchy_cache->end())
+      return false;
+    if ((*hierarchy_cache)[GenHierarchyKey(shape)].data_structure() ==
+        data_structure_type::Cartesian_Grid_Non_Uniform) {
+      return false;
+    }
+    return true;
+  }
+
+  void InsertHierarchyCache(HierarchyType hierarchy) {
+    std::vector<SIZE> shape = hierarchy.level_shape(hierarchy.l_target());
+    (*hierarchy_cache)[GenHierarchyKey(shape)] = hierarchy;
+    std::stringstream ss;
+    for (int i = 0; i < shape.size(); i++) {
+      ss << shape[i] << " ";
+    }
+    log::info("Add hierarchy with shape (" + ss.str() + " ) into cache");
+  }
+
+  HierarchyType &GetHierarchyCache(std::vector<SIZE> shape) {
+    std::stringstream ss;
+    for (int i = 0; i < shape.size(); i++) {
+      ss << shape[i] << " ";
+    }
+    log::info("Get hierarchy with shape ( " + ss.str() + ") from cache");
+    return (*hierarchy_cache)[GenHierarchyKey(shape)];
+  }
+
   void Release() {
     log::info("Releasing compressor cache");
+    delete hierarchy;
+    delete hierarchy_cache;
     delete compressor;
     delete[] device_subdomain_buffer;
     delete[] device_compressed_buffer;
@@ -41,6 +86,8 @@ public:
 
   void Initialize() {
     log::info("Initializing compressor cache");
+    hierarchy = new HierarchyType();
+    hierarchy_cache = new std::unordered_map<std::string, HierarchyType>();
     compressor = new CompressorType();
     device_subdomain_buffer = new Array<D, T, DeviceType>[2];
     device_compressed_buffer = new Array<1, Byte, DeviceType>[2];
@@ -63,9 +110,9 @@ public:
     size_t size = 0;
     if (initialized) {
       size += CompressorType::EstimateMemoryFootprint(
-          compressor->hierarchy.level_shape(compressor->hierarchy.l_target()),
+          compressor->hierarchy->level_shape(compressor->hierarchy->l_target()),
           compressor->config);
-      size += compressor->hierarchy.total_num_elems() * sizeof(T) * 4;
+      size += compressor->hierarchy->total_num_elems() * sizeof(T) * 4;
     }
     return size;
   }

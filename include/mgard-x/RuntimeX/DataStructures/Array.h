@@ -45,8 +45,8 @@ public:
   bool hasDeviceAllocation();
   bool hasHostAllocation();
   int resideDevice();
-  void resize(std::vector<SIZE> shape, bool pitched = true,
-              bool managed = false, int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
+  void resize(std::vector<SIZE> shape,
+              int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
 
 private:
   int dev_id;
