@@ -1391,10 +1391,12 @@ public:
   MGARDX_CONT static void
   Sum(SIZE n, SubArray<1, T, OPENMP> v, SubArray<1, T, OPENMP> result,
       Array<1, Byte, OPENMP> &workspace, int queue_idx) {
-    if (workspace.hasDeviceAllocation()) {
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
+    if (workspace.hasDeviceAllocation() && data_not_null) {
       *result((IDX)0) = std::accumulate(v((IDX)0), v((IDX)n), 0);
     } else {
-      workspace = Array<1, Byte, OPENMP>({(SIZE)1});
+      workspace.resize({(SIZE)1}, queue_idx);
     }
   }
 
@@ -1402,14 +1404,16 @@ public:
   MGARDX_CONT static void
   AbsMax(SIZE n, SubArray<1, T, OPENMP> v, SubArray<1, T, OPENMP> result,
          Array<1, Byte, OPENMP> &workspace, int queue_idx) {
-    if (workspace.hasDeviceAllocation()) {
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
+    if (workspace.hasDeviceAllocation() && data_not_null) {
       T max_result = 0;
       for (SIZE i = 0; i < n; ++i) {
         max_result = std::max((T)fabs(*v(i)), max_result);
       }
       *result((IDX)0) = max_result;
     } else {
-      workspace = Array<1, Byte, OPENMP>({(SIZE)1});
+      workspace.resize({(SIZE)1}, queue_idx);
     }
   }
 
@@ -1417,7 +1421,9 @@ public:
   MGARDX_CONT static void
   SquareSum(SIZE n, SubArray<1, T, OPENMP> v, SubArray<1, T, OPENMP> result,
             Array<1, Byte, OPENMP> &workspace, int queue_idx) {
-    if (workspace.hasDeviceAllocation()) {
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
+    if (workspace.hasDeviceAllocation() && data_not_null) {
       T sum_result = 0;
       for (SIZE i = 0; i < n; ++i) {
         T tmp = *v(i);
@@ -1425,7 +1431,7 @@ public:
       }
       *result((IDX)0) = sum_result;
     } else {
-      workspace = Array<1, Byte, OPENMP>({(SIZE)1});
+      workspace.resize({(SIZE)1}, queue_idx);
     }
   }
 
@@ -1434,12 +1440,14 @@ public:
                                            SubArray<1, T, OPENMP> result,
                                            Array<1, Byte, OPENMP> &workspace,
                                            int queue_idx) {
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
     // Need gcc 9 and c++17
 #if (__GNUC__ >= 9)
-    if (workspace.hasDeviceAllocation()) {
+    if (workspace.hasDeviceAllocation() && data_not_null) {
       std::inclusive_scan(v((IDX)0), v((IDX)n), result((IDX)0));
     } else {
-      workspace = Array<1, Byte, OPENMP>({(SIZE)1});
+      workspace.resize({(SIZE)1}, queue_idx);
     }
 #else
     log::err("Please recompile with GCC 9+ to use ScanSumInclusive<OPENMP>.");
@@ -1451,12 +1459,14 @@ public:
                                            SubArray<1, T, OPENMP> result,
                                            Array<1, Byte, OPENMP> &workspace,
                                            int queue_idx) {
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
     // Need gcc 9 and c++17
 #if (__GNUC__ >= 9)
-    if (workspace.hasDeviceAllocation()) {
+    if (workspace.hasDeviceAllocation() && data_not_null) {
       std::exclusive_scan(v((IDX)0), v((IDX)n), result((IDX)0));
     } else {
-      workspace = Array<1, Byte, OPENMP>({(SIZE)1});
+      workspace.resize({(SIZE)1}, queue_idx);
     }
 #else
     log::err("Please recompile with GCC 9+ to use ScanSumExclusive<OPENMP>.");
@@ -1468,13 +1478,15 @@ public:
                                           SubArray<1, T, OPENMP> result,
                                           Array<1, Byte, OPENMP> &workspace,
                                           int queue_idx) {
+
+    bool data_not_null = v.data() != nullptr && result.data() != nullptr;
     // Need gcc 9 and c++17
 #if (__GNUC__ >= 9)
-    if (workspace.hasDeviceAllocation()) {
+    if (workspace.hasDeviceAllocation() && data_not_null) {
       std::inclusive_scan(v((IDX)0), v((IDX)n), result((IDX)1));
       *result((IDX)0) = 0;
     } else {
-      workspace = Array<1, Byte, OPENMP>({(SIZE)1});
+      workspace.resize({(SIZE)1}, queue_idx);
     }
 #else
     log::err("Please recompile with GCC 9+ to use ScanSumExtended<OPENMP>.");
@@ -1488,7 +1500,11 @@ public:
                                     SubArray<1, ValueT, OPENMP> out_values,
                                     Array<1, Byte, OPENMP> &workspace,
                                     int queue_idx) {
-    if (workspace.hasDeviceAllocation()) {
+
+    bool data_not_null =
+        in_keys.data() != nullptr && in_values.data() != nullptr &&
+        out_keys.data() != nullptr && out_values.data() != nullptr;
+    if (workspace.hasDeviceAllocation() && data_not_null) {
       std::vector<std::pair<KeyT, ValueT>> data(n);
       for (SIZE i = 0; i < n; ++i) {
         data[i] = std::pair<KeyT, ValueT>(*in_keys(i), *in_values(i));
@@ -1500,7 +1516,7 @@ public:
         *out_values(i) = data[i].second;
       }
     } else {
-      workspace = Array<1, Byte, OPENMP>({(SIZE)1});
+      workspace.resize({(SIZE)1}, queue_idx);
     }
   }
 };
