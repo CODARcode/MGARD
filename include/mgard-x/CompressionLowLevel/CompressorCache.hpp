@@ -62,7 +62,7 @@ public:
     for (int i = 0; i < shape.size(); i++) {
       ss << shape[i] << " ";
     }
-    log::info("Add hierarchy with shape (" + ss.str() + " ) into cache");
+    log::info("Add hierarchy with shape ( " + ss.str() + ") into cache");
   }
 
   HierarchyType &GetHierarchyCache(std::vector<SIZE> shape) {
