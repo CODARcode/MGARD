@@ -27,7 +27,7 @@ template <DIM D, typename T, typename DeviceType, typename CompressorType>
 class CompressorBundle {
 public:
   using HierarchyType = typename CompressorType::HierarchyType;
-  HierarchyType * hierarchy;
+  HierarchyType *hierarchy;
   std::unordered_map<std::string, HierarchyType> *hierarchy_cache;
   CompressorType *compressor = nullptr;
   Array<D, T, DeviceType> *device_subdomain_buffer = nullptr;
