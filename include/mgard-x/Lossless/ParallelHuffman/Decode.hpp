@@ -140,7 +140,8 @@ private:
 template <typename Q, typename H, bool CACHE_SINGLETION, typename DeviceType>
 class DecodeKernel : public Kernel {
 public:
-  constexpr static bool EnableAutoTuning() { return false; }
+  constexpr static DIM NumDim = 1;
+  using DataType = H;
   constexpr static std::string_view Name = "decode";
   MGARDX_CONT
   DecodeKernel(SubArray<1, H, DeviceType> densely,
@@ -152,6 +153,7 @@ public:
         chunk_size(chunk_size), n_chunk(n_chunk), singleton(singleton),
         singleton_size(singleton_size) {}
 
+  template <SIZE R, SIZE C, SIZE F>
   MGARDX_CONT Task<DecodeFunctor<Q, H, CACHE_SINGLETION, DeviceType>>
   GenTask(int queue_idx) {
     using FunctorType = DecodeFunctor<Q, H, CACHE_SINGLETION, DeviceType>;
@@ -161,9 +163,9 @@ public:
     int nchunk = (len - 1) / chunk_size + 1;
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
-    tbz = 1;
-    tby = 1;
-    tbx = 128; // tBLK_DEFLATE;
+    tbz = R;
+    tby = C;
+    tbx = F;
     gridz = 1;
     gridy = 1;
     gridx = (nchunk - 1) / tbx + 1;
