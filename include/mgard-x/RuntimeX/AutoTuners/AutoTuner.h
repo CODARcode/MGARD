@@ -247,6 +247,12 @@ GetExecutionConfig(std::string_view functor_name) {
     config_idx = AutoTuningTable<DeviceType>::sdck[precision_idx][dim_idx];
   } else if (functor_name == "sdmtk") {
     config_idx = AutoTuningTable<DeviceType>::sdmtk[precision_idx][dim_idx];
+  } else if (functor_name == "encode") {
+    config_idx = AutoTuningTable<DeviceType>::encode[precision_idx][dim_idx];
+  } else if (functor_name == "deflate") {
+    config_idx = AutoTuningTable<DeviceType>::deflate[precision_idx][dim_idx];
+  } else if (functor_name == "decode") {
+    config_idx = AutoTuningTable<DeviceType>::decode[precision_idx][dim_idx];
   } else {
     log::err("Wrong functor_name");
     config_idx = 0;

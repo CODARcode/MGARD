@@ -81,6 +81,15 @@ public:
   static constexpr int sdmtk[num_types][num_dims] = {{0, 0, 0, 0, 0, 0, 0, 0, 0},
                                                       {0, 0, 0, 0, 0, 0, 0, 0, 0}};
 
+  static constexpr int encode[num_types][num_dims] = {{4, 4, 4, 4, 4, 4, 4, 4, 4},
+                                                    {4, 4, 4, 4, 4, 4, 4, 4, 4}};
+
+  static constexpr int deflate[num_types][num_dims] = {{3, 3, 3, 3, 3, 3, 3, 3, 3},
+                                                    {3, 3, 3, 3, 3, 3, 3, 3, 3}};
+
+  static constexpr int decode[num_types][num_dims] = {{3, 3, 3, 3, 3, 3, 3, 3, 3},
+                                                    {3, 3, 3, 3, 3, 3, 3, 3, 3}};
+
 };
 
 template <> class AutoTuner<SYCL> {

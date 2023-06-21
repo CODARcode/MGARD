@@ -95,24 +95,25 @@ private:
 
 template <typename H, typename DeviceType> class DeflateKernel : public Kernel {
 public:
-  constexpr static bool EnableAutoTuning() { return false; }
+  constexpr static DIM NumDim = 1;
+  using DataType = H;
   constexpr static std::string_view Name = "deflate";
   MGARDX_CONT
   DeflateKernel(SubArray<1, H, DeviceType> hcoded,
                 SubArray<1, size_t, DeviceType> densely_meta, int PART_SIZE)
       : hcoded(hcoded), densely_meta(densely_meta), PART_SIZE(PART_SIZE) {}
 
-  MGARDX_CONT
-  Task<DeflateFunctor<H, DeviceType>> GenTask(int queue_idx) {
+  template <SIZE R, SIZE C, SIZE F>
+  MGARDX_CONT Task<DeflateFunctor<H, DeviceType>> GenTask(int queue_idx) {
     using FunctorType = DeflateFunctor<H, DeviceType>;
     FunctorType functor(hcoded, densely_meta, PART_SIZE);
 
     auto nchunk = (hcoded.shape(0) - 1) / PART_SIZE + 1;
     SIZE tbx, tby, tbz, gridx, gridy, gridz;
     size_t sm_size = functor.shared_memory_size();
-    tbz = 1;
-    tby = 1;
-    tbx = tBLK_DEFLATE;
+    tbz = R;
+    tby = C;
+    tbx = F;
     gridz = 1;
     gridy = 1;
     gridx = (nchunk - 1) / tbx + 1;
