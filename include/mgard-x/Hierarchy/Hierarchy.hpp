@@ -432,7 +432,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
 
 template <DIM D, typename T, typename DeviceType>
 size_t
-Hierarchy<D, T, DeviceType>::estimate_memory_usgae(std::vector<SIZE> shape) {
+Hierarchy<D, T, DeviceType>::EstimateMemoryFootprint(std::vector<SIZE> shape) {
 
   size_t estimate_memory_usgae = 0;
   Array<1, T, DeviceType> array_with_pitch({1});
