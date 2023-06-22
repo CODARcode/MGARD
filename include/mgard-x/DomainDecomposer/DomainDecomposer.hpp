@@ -18,20 +18,15 @@ enum class subdomain_copy_direction : uint8_t {
   SubdomainToOriginal
 };
 
-template <DIM D, typename T, typename OperationType, typename DeviceType>
+template <DIM D, typename T, typename CompressorType, typename DeviceType>
 class DomainDecomposer {
 public:
-  size_t estimate_memory_usgae(std::vector<SIZE> shape, double reduction_ratio,
-                               bool enable_prefetch) {
+  size_t EstimateMemoryFootprint(std::vector<SIZE> shape,
+                                 double reduction_ratio, bool enable_prefetch) {
     size_t estimate_memory_usgae = 0;
 
     Array<1, T, DeviceType> array_with_pitch({1});
     size_t pitch_size = array_with_pitch.ld(0) * sizeof(T);
-
-    Hierarchy<D, T, DeviceType> hierarchy;
-    size_t hierarchy_space = hierarchy.estimate_memory_usgae(shape);
-    // log::info("Hierarchy space: " +
-    //           std::to_string((double)hierarchy_space / 1e9));
 
     size_t input_space = roundup((size_t)shape[D - 1] * sizeof(T), pitch_size);
     for (DIM d = 0; d < D - 1; d++) {
@@ -40,28 +35,42 @@ public:
 
     size_t output_space = (double)input_space * reduction_ratio;
 
-    // CompressionLowLevelWorkspace<D, T, DeviceType> compression_workspace;
-    estimate_memory_usgae = hierarchy_space + input_space + output_space;
-    estimate_memory_usgae +=
-        OperationType::EstimateMemoryFootprint(shape, config);
+    estimate_memory_usgae = input_space + output_space;
 
-    // log::info("Compressor space: " +
-    //           std::to_string((double)OperationType::EstimateMemoryFootprint(
-    //                              shape, config) /
-    //                          1e9));
+    log::info("Input output space: " +
+              std::to_string((double)(input_space + output_space) / 1e9) +
+              " GB");
+
+    using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
+    using HierarchyType = typename CompressorType::HierarchyType;
+    if (!Cache::cache.InHierarchyCache(shape, uniform)) {
+      HierarchyType hierarchy;
+      estimate_memory_usgae += hierarchy.EstimateMemoryFootprint(shape);
+      log::info("Hierarchy space: " +
+                std::to_string(
+                    (double)hierarchy.EstimateMemoryFootprint(shape) / 1e9) +
+                " GB");
+    }
 
     // For prefetching
     if (enable_prefetch) {
       estimate_memory_usgae *= 2;
     }
+    estimate_memory_usgae +=
+        CompressorType::EstimateMemoryFootprint(shape, config);
+    log::info("Compressor space: " +
+              std::to_string((double)CompressorType::EstimateMemoryFootprint(
+                                 shape, config) /
+                             1e9) +
+              " GB");
 
     return estimate_memory_usgae;
   }
 
   bool need_domain_decomposition(std::vector<SIZE> shape,
                                  bool enable_prefetch) {
-    using Cache = CompressorCache<D, T, DeviceType, OperationType>;
-    size_t estm = estimate_memory_usgae(shape, 1.0, enable_prefetch);
+    using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
+    size_t estm = EstimateMemoryFootprint(shape, 1.0, enable_prefetch);
     size_t aval =
         std::min((SIZE)DeviceRuntime<DeviceType>::GetAvailableMemory() +
                      Cache::cache.CacheSize(),

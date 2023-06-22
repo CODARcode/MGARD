@@ -274,40 +274,29 @@ enum compress_status_type compress_subdomain(
     timer_series.start();
 
   using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
-  Cache::cache.SafeInitialize();
   using HierarchyType = typename CompressorType::HierarchyType;
-  HierarchyType &hierarchy = *Cache::cache.hierarchy;
   CompressorType &compressor = *Cache::cache.compressor;
   Array<D, T, DeviceType> &device_subdomain_buffer =
       Cache::cache.device_subdomain_buffer[0];
   Array<1, Byte, DeviceType> &device_compressed_buffer =
       Cache::cache.device_compressed_buffer[0];
 
-  if (!compressor.initialized) {
-    log::info("Compressor cache is empty. Creating a new one.");
-    hierarchy = domain_decomposer.subdomain_hierarchy(subdomain_id);
-    compressor = CompressorType(hierarchy, config);
-    device_subdomain_buffer.resize(
-        domain_decomposer.subdomain_shape(subdomain_id));
-    device_compressed_buffer.resize(
-        {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
-
-  } else {
-    if (!domain_decomposer.uniform ||
-        !compressor.hierarchy->can_reuse(
-            domain_decomposer.subdomain_shape(subdomain_id))) {
-      log::info("Compressor cache cannot be reused. Creating a new one.");
-      hierarchy = domain_decomposer.subdomain_hierarchy(subdomain_id);
-      compressor = CompressorType(hierarchy, config);
-      device_subdomain_buffer.resize(
-          domain_decomposer.subdomain_shape(subdomain_id));
-      device_compressed_buffer.resize(
-          {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
-    } else {
-      compressor.config = config;
-      log::info("Reusing compressor cache.");
-    }
+  if (!Cache::cache.InHierarchyCache(
+          domain_decomposer.subdomain_shape(subdomain_id),
+          domain_decomposer.uniform)) {
+    Cache::cache.ClearHierarchyCache();
+    Cache::cache.InsertHierarchyCache(
+        domain_decomposer.subdomain_hierarchy(subdomain_id));
   }
+
+  log::info("Adjust device buffers");
+  std::vector<SIZE> shape = domain_decomposer.subdomain_shape(subdomain_id);
+  SIZE num_elements = 1;
+  for (int i = 0; i < shape.size(); i++)
+    num_elements *= shape[i];
+  device_subdomain_buffer.resize(shape);
+  device_compressed_buffer.resize({num_elements * sizeof(T)});
+
   DeviceRuntime<DeviceType>::SyncDevice();
 
   if (log::level & log::TIME) {
@@ -321,6 +310,12 @@ enum compress_status_type compress_subdomain(
   domain_decomposer.copy_subdomain(
       device_subdomain_buffer, subdomain_id,
       subdomain_copy_direction::OriginalToSubdomain, 0);
+
+  HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(
+      domain_decomposer.subdomain_shape(subdomain_id));
+
+  log::info("Adapt Compressor to hierarchy");
+  compressor.Adapt(hierarchy, config, 0);
 
   std::stringstream ss;
   for (DIM d = 0; d < D; d++) {
@@ -355,9 +350,7 @@ enum compress_status_type compress_subdomain(
   DeviceRuntime<DeviceType>::SyncQueue(0);
   compressed_subdomain_size[dev_id] =
       device_compressed_buffer.shape(0) + sizeof(SIZE);
-  DeviceRuntime<DeviceType>::SyncDevice();
-  if (!config.cache_compressor)
-    Cache::cache.SafeRelease();
+
   if (log::level & log::TIME) {
     timer_series.end();
     timer_series.print("Compress single subdomain");
@@ -446,13 +439,17 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
     timer_series.start();
 
   using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
-  Cache::cache.SafeInitialize();
   using HierarchyType = typename CompressorType::HierarchyType;
   CompressorType &compressor = *Cache::cache.compressor;
   Array<D, T, DeviceType> *device_subdomain_buffer =
       Cache::cache.device_subdomain_buffer;
   Array<1, Byte, DeviceType> *device_compressed_buffer =
       Cache::cache.device_compressed_buffer;
+
+  if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(0),
+                                     domain_decomposer.uniform)) {
+    Cache::cache.ClearHierarchyCache();
+  }
 
   for (SIZE i = 0; i < subdomain_ids.size(); i++) {
     SIZE id = subdomain_ids[i];
@@ -549,8 +546,6 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
     current_queue = next_queue;
   }
   DeviceRuntime<DeviceType>::SyncDevice();
-  if (!config.cache_compressor)
-    Cache::cache.SafeRelease();
   if (log::level & log::TIME) {
     timer_series.end();
     timer_series.print("Compress subdomains series with prefetch");
@@ -571,41 +566,29 @@ enum compress_status_type decompress_subdomain(
     timer_series.start();
 
   using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
-
-  Cache::cache.SafeInitialize();
   using HierarchyType = typename CompressorType::HierarchyType;
-  HierarchyType &hierarchy = *Cache::cache.hierarchy;
   CompressorType &compressor = *Cache::cache.compressor;
   Array<D, T, DeviceType> &device_subdomain_buffer =
       Cache::cache.device_subdomain_buffer[0];
   Array<1, Byte, DeviceType> &device_compressed_buffer =
       Cache::cache.device_compressed_buffer[0];
 
-  if (!compressor.initialized) {
-    log::info("Compressor cache is empty. Creating a new one.");
-    hierarchy = domain_decomposer.subdomain_hierarchy(subdomain_id);
-    compressor = CompressorType(hierarchy, config);
-    device_subdomain_buffer.resize(
-        domain_decomposer.subdomain_shape(subdomain_id));
-    device_compressed_buffer.resize(
-        {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
-
-  } else {
-    if (!domain_decomposer.uniform ||
-        !compressor.hierarchy->can_reuse(
-            domain_decomposer.subdomain_shape(subdomain_id))) {
-      log::info("Compressor cache cannot be reused. Creating a new one.");
-      hierarchy = domain_decomposer.subdomain_hierarchy(subdomain_id);
-      compressor = CompressorType(hierarchy, config);
-      device_subdomain_buffer.resize(
-          domain_decomposer.subdomain_shape(subdomain_id));
-      device_compressed_buffer.resize(
-          {(SIZE)(hierarchy.total_num_elems() * sizeof(T))});
-    } else {
-      compressor.config = config;
-      log::info("Reusing compressor cache.");
-    }
+  if (!Cache::cache.InHierarchyCache(
+          domain_decomposer.subdomain_shape(subdomain_id),
+          domain_decomposer.uniform)) {
+    Cache::cache.ClearHierarchyCache();
+    Cache::cache.InsertHierarchyCache(
+        domain_decomposer.subdomain_hierarchy(subdomain_id));
   }
+
+  log::info("Adjust device buffers");
+  std::vector<SIZE> shape = domain_decomposer.subdomain_shape(subdomain_id);
+  SIZE num_elements = 1;
+  for (int i = 0; i < shape.size(); i++)
+    num_elements *= shape[i];
+  device_subdomain_buffer.resize(shape);
+  device_compressed_buffer.resize({num_elements * sizeof(T)});
+
   DeviceRuntime<DeviceType>::SyncDevice();
 
   if (log::level & log::TIME) {
@@ -633,6 +616,12 @@ enum compress_status_type decompress_subdomain(
                                     compressed_data, compressed_size, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
 
+  HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(
+      domain_decomposer.subdomain_shape(subdomain_id));
+
+  log::info("Adapt Compressor to hierarchy");
+  compressor.Adapt(hierarchy, config, 0);
+
   std::stringstream ss;
   for (DIM d = 0; d < D; d++) {
     ss << compressor.hierarchy->level_shape(compressor.hierarchy->l_target(), d)
@@ -647,9 +636,6 @@ enum compress_status_type decompress_subdomain(
       device_subdomain_buffer, subdomain_id,
       subdomain_copy_direction::SubdomainToOriginal, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
-  DeviceRuntime<DeviceType>::SyncDevice();
-  if (!config.cache_compressor)
-    Cache::cache.SafeRelease();
   if (log::level & log::TIME) {
     timer_series.end();
     timer_series.print("Decompress single subdomain");
@@ -738,12 +724,16 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
   SIZE byte_offset = 0;
   using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
   using HierarchyType = typename CompressorType::HierarchyType;
-  Cache::cache.SafeInitialize();
   CompressorType &compressor = *Cache::cache.compressor;
   Array<D, T, DeviceType> *device_subdomain_buffer =
       Cache::cache.device_subdomain_buffer;
   Array<1, Byte, DeviceType> *device_compressed_buffer =
       Cache::cache.device_compressed_buffer;
+
+  if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(0),
+                                     domain_decomposer.uniform)) {
+    Cache::cache.ClearHierarchyCache();
+  }
 
   for (SIZE i = 0; i < subdomain_ids.size(); i++) {
     SIZE id = subdomain_ids[i];
@@ -868,8 +858,6 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
       subdomain_copy_direction::SubdomainToOriginal, previous_queue);
 
   DeviceRuntime<DeviceType>::SyncDevice();
-  if (!config.cache_compressor)
-    Cache::cache.SafeRelease();
   if (log::level & log::TIME) {
     timer_series.end();
     timer_series.print("Decompress subdomains series with prefetch");
@@ -998,6 +986,9 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
   Timer timer_total, timer_each;
   if (log::level & log::TIME)
     timer_total.start();
+
+  using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
+  Cache::cache.SafeInitialize();
 
   DomainDecomposer<D, T, CompressorType, DeviceType> domain_decomposer;
   if (uniform) {
@@ -1256,6 +1247,9 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
     MemoryManager<DeviceType>::HostUnregister((void *)compressed_data);
   }
 
+  if (!config.cache_compressor)
+    Cache::cache.SafeRelease();
+
   if (log::level & log::TIME) {
     timer_each.end();
     timer_each.print("Serialization");
@@ -1343,6 +1337,10 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
     timer_total.start();
   if (log::level & log::TIME)
     timer_each.start();
+
+  using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
+  Cache::cache.SafeInitialize();
+
   // Use consistance memory space between input and output data
   if (!output_pre_allocated) {
     if (MemoryManager<DeviceType>::IsDevicePointer(compressed_data)) {
@@ -1544,6 +1542,9 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
     for (DIM d = 0; d < D; d++)
       delete[] coords[d];
   }
+
+  if (!config.cache_compressor)
+    Cache::cache.SafeRelease();
 
   if (log::level & log::TIME) {
     timer_total.end();

@@ -44,15 +44,19 @@ public:
   }
 
   bool InHierarchyCache(std::vector<SIZE> shape, bool uniform) {
-    if (!uniform)
+    if (!initialized) {
       return false;
-    if (hierarchy_cache->find(GenHierarchyKey(shape)) == hierarchy_cache->end())
+    } else if (!uniform) {
       return false;
-    if ((*hierarchy_cache)[GenHierarchyKey(shape)].data_structure() ==
-        data_structure_type::Cartesian_Grid_Non_Uniform) {
+    } else if (hierarchy_cache->find(GenHierarchyKey(shape)) ==
+               hierarchy_cache->end()) {
       return false;
+    } else if ((*hierarchy_cache)[GenHierarchyKey(shape)].data_structure() ==
+               data_structure_type::Cartesian_Grid_Non_Uniform) {
+      return false;
+    } else {
+      return true;
     }
-    return true;
   }
 
   void InsertHierarchyCache(HierarchyType hierarchy) {
@@ -84,6 +88,14 @@ public:
     initialized = false;
   }
 
+  void ClearHierarchyCache() {
+    log::info("Clear hierarchy cache");
+    if (hierarchy_cache) {
+      delete hierarchy_cache;
+    }
+    hierarchy_cache = new std::unordered_map<std::string, HierarchyType>();
+  }
+
   void Initialize() {
     log::info("Initializing compressor cache");
     hierarchy = new HierarchyType();
@@ -109,10 +121,18 @@ public:
   size_t CacheSize() {
     size_t size = 0;
     if (initialized) {
-      size += CompressorType::EstimateMemoryFootprint(
-          compressor->hierarchy->level_shape(compressor->hierarchy->l_target()),
-          compressor->config);
-      size += compressor->hierarchy->total_num_elems() * sizeof(T) * 4;
+      for (auto &item : *hierarchy_cache) {
+        HierarchyType &_hierarchy = item.second;
+        size += _hierarchy.EstimateMemoryFootprint(
+            _hierarchy.level_shape(_hierarchy.l_target()));
+      }
+      if (compressor->initialized) {
+        size += CompressorType::EstimateMemoryFootprint(
+            compressor->hierarchy->level_shape(
+                compressor->hierarchy->l_target()),
+            compressor->config);
+        size += compressor->hierarchy->total_num_elems() * sizeof(T) * 4;
+      }
     }
     return size;
   }
