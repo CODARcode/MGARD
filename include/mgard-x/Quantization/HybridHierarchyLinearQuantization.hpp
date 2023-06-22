@@ -261,8 +261,8 @@ public:
 
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape) {
     Hierarchy<D, T, DeviceType> hierarchy;
+    hierarchy.EstimateMemoryFootprint(shape);
     size_t size = 0;
-    size += hierarchy->estimate_memory_usgae(shape);
     size += sizeof(T) * (hierarchy->l_target() + 1);
     return size;
   }

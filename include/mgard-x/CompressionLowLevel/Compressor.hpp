@@ -59,11 +59,9 @@ void Compressor<D, T, DeviceType>::Adapt(Hierarchy<D, T, DeviceType> &hierarchy,
   this->initialized = true;
   this->hierarchy = &hierarchy;
   this->config = config;
-  DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   refactor.Adapt(hierarchy, config, queue_idx);
   lossless_compressor.Adapt(hierarchy.total_num_elems(), config, queue_idx);
   quantizer.Adapt(hierarchy, config, queue_idx);
-  DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   norm_array.resize({1}, queue_idx);
   // Reuse workspace. Warning:
   if (sizeof(QUANTIZED_INT) <= sizeof(T)) {
@@ -85,7 +83,8 @@ size_t
 Compressor<D, T, DeviceType>::EstimateMemoryFootprint(std::vector<SIZE> shape,
                                                       Config config) {
   Hierarchy<D, T, DeviceType> hierarchy;
-  size_t size = hierarchy.estimate_memory_usgae(shape);
+  hierarchy.EstimateMemoryFootprint(shape);
+  size_t size = 0;
   size += DataRefactorType::EstimateMemoryFootprint(shape);
   size += LinearQuantizerType::EstimateMemoryFootprint(shape);
   size += LosslessCompressorType::EstimateMemoryFootprint(

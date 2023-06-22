@@ -96,7 +96,8 @@ template <DIM D, typename T, typename DeviceType>
 size_t HybridHierarchyCompressor<D, T, DeviceType>::EstimateMemoryFootprint(
     std::vector<SIZE> shape, Config config) {
   Hierarchy<D, T, DeviceType> hierarchy;
-  size_t size = hierarchy.estimate_memory_usgae(shape);
+  hierarchy.EstimateMemoryFootprint(shape);
+  size_t size = 0;
   size += DataRefactorType::EstimateMemoryFootprint(shape);
   size += LinearQuantizerType::EstimateMemoryFootprint(shape);
   size += LosslessCompressorType::EstimateMemoryFootprint(
