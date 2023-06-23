@@ -77,7 +77,14 @@ public:
                  config.max_memory_footprint);
     log::info("Estimated memory usage: " + std::to_string((double)estm / 1e9) +
               "GB, Available: " + std::to_string((double)aval / 1e9) + "GB");
-    return estm >= aval;
+    bool need = estm >= aval;
+    if (need) {
+      // Fast copy for domain decomposition need we disable pitched memory
+      // allocation
+      log::info("ReduceMemoryFootprint set to 1");
+      MemoryManager<DeviceType>::ReduceMemoryFootprint = true;
+    }
+    return need;
   }
 
   std::vector<SIZE> dim_num_subdomain() {
@@ -482,6 +489,10 @@ public:
       this->_num_subdomains = 1;
       log::info("DomainDecomposer: no decomposition used");
     } else {
+      // Fast copy for domain decomposition need we disable pitched memory
+      // allocation
+      log::info("ReduceMemoryFootprint set to 1");
+      MemoryManager<DeviceType>::ReduceMemoryFootprint = true;
       if (config.domain_decomposition == domain_decomposition_type::MaxDim ||
           config.domain_decomposition ==
               domain_decomposition_type::TemporalDim) {
@@ -539,6 +550,10 @@ public:
       this->_num_subdomains = 1;
       log::info("DomainDecomposer: no decomposition used");
     } else {
+      // Fast copy for domain decomposition need we disable pitched memory
+      // allocation
+      log::info("ReduceMemoryFootprint set to 1");
+      MemoryManager<DeviceType>::ReduceMemoryFootprint = true;
       if (config.domain_decomposition == domain_decomposition_type::MaxDim ||
           config.domain_decomposition ==
               domain_decomposition_type::TemporalDim) {
