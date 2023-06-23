@@ -956,12 +956,6 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
   for (int i = 0; i < D; i++)
     total_num_elem *= shape[i];
 
-  if (0) {
-    char *data = (char *)original_data;
-    std::ofstream f("iter0.bin", std::ios::out | std::ios::binary);
-    f.write(data, total_num_elem * sizeof(T));
-  }
-
   config.apply();
 
   log::info("adjust_shape: " + std::to_string(config.adjust_shape));
@@ -989,6 +983,14 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
 
   using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
   Cache::cache.SafeInitialize();
+
+  bool reduce_memory_footprint_original =
+      MemoryManager<DeviceType>::ReduceMemoryFootprint;
+  if (MemoryManager<DeviceType>::ReduceMemoryFootprint) {
+    log::info("Original ReduceMemoryFootprint: 1");
+  } else {
+    log::info("Original ReduceMemoryFootprint: 0");
+  }
 
   DomainDecomposer<D, T, CompressorType, DeviceType> domain_decomposer;
   if (uniform) {
@@ -1034,9 +1036,6 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
                                    domain_decomposer.num_subdomains());
     // Force to use ABS mode when do domain decomposition
     local_ebtype = error_bound_type::ABS;
-    // Fast copy for domain decomposition need we disable pitched memory
-    // allocation
-    MemoryManager<DeviceType>::ReduceMemoryFootprint = true;
     if (log::level & log::TIME) {
       timer_each.end();
       timer_each.print("Calculate norm of decomposed domain");
@@ -1250,6 +1249,14 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
   if (!config.cache_compressor)
     Cache::cache.SafeRelease();
 
+  MemoryManager<DeviceType>::ReduceMemoryFootprint =
+      reduce_memory_footprint_original;
+  if (MemoryManager<DeviceType>::ReduceMemoryFootprint) {
+    log::info("ReduceMemoryFootprint restored to 1");
+  } else {
+    log::info("ReduceMemoryFootprint restored to 0");
+  }
+
   if (log::level & log::TIME) {
     timer_each.end();
     timer_each.print("Serialization");
@@ -1340,6 +1347,14 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
 
   using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
   Cache::cache.SafeInitialize();
+
+  bool reduce_memory_footprint_original =
+      MemoryManager<DeviceType>::ReduceMemoryFootprint;
+  if (MemoryManager<DeviceType>::ReduceMemoryFootprint) {
+    log::info("Original ReduceMemoryFootprint: 1");
+  } else {
+    log::info("Original ReduceMemoryFootprint: 0");
+  }
 
   // Use consistance memory space between input and output data
   if (!output_pre_allocated) {
@@ -1443,9 +1458,6 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
                                    domain_decomposer.num_subdomains());
     // Force to use ABS mode when do domain decomposition
     local_ebtype = error_bound_type::ABS;
-    // Fast copy for domain decomposition need we disable pitched memory
-    // allocation
-    MemoryManager<DeviceType>::ReduceMemoryFootprint = true;
   }
 
   // Deserialize compressed data
@@ -1545,6 +1557,14 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
 
   if (!config.cache_compressor)
     Cache::cache.SafeRelease();
+
+  MemoryManager<DeviceType>::ReduceMemoryFootprint =
+      reduce_memory_footprint_original;
+  if (MemoryManager<DeviceType>::ReduceMemoryFootprint) {
+    log::info("ReduceMemoryFootprint restored to 1");
+  } else {
+    log::info("ReduceMemoryFootprint restored to 0");
+  }
 
   if (log::level & log::TIME) {
     timer_total.end();
