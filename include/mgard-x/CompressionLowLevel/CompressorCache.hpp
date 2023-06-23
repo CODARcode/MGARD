@@ -27,7 +27,6 @@ template <DIM D, typename T, typename DeviceType, typename CompressorType>
 class CompressorBundle {
 public:
   using HierarchyType = typename CompressorType::HierarchyType;
-  HierarchyType *hierarchy;
   std::unordered_map<std::string, HierarchyType> *hierarchy_cache;
   CompressorType *compressor = nullptr;
   Array<D, T, DeviceType> *device_subdomain_buffer = nullptr;
@@ -80,7 +79,6 @@ public:
 
   void Release() {
     log::info("Releasing compressor cache");
-    delete hierarchy;
     delete hierarchy_cache;
     delete compressor;
     delete[] device_subdomain_buffer;
@@ -98,7 +96,6 @@ public:
 
   void Initialize() {
     log::info("Initializing compressor cache");
-    hierarchy = new HierarchyType();
     hierarchy_cache = new std::unordered_map<std::string, HierarchyType>();
     compressor = new CompressorType();
     device_subdomain_buffer = new Array<D, T, DeviceType>[2];
