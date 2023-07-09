@@ -22,13 +22,19 @@ public:
     double time =
         (double)(end_time.tv_sec - start_time.tv_sec) +
         (double)(end_time.tv_nsec - start_time.tv_nsec) / (double)1000000000;
-    clear();
     return time;
   }
+
+  double get_throughput(SIZE n) { return (double)n / get() / 1e9; }
+
   void clear() { total_time = 0; }
   void print(std::string s) {
     log::time(s + " time: " + std::to_string(total_time) + " s");
-    clear();
+  }
+
+  void print_throughput(std::string s, SIZE n) {
+    log::time(s + " throughput: " + std::to_string(get_throughput(n)) +
+              " GB/s");
   }
 
 private:
