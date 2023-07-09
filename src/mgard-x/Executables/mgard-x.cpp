@@ -390,19 +390,16 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   //        original_size * sizeof(T), compressed_size,
   //        (double)original_size * sizeof(T) / compressed_size);
 
-  if (verbose) {
-    config.log_level = verbose_to_log_level(verbose);
-    void *decompressed_data = malloc(original_size * sizeof(T));
-    mgard_x::pin_memory(decompressed_data, original_size * sizeof(T), config);
-    mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
-                        config, true);
+  void *decompressed_data = malloc(original_size * sizeof(T));
+  mgard_x::pin_memory(decompressed_data, original_size * sizeof(T), config);
+  mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
+                      config, true);
 
-    print_statistics<T>(s, mode, shape, original_data, (T *)decompressed_data,
-                        tol, config.normalize_coordinates);
+  print_statistics<T>(s, mode, shape, original_data, (T *)decompressed_data,
+                      tol, config.normalize_coordinates);
 
-    mgard_x::unpin_memory(decompressed_data, config);
-    delete[](T *) decompressed_data;
-  }
+  mgard_x::unpin_memory(decompressed_data, config);
+  free(decompressed_data);
 
   mgard_x::unpin_memory(original_data, config);
   mgard_x::unpin_memory(compressed_data, config);

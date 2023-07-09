@@ -297,6 +297,7 @@ public:
     // outlier
     DeserializeArray<LENGTH>(compressed_subarray, outlier_count_ptr, 1,
                              byte_offset, false, queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     DeserializeArray<LENGTH>(compressed_subarray, outlier_idx,
                              workspace.outlier_count, byte_offset, true,
                              queue_idx);
