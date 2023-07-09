@@ -33,7 +33,7 @@ public:
     static_assert(!std::is_floating_point<T>::value,
                   "ComposedLosslessCompressor: Type of T must be integer.");
     if (config.lossless == lossless_type::Huffman_LZ4) {
-      lz4 = LZ4<DeviceType>(n * sizeof(H));
+      lz4 = LZ4<DeviceType>(n * sizeof(H), config.lz4_block_size);
     }
   }
 
@@ -44,7 +44,7 @@ public:
     huffman.Resize(n, config.huff_dict_size, config.huff_block_size,
                    config.estimate_outlier_ratio, queue_idx);
     if (config.lossless == lossless_type::Huffman_LZ4) {
-      lz4.Resize(n * sizeof(H), queue_idx);
+      lz4.Resize(n * sizeof(H), config.lz4_block_size, queue_idx);
     }
   }
 
@@ -53,8 +53,8 @@ public:
         primary_count, config.huff_dict_size, config.huff_block_size,
         config.estimate_outlier_ratio);
     if (config.lossless == lossless_type::Huffman_LZ4) {
-      size +=
-          LZ4<DeviceType>::EstimateMemoryFootprint(primary_count * sizeof(H));
+      size += LZ4<DeviceType>::EstimateMemoryFootprint(
+          primary_count * sizeof(H), config.lz4_block_size);
     }
     return size;
   }
@@ -65,7 +65,7 @@ public:
     huffman.CompressPrimary(original_data, compressed_data, queue_idx);
 
     if (config.lossless == lossless_type::Huffman_LZ4) {
-      lz4.Compress(compressed_data, config.lz4_block_size, queue_idx);
+      lz4.Compress(compressed_data, queue_idx);
     }
 
     if (config.lossless == lossless_type::Huffman_Zstd) {
