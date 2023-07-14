@@ -178,8 +178,8 @@ namespace {
 
 std::uint_least32_t compute_crc32(void const *const data,
                                   const std::size_t size) {
-  // `crc32_z` takes a `z_size_t`.
-  if (size > std::numeric_limits<z_size_t>::max()) {
+  // `crc32_z` takes a `size_t`.
+  if (size > std::numeric_limits<size_t>::max()) {
     throw std::runtime_error("buffer is too large (size would overflow)");
   }
   uLong crc32_ = crc32_z(0, Z_NULL, 0);
