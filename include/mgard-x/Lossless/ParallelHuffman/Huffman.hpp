@@ -63,8 +63,10 @@ public:
                        int queue_idx) {
 
     Timer timer;
-    if (log::level & log::TIME)
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.start();
+    }
 
     SubArray primary_subarray(primary_data);
     workspace.reset(queue_idx);
@@ -236,6 +238,7 @@ public:
         ")");
 
     if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.end();
       timer.print("Huffman compress");
       log::info("Huffman compression throughput: " +
@@ -249,8 +252,10 @@ public:
   void DecompressPrimary(Array<1, Byte, DeviceType> &compressed_data,
                          Array<1, Q, DeviceType> &primary_data, int queue_idx) {
     Timer timer;
-    if (log::level & log::TIME)
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.start();
+    }
     SubArray compressed_subarray(compressed_data);
     size_t primary_count;
     int dict_size;
@@ -322,6 +327,7 @@ public:
         chunk_size, nchunk, decodebook_subarray, decodebook_size, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.end();
       timer.print("Huffman decompress");
       log::info("Huffman decompression throughput: " +
@@ -336,8 +342,10 @@ public:
                 Array<1, Byte, DeviceType> &compressed_data, int queue_idx) {
 
     Timer timer;
-    if (log::level & log::TIME)
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.start();
+    }
 
     DeviceLauncher<DeviceType>::Execute(
         DictionaryShiftKernel<S, MGARDX_SHIFT_DICT, DeviceType>(
@@ -366,6 +374,7 @@ public:
     }
 
     if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.end();
       timer.print("Huffman outlier");
       timer.clear();
@@ -387,8 +396,10 @@ public:
     DecompressPrimary(compressed_data, primary_data, queue_idx);
 
     Timer timer;
-    if (log::level & log::TIME)
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.start();
+    }
 
     DeviceLauncher<DeviceType>::Execute(
         OutlierSeparatorKernel<S, MGARDX_RESTORE_OUTLIER, DeviceType>(
@@ -403,6 +414,7 @@ public:
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
     if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.end();
       timer.print("Huffman outlier");
       timer.clear();
