@@ -142,9 +142,9 @@ public:
     diagonal_path_intersections_array =
         Array<1, uint32_t, DeviceType>({2 * (mblocks + 1)});
 
-    outlier_count_array.memset(0);
-    outlier_idx_array.memset(0);
-    outlier_array.memset(0);
+    // outlier_count_array.memset(0);
+    // outlier_idx_array.memset(0);
+    // outlier_array.memset(0);
 
     initialize_subarray();
 
@@ -197,9 +197,9 @@ public:
                     DeviceRuntime<DeviceType>::GetWarpSize()) *
                    DeviceRuntime<DeviceType>::GetNumSMs();
     diagonal_path_intersections_array.resize({2 * (mblocks + 1)}, queue_idx);
-    outlier_count_array.memset(0, queue_idx);
-    outlier_idx_array.memset(0, queue_idx);
-    outlier_array.memset(0, queue_idx);
+    // outlier_count_array.memset(0, queue_idx);
+    // outlier_idx_array.memset(0, queue_idx);
+    // outlier_array.memset(0, queue_idx);
     initialize_subarray();
     pre_allocated = true;
   }
@@ -209,7 +209,7 @@ public:
     freq_array.memset(0, queue_idx);
     codebook_array.memset(0, queue_idx);
     decodebook_array.memset(0xff, queue_idx);
-    huff_array.memset(0, queue_idx);
+    // huff_array.memset(0, queue_idx);
     huff_bitwidths_array.memset(0, queue_idx);
     first_nonzero_index_array.memset(0xff, queue_idx);
     CL_array.memset(0, queue_idx);
