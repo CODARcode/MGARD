@@ -613,8 +613,10 @@ public:
     }
 
     Timer timer;
-    if (log::level & log::TIME)
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.start();
+    }
 
     bool done_quantization = false;
     while (!done_quantization) {
@@ -640,6 +642,7 @@ public:
         // outlier buffer has sufficient size
         done_quantization = true;
         if (log::level & log::TIME) {
+          DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
           timer.end();
           timer.print("Quantization");
           log::time("Quantization throughput: " +
@@ -733,8 +736,10 @@ public:
     }
 
     Timer timer;
-    if (log::level & log::TIME)
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.start();
+    }
 
     if (prep_huffman && lossless_compressor.huffman.workspace.outlier_count) {
       DeviceLauncher<DeviceType>::Execute(

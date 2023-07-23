@@ -336,8 +336,10 @@ public:
   void Compress(Array<1, Byte, DeviceType> &data, int queue_idx) {
 #ifdef MGARDX_COMPILE_CUDA
     Timer timer;
-    if (log::level & log::TIME)
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.start();
+    }
     // Make a copy of the input data
     input_data.resize({data.shape(0)}, queue_idx);
     MemoryManager<DeviceType>::Copy1D(input_data.data(), data.data(),
@@ -364,6 +366,7 @@ public:
               std::to_string((double)(input_count) / output_data.shape(0)) +
               ")");
     if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.end();
       timer.print("LZ4 compress");
       timer.print_throughput("LZ4 compress", input_count);
@@ -379,8 +382,10 @@ public:
   void Decompress(Array<1, Byte, DeviceType> &data, int queue_idx) {
 #ifdef MGARDX_COMPILE_CUDA
     Timer timer;
-    if (log::level & log::TIME)
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.start();
+    }
     // Make a copy of the input data
     input_data.resize({data.shape(0)}, queue_idx);
     MemoryManager<DeviceType>::Copy1D(input_data.data(), data.data(),
@@ -397,8 +402,8 @@ public:
     nvcomp_manager.decompress(output_data.data(), input_data.data(),
                               decomp_config);
     output_data.shape(0) = decomp_config.decomp_data_size;
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.end();
       timer.print("LZ4 decompress");
       timer.print_throughput("LZ4 decompress", output_data.shape(0));

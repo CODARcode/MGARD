@@ -73,8 +73,10 @@ public:
   void Decompose(SubArray<D, T, DeviceType> data, int start_level,
                  int stop_level, int queue_idx) {
     Timer timer;
-    if (log::level & log::TIME)
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.start();
+    }
     SubArray<D, T, DeviceType> w_subarray(w_array);
     SubArray<D, T, DeviceType> b_subarray;
     if (D > 3) {
@@ -105,8 +107,10 @@ public:
   void Recompose(SubArray<D, T, DeviceType> data, int start_level,
                  int stop_level, int queue_idx) {
     Timer timer;
-    if (log::level & log::TIME)
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.start();
+    }
     SubArray<D, T, DeviceType> w_subarray(w_array);
     SubArray<D, T, DeviceType> b_subarray;
     if (D > 3)

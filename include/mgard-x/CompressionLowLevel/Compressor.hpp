@@ -176,8 +176,10 @@ void Compressor<D, T, DeviceType>::Compress(
     }
   }
 
-  if (log::level & log::TIME)
+  if (log::level & log::TIME) {
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer_total.start();
+  }
 
   CalculateNorm(original_data, ebtype, s, norm, queue_idx);
   Decompose(original_data, queue_idx);
@@ -189,7 +191,7 @@ void Compressor<D, T, DeviceType>::Compress(
   }
 
   if (log::level & log::TIME) {
-    DeviceRuntime<DeviceType>::SyncQueue(0);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer_total.end();
     timer_total.print("Low-level compression");
     log::time(
@@ -212,8 +214,10 @@ void Compressor<D, T, DeviceType>::Decompress(
   log::info("Select device: " + DeviceRuntime<DeviceType>::GetDeviceName());
   Timer timer_total, timer_each;
 
-  if (log::level & log::TIME)
+  if (log::level & log::TIME) {
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer_total.start();
+  }
 
   decompressed_data.resize(hierarchy->level_shape(hierarchy->l_target()));
   LosslessDecompress(compressed_data, queue_idx);
@@ -221,7 +225,7 @@ void Compressor<D, T, DeviceType>::Decompress(
   Recompose(decompressed_data, queue_idx);
 
   if (log::level & log::TIME) {
-    DeviceRuntime<DeviceType>::SyncQueue(0);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer_total.end();
     timer_total.print("Low-level decompression");
     log::time(
