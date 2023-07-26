@@ -16,11 +16,11 @@ module load cmake
 # Source directory
 mgard_x_src_dir=.
 # Build directory
-build_dir=./build-hip-crusher
+build_dir=./build-hip-frontier
 # Number of processors used for building
 num_build_procs=$1
 # Installtaion directory
-install_dir=./install-hip-crusher
+install_dir=./install-hip-frontier
 
 export LD_LIBRARY_PATH=$(pwd)/${install_dir}/lib:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$(pwd)/${install_dir}/lib64:$LD_LIBRARY_PATH
