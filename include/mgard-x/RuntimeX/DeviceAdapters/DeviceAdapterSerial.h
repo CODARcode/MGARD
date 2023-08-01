@@ -693,6 +693,18 @@ public:
 template <> class DeviceQueues<SERIAL> {
 public:
   MGARDX_CONT
+  void Initialize() {
+    log::dbg("Calling DeviceQueues<SERIAL>::Initialize");
+    initialized = true;
+  }
+
+  MGARDX_CONT
+  void Destroy() {
+    log::dbg("Calling DeviceQueues<SERIAL>::Destroy");
+    initialized = false;
+  }
+
+  MGARDX_CONT
   DeviceQueues() {
     // do nothing
   }
@@ -711,6 +723,7 @@ public:
   ~DeviceQueues() {
     // do nothing
   }
+  int initialized = false;
 };
 
 extern int serial_dev_id;
@@ -720,6 +733,10 @@ template <> class DeviceRuntime<SERIAL> {
 public:
   MGARDX_CONT
   DeviceRuntime() {}
+
+  MGARDX_CONT static void Initialize() { queues.Initialize(); }
+
+  MGARDX_CONT static void Destroy() { queues.Destroy(); }
 
   MGARDX_CONT static int GetDeviceCount() { return DeviceSpecs.NumDevices; }
 

@@ -481,45 +481,60 @@ public:
 template <> class DeviceQueues<HIP> {
 public:
   MGARDX_CONT
-  DeviceQueues() {
-    hipGetDeviceCount(&NumDevices);
-    streams = new hipStream_t *[NumDevices];
-    for (int d = 0; d < NumDevices; d++) {
-      gpuErrchk(hipSetDevice(d));
-      streams[d] = new hipStream_t[MGARDX_NUM_QUEUES];
-      for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
-        gpuErrchk(hipStreamCreate(&streams[d][i]));
+  void Initialize() {
+    if (!initialized) {
+      log::dbg("Calling DeviceQueues<HIP>::Initialize");
+      hipGetDeviceCount(&NumDevices);
+      streams = new hipStream_t *[NumDevices];
+      for (int d = 0; d < NumDevices; d++) {
+        gpuErrchk(hipSetDevice(d));
+        streams[d] = new hipStream_t[MGARDX_NUM_QUEUES];
+        for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
+          gpuErrchk(hipStreamCreate(&streams[d][i]));
+        }
       }
+      initialized = true;
     }
   }
 
+  MGARDX_CONT
+  void Destroy() {
+    if (initialized) {
+      log::dbg("Calling DeviceQueues<HIP>::Destroy");
+      for (int d = 0; d < NumDevices; d++) {
+        gpuErrchk(hipSetDevice(d));
+        for (int i = 0; i < MGARDX_NUM_QUEUES; i++) {
+          gpuErrchk(hipStreamDestroy(streams[d][i]));
+        }
+        delete[] streams[d];
+      }
+      delete[] streams;
+      streams = nullptr;
+      initialized = false;
+    }
+  }
+
+  MGARDX_CONT
+  DeviceQueues() { Initialize(); }
+
   MGARDX_CONT hipStream_t GetQueue(int dev_id, SIZE queue_id) {
-    return streams[dev_id][queue_id];
+    Initialize() return streams[dev_id][queue_id];
   }
 
   MGARDX_CONT void SyncQueue(int dev_id, SIZE queue_id) {
-    hipStreamSynchronize(streams[dev_id][queue_id]);
+    Initialize() hipStreamSynchronize(streams[dev_id][queue_id]);
   }
 
   MGARDX_CONT void SyncAllQueues(int dev_id) {
-    for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
+    Initialize() for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
       gpuErrchk(hipStreamSynchronize(streams[dev_id][i]));
     }
   }
 
   MGARDX_CONT
-  ~DeviceQueues() {
-    for (int d = 0; d < NumDevices; d++) {
-      gpuErrchk(hipSetDevice(d));
-      for (int i = 0; i < MGARDX_NUM_QUEUES; i++) {
-        gpuErrchk(hipStreamDestroy(streams[d][i]));
-      }
-      delete[] streams[d];
-    }
-    delete[] streams;
-    streams = nullptr;
-  }
+  ~DeviceQueues() { Destroy(); }
 
+  bool initialized = false;
   int NumDevices;
   hipStream_t **streams = nullptr;
 };
@@ -531,6 +546,10 @@ template <> class DeviceRuntime<HIP> {
 public:
   MGARDX_CONT
   DeviceRuntime() {}
+
+  MGARDX_CONT static void Initialize() { queues.Initialize(); }
+
+  MGARDX_CONT static void Destroy() { queues.Destroy(); }
 
   MGARDX_CONT static int GetDeviceCount() { return DeviceSpecs.NumDevices; }
 

@@ -569,47 +569,65 @@ public:
 template <> class DeviceQueues<CUDA> {
 public:
   MGARDX_CONT
-  DeviceQueues() {
-    cudaGetDeviceCount(&NumDevices);
-    streams = new cudaStream_t *[NumDevices];
-    for (int d = 0; d < NumDevices; d++) {
-      gpuErrchk(cudaSetDevice(d));
-      streams[d] = new cudaStream_t[MGARDX_NUM_QUEUES];
-      for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
-        gpuErrchk(cudaStreamCreate(&streams[d][i]));
+  void Initialize() {
+    if (!initialized) {
+      log::dbg("Calling DeviceQueues<CUDA>::Initialize");
+      cudaGetDeviceCount(&NumDevices);
+      streams = new cudaStream_t *[NumDevices];
+      for (int d = 0; d < NumDevices; d++) {
+        gpuErrchk(cudaSetDevice(d));
+        streams[d] = new cudaStream_t[MGARDX_NUM_QUEUES];
+        for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
+          gpuErrchk(cudaStreamCreate(&streams[d][i]));
+        }
       }
+      initialized = true;
     }
   }
 
+  MGARDX_CONT
+  void Destroy() {
+    if (initialized) {
+      log::dbg("Calling DeviceQueues<CUDA>::Destroy");
+      for (int d = 0; d < NumDevices; d++) {
+        gpuErrchk(cudaSetDevice(d));
+        for (int i = 0; i < MGARDX_NUM_QUEUES; i++) {
+          gpuErrchk(cudaStreamDestroy(streams[d][i]));
+        }
+        delete[] streams[d];
+      }
+      delete[] streams;
+      streams = nullptr;
+      initialized = false;
+    }
+  }
+
+  MGARDX_CONT
+  DeviceQueues() { Initialize(); }
+
   MGARDX_CONT cudaStream_t GetQueue(int dev_id, SIZE queue_id) {
+    Initialize();
     return streams[dev_id][queue_id];
   }
 
   MGARDX_CONT void SyncQueue(int dev_id, SIZE queue_id) {
+    Initialize();
     cudaStreamSynchronize(streams[dev_id][queue_id]);
   }
 
   MGARDX_CONT void SyncAllQueues(int dev_id) {
+    Initialize();
     for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
       gpuErrchk(cudaStreamSynchronize(streams[dev_id][i]));
     }
   }
 
   MGARDX_CONT
-  ~DeviceQueues() {
-    for (int d = 0; d < NumDevices; d++) {
-      gpuErrchk(cudaSetDevice(d));
-      for (int i = 0; i < MGARDX_NUM_QUEUES; i++) {
-        gpuErrchk(cudaStreamDestroy(streams[d][i]));
-      }
-      delete[] streams[d];
-    }
-    delete[] streams;
-    streams = nullptr;
-  }
+  ~DeviceQueues() { Destroy(); }
 
   int NumDevices;
   cudaStream_t **streams = nullptr;
+  bool initialized = false;
 };
 
 extern int cuda_dev_id;
@@ -619,6 +637,10 @@ template <> class DeviceRuntime<CUDA> {
 public:
   MGARDX_CONT
   DeviceRuntime() {}
+
+  MGARDX_CONT static void Initialize() { queues.Initialize(); }
+
+  MGARDX_CONT static void Destroy() { queues.Destroy(); }
 
   MGARDX_CONT static int GetDeviceCount() { return DeviceSpecs.NumDevices; }
 

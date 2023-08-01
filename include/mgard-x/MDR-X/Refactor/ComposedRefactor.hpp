@@ -19,7 +19,8 @@ namespace MDR {
 template <DIM D, typename T_data, typename DeviceType>
 class ComposedRefactor
     : public concepts::RefactorInterface<D, T_data, DeviceType> {
-
+public:
+  using HierarchyType = Hierarchy<D, T_data, DeviceType>;
   using T_bitplane = uint32_t;
   using T_error = double;
   using Decomposer = MGARDOrthoganalDecomposer<D, T_data, DeviceType>;
@@ -30,20 +31,9 @@ class ComposedRefactor
   using ErrorCollector = MaxErrorCollector<T_data>;
   using Writer = ConcatLevelFileWriter;
 
-public:
-  ComposedRefactor(Hierarchy<D, T_data, DeviceType> hierarchy, Config config,
-                   std::string metadata_file, std::vector<std::string> files)
-      : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
-        encoder(hierarchy),
-        compressor(Encoder::buffer_size(
-                       hierarchy.level_num_elems(hierarchy.l_target())),
-                   config),
-        collector(), total_num_bitplanes(config.total_num_bitplanes),
-        writer(metadata_file, files) {}
-
   ComposedRefactor(Hierarchy<D, T_data, DeviceType> hierarchy, Config config)
-      : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
-        encoder(hierarchy),
+      : hierarchy(hierarchy), decomposer(this->hierarchy),
+        interleaver(this->hierarchy), encoder(this->hierarchy),
         compressor(Encoder::buffer_size(
                        hierarchy.level_num_elems(hierarchy.l_target())),
                    config),
@@ -61,7 +51,7 @@ public:
     DeviceCollective<DeviceType>::AbsMax(
         hierarchy.level_num_elems(hierarchy.l_target()),
         SubArray<1, T_data, DeviceType>(), SubArray<1, T_data, DeviceType>(),
-        abs_max_workspace, 0);
+        abs_max_workspace, false, 0);
     encoded_bitplanes_array.resize(hierarchy.l_target() + 1);
     for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
       encoded_bitplanes_array[level_idx] = Array<2, T_bitplane, DeviceType>(
@@ -81,7 +71,7 @@ public:
                                         Config config) {
     Hierarchy<D, T_data, DeviceType> hierarchy;
     size_t size = 0;
-    size += hierarchy.estimate_memory_usgae(shape);
+    size += hierarchy.EstimateMemoryFootprint(shape);
     for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
       size += hierarchy.level_num_elems(level_idx) * sizeof(T_data);
     }
@@ -90,7 +80,7 @@ public:
     DeviceCollective<DeviceType>::AbsMax(
         hierarchy.level_num_elems(hierarchy.l_target()),
         SubArray<1, T_data, DeviceType>(), SubArray<1, T_data, DeviceType>(),
-        tmp, 0);
+        tmp, false, 0);
     size += tmp.shape(0);
     for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
       size += config.total_num_bitplanes *
@@ -136,7 +126,7 @@ public:
       SubArray<1, T_data, DeviceType> result(abs_max_result_array);
       DeviceCollective<DeviceType>::AbsMax(levels_data[level_idx].shape(0),
                                            levels_data[level_idx], result,
-                                           abs_max_workspace, queue_idx);
+                                           abs_max_workspace, true, queue_idx);
       T_data level_max_error;
       MemoryManager<DeviceType>::Copy1D(&level_max_error, result.data(), 1,
                                         queue_idx);
@@ -164,6 +154,7 @@ public:
                                         level_errors_array.data(),
                                         total_num_bitplanes + 1, queue_idx);
       mdr_metadata.level_squared_errors[level_idx] = squared_error;
+      // PrintSubarray("level_errors", level_errors);
       timer.end();
       timer.print("Encoding");
 
