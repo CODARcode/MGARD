@@ -816,16 +816,17 @@ public:
     SIZE max_bitplane = 64;
     level_errors_work_array =
         Array<2, T_error, DeviceType>({max_bitplane + 1, MGARDX_NUM_SMs});
-    DeviceCollective<DeviceType>::Sum(
-        MGARDX_NUM_SMs, SubArray<1, T_error, DeviceType>(),
-        SubArray<1, T_error, DeviceType>(), level_error_sum_work_array, 0);
+    DeviceCollective<DeviceType>::Sum(MGARDX_NUM_SMs,
+                                      SubArray<1, T_error, DeviceType>(),
+                                      SubArray<1, T_error, DeviceType>(),
+                                      level_error_sum_work_array, false, 0);
   }
 
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape) {
     Hierarchy<D, T_data, DeviceType> hierarchy(shape, Config());
     SIZE max_bitplane = 64;
     size_t size = 0;
-    size += hierarchy.estimate_memory_usgae(shape);
+    size += hierarchy.EstimateMemoryFootprint(shape);
     size += (max_bitplane + 1) * MGARDX_NUM_SMs * sizeof(T_error);
     for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
       size += hierarchy.level_num_elems(level_idx) * sizeof(bool);
@@ -927,7 +928,8 @@ public:
                                                    level_errors_work(i, 0));
       SubArray<1, T_error, DeviceType> sum_error({1}, level_errors(i));
       DeviceCollective<DeviceType>::Sum(reduce_size, curr_errors, sum_error,
-                                        level_error_sum_work_array, queue_idx);
+                                        level_error_sum_work_array, true,
+                                        queue_idx);
     }
 
     for (int i = 0; i < num_bitplanes; i++) {

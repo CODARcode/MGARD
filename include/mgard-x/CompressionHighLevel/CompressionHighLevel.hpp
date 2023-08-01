@@ -705,6 +705,7 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
                  bool uniform, std::vector<T *> coords,
                  bool output_pre_allocated) {
 
+  DeviceRuntime<DeviceType>::Initialize();
   size_t total_num_elem = 1;
   for (int i = 0; i < D; i++)
     total_num_elem *= shape[i];
@@ -922,6 +923,7 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
 
   if (!config.cache_compressor)
     Cache::cache.SafeRelease();
+  DeviceRuntime<DeviceType>::Destroy();
 
   MemoryManager<DeviceType>::ReduceMemoryFootprint =
       reduce_memory_footprint_original;
@@ -987,6 +989,7 @@ enum compress_status_type
 general_decompress(std::vector<SIZE> shape, const void *compressed_data,
                    size_t compressed_size, void *&decompressed_data,
                    Config config, bool output_pre_allocated) {
+  DeviceRuntime<DeviceType>::Initialize();
   size_t total_num_elem = 1;
   for (int i = 0; i < D; i++)
     total_num_elem *= shape[i];
@@ -1159,6 +1162,7 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
 
   if (!config.cache_compressor)
     Cache::cache.SafeRelease();
+  DeviceRuntime<DeviceType>::Destroy();
 
   MemoryManager<DeviceType>::ReduceMemoryFootprint =
       reduce_memory_footprint_original;

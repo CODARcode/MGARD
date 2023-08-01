@@ -200,6 +200,18 @@ public:
 template <> class DeviceQueues<OPENMP> {
 public:
   MGARDX_CONT
+  void Initialize() {
+    log::dbg("Calling DeviceQueues<OPENMP>::Initialize");
+    initialized = true;
+  }
+
+  MGARDX_CONT
+  void Destroy() {
+    log::dbg("Calling DeviceQueues<OPENMP>::Destroy");
+    initialized = false;
+  }
+
+  MGARDX_CONT
   DeviceQueues() {
     // do nothing
   }
@@ -218,6 +230,7 @@ public:
   ~DeviceQueues() {
     // do nothing
   }
+  bool initialized = false;
 };
 
 extern int openmp_dev_id;
@@ -227,6 +240,10 @@ template <> class DeviceRuntime<OPENMP> {
 public:
   MGARDX_CONT
   DeviceRuntime() {}
+
+  MGARDX_CONT static void Initialize() { queues.Initialize(); }
+
+  MGARDX_CONT static void Destroy() { queues.Destroy(); }
 
   MGARDX_CONT static int GetDeviceCount() { return DeviceSpecs.NumDevices; }
 

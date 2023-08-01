@@ -41,16 +41,16 @@ public:
               std::to_string((double)(input_space + output_space) / 1e9) +
               " GB");
 
-    using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
+    // using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
     using HierarchyType = typename CompressorType::HierarchyType;
-    if (!Cache::cache.InHierarchyCache(shape, uniform)) {
-      HierarchyType hierarchy;
-      estimate_memory_usgae += hierarchy.EstimateMemoryFootprint(shape);
-      log::info("Hierarchy space: " +
-                std::to_string(
-                    (double)hierarchy.EstimateMemoryFootprint(shape) / 1e9) +
-                " GB");
-    }
+    // if (!Cache::cache.InHierarchyCache(shape, uniform)) {
+    HierarchyType hierarchy;
+    estimate_memory_usgae += hierarchy.EstimateMemoryFootprint(shape);
+    log::info(
+        "Hierarchy space: " +
+        std::to_string((double)hierarchy.EstimateMemoryFootprint(shape) / 1e9) +
+        " GB");
+    // }
 
     // For prefetching
     if (enable_prefetch) {
@@ -69,7 +69,7 @@ public:
 
   bool need_domain_decomposition(std::vector<SIZE> shape,
                                  bool enable_prefetch) {
-    using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
+    // using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
     size_t estm = EstimateMemoryFootprint(shape, 1.0, enable_prefetch);
     size_t aval =
         std::min((SIZE)DeviceRuntime<DeviceType>::GetAvailableMemory(),

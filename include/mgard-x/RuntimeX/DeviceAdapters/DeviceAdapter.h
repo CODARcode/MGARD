@@ -289,6 +289,10 @@ public:
   MGARDX_CONT
   DeviceRuntime() {}
 
+  MGARDX_CONT static void Initialize() {}
+
+  MGARDX_CONT static void Destroy() {}
+
   MGARDX_CONT static void SelectDevice(SIZE dev_id) {}
 
   MGARDX_CONT static int GetDevice() {}
