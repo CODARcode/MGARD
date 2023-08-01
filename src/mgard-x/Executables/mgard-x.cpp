@@ -296,9 +296,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     enum mgard_x::error_bound_type mode, int reorder,
                     int lossless, int domain_decomposition,
                     int hybrid_decomposition,
-                    enum mgard_x::device_type dev_type, int num_dev,
-                    int verbose, bool prefetch,
-                    mgard_x::SIZE max_memory_footprint) {
+                    enum mgard_x::device_type dev_type, int verbose,
+                    bool prefetch, mgard_x::SIZE max_memory_footprint) {
 
   mgard_x::Config config;
   config.log_level = verbose_to_log_level(verbose);
@@ -316,7 +315,6 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
   }
   config.dev_type = dev_type;
-  config.num_dev = num_dev;
   config.reorder = reorder;
   config.prefetch = prefetch;
   config.max_memory_footprint = max_memory_footprint;
@@ -355,7 +353,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
               << in_size << " vs. " << original_size * sizeof(T) << "!\n";
   }
 
-  size_t compressed_size = original_size * sizeof(T) + OUTPUT_SAFTY_OVERHEAD;
+  size_t compressed_size = original_size * sizeof(T) * 2;
   void *compressed_data = (void *)malloc(compressed_size);
   mgard_x::pin_memory(original_data, original_size * sizeof(T), config);
   mgard_x::pin_memory(compressed_data, compressed_size, config);
@@ -410,13 +408,12 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 }
 
 int launch_decompress(const char *input_file, const char *output_file,
-                      enum mgard_x::device_type dev_type, int num_dev,
-                      int verbose, bool prefetch) {
+                      enum mgard_x::device_type dev_type, int verbose,
+                      bool prefetch) {
 
   mgard_x::Config config;
   config.log_level = verbose_to_log_level(verbose);
   config.dev_type = dev_type;
-  config.num_dev;
   config.prefetch = prefetch;
   config.cache_compressor = true;
 
@@ -549,11 +546,6 @@ bool try_compression(int argc, char *argv[]) {
     verbose = get_arg_int(argc, argv, "-v");
   }
 
-  int num_dev = 1;
-  if (has_arg(argc, argv, "-g")) {
-    num_dev = get_arg_int(argc, argv, "-g");
-  }
-
   int repeat = 1;
   if (has_arg(argc, argv, "-p")) {
     repeat = get_arg_int(argc, argv, "-p");
@@ -588,13 +580,13 @@ bool try_compression(int argc, char *argv[]) {
           D, dtype, input_file.c_str(), output_file.c_str(), shape, non_uniform,
           non_uniform_coords_file.c_str(), tol, s, mode, reorder,
           lossless_level, domain_decomposition, hybrid_decomposition, dev_type,
-          num_dev, verbose, prefetch, max_memory_footprint);
+          verbose, prefetch, max_memory_footprint);
     } else if (dtype == mgard_x::data_type::Float) {
       launch_compress<float>(
           D, dtype, input_file.c_str(), output_file.c_str(), shape, non_uniform,
           non_uniform_coords_file.c_str(), tol, s, mode, reorder,
           lossless_level, domain_decomposition, hybrid_decomposition, dev_type,
-          num_dev, verbose, prefetch, max_memory_footprint);
+          verbose, prefetch, max_memory_footprint);
     }
   }
   mgard_x::release_cache(mgard_x::Config());
@@ -641,11 +633,6 @@ bool try_decompression(int argc, char *argv[]) {
     verbose = get_arg_int(argc, argv, "-v");
   }
 
-  int num_dev = 1;
-  if (has_arg(argc, argv, "-g")) {
-    num_dev = get_arg_int(argc, argv, "-g");
-  }
-
   int repeat = 1;
   if (has_arg(argc, argv, "-p")) {
     repeat = get_arg_int(argc, argv, "-p");
@@ -660,7 +647,7 @@ bool try_decompression(int argc, char *argv[]) {
     std::cout << mgard_x::log::log_info << "verbose: enabled.\n";
   for (int repeat_iter = 0; repeat_iter < repeat; repeat_iter++) {
     launch_decompress(input_file.c_str(), output_file.c_str(), dev_type,
-                      num_dev, verbose, prefetch);
+                      verbose, prefetch);
   }
   mgard_x::release_cache(mgard_x::Config());
   return true;

@@ -36,8 +36,7 @@ namespace mgard_x {
 template <DIM D, typename T, typename DeviceType, typename CompressorType>
 T calc_subdomain_norm_series_w_prefetch(
     DomainDecomposer<D, T, CompressorType, DeviceType> &domain_decomposer,
-    std::vector<SIZE> &subdomain_ids, T s) {
-  assert(subdomain_ids.size() > 0);
+    T s) {
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
@@ -52,33 +51,30 @@ T calc_subdomain_norm_series_w_prefetch(
   // Pre-allocate to the size of the first subdomain
   // Following subdomains should be no bigger than the first one
   // We shouldn't need to reallocate in the future
-  device_subdomain_buffer[0].resize(
-      domain_decomposer.subdomain_shape(subdomain_ids[0]));
-  if (subdomain_ids.size() > 1) {
-    device_subdomain_buffer[1].resize(
-        domain_decomposer.subdomain_shape(subdomain_ids[0]));
-  }
+  device_subdomain_buffer[0].resize(domain_decomposer.subdomain_shape(0));
+  device_subdomain_buffer[1].resize(domain_decomposer.subdomain_shape(0));
 
   // Pre-fetch the first subdomain to one buffer
   int current_buffer = 0;
   domain_decomposer.copy_subdomain(
-      device_subdomain_buffer[current_buffer], subdomain_ids[0],
+      device_subdomain_buffer[current_buffer], 0,
       subdomain_copy_direction::OriginalToSubdomain, 0);
 
-  for (SIZE i = 0; i < subdomain_ids.size(); i++) {
-    SIZE curr_subdomain_id = subdomain_ids[i];
+  for (SIZE curr_subdomain_id = 0;
+       curr_subdomain_id < domain_decomposer.num_subdomains();
+       curr_subdomain_id++) {
     SIZE next_subdomain_id;
     int next_buffer = (current_buffer + 1) % 2;
-    if (i + 1 < subdomain_ids.size()) {
+    if (curr_subdomain_id + 1 < domain_decomposer.num_subdomains()) {
       // Prefetch the next subdomain
-      next_subdomain_id = subdomain_ids[i + 1];
+      next_subdomain_id = curr_subdomain_id + 1;
       // Copy data
       domain_decomposer.copy_subdomain(
           device_subdomain_buffer[next_buffer], next_subdomain_id,
           subdomain_copy_direction::OriginalToSubdomain, 1);
     }
 
-    // device_input_buffer[dev_id] has to be not pitched to avoid copy for
+    // device_input_buffer has to be not pitched to avoid copy for
     // linearization
     assert(!device_subdomain_buffer[current_buffer].isPitched());
     // Disable normalize_coordinate since we do not want to void dividing
@@ -107,36 +103,10 @@ T calc_subdomain_norm_series_w_prefetch(
 template <DIM D, typename T, typename DeviceType, typename CompressorType>
 T calc_norm_decomposed_w_prefetch(
     DomainDecomposer<D, T, CompressorType, DeviceType> &domain_decomposer, T s,
-    bool normalize_coordinates, SIZE total_num_elem, int adjusted_num_dev) {
+    bool normalize_coordinates, SIZE total_num_elem) {
 
-  T norm = 0;
-  // Set the number of threads equal to the number of devices
-  // So that each thread is responsible for one device
-#if MGARD_ENABLE_MULTI_DEVICE
-  omp_set_num_threads(adjusted_num_dev);
-#endif
-#pragma omp parallel for
-  for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
-    DeviceRuntime<DeviceType>::SelectDevice(dev_id);
-    // Create a series of subdomain ids that are assigned to the current device
-    std::vector<SIZE> subdomain_ids;
-    for (SIZE subdomain_id = dev_id;
-         subdomain_id < domain_decomposer.num_subdomains();
-         subdomain_id += adjusted_num_dev) {
-      subdomain_ids.push_back(subdomain_id);
-    }
-    // Process a series of subdomains according to the subdomain id list
-    T local_norm = calc_subdomain_norm_series_w_prefetch(domain_decomposer,
-                                                         subdomain_ids, s);
-#pragma omp critical
-    {
-      if (s == std::numeric_limits<T>::infinity()) {
-        norm = std::max(norm, local_norm);
-      } else {
-        norm += local_norm;
-      }
-    }
-  }
+  // Process a series of subdomains according to the subdomain id list
+  T norm = calc_subdomain_norm_series_w_prefetch(domain_decomposer, s);
   if (s != std::numeric_limits<T>::infinity()) {
     if (!normalize_coordinates) {
       norm = std::sqrt(norm);
@@ -156,45 +126,30 @@ template <DIM D, typename T, typename DeviceType, typename CompressorType>
 T calc_norm_decomposed(
     DomainDecomposer<D, T, CompressorType, DeviceType> &domain_decomposer, T s,
     bool normalize_coordinates, SIZE total_num_elem) {
-  std::vector<Array<D, T, DeviceType>> device_input_buffer(
-      domain_decomposer.num_devices());
+  Array<D, T, DeviceType> device_input_buffer;
   T norm = 0;
-#if MGARD_ENABLE_MULTI_DEVICE
-  omp_set_num_threads(domain_decomposer.num_devices());
-#endif
-#pragma omp parallel for
   for (int subdomain_id = 0; subdomain_id < domain_decomposer.num_subdomains();
        subdomain_id++) {
-    SIZE dev_id = DeviceRuntime<DeviceType>::GetDevice();
-#if MGARD_ENABLE_MULTI_DEVICE
-    dev_id = omp_get_thread_num();
-    DeviceRuntime<DeviceType>::SelectDevice(dev_id);
-#endif
-    // Each device pick a subdomain and calculate norm
     domain_decomposer.copy_subdomain(
-        device_input_buffer[dev_id], subdomain_id,
+        device_input_buffer, subdomain_id,
         subdomain_copy_direction::OriginalToSubdomain, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
     Array<1, T, DeviceType> norm_array({1});
     SubArray<1, T, DeviceType> norm_subarray(norm_array);
-    // device_input_buffer[dev_id] has to be not pitched to avoid copy for
+    // device_input_buffer has to be not pitched to avoid copy for
     // linearization
-    assert(!device_input_buffer[dev_id].isPitched());
+    assert(!device_input_buffer.isPitched());
     // Disable normalize_coordinate since we do not want to void dividing
     // total_elems
     T local_norm =
-        norm_calculator(device_input_buffer[dev_id],
-                        SubArray<1, T, DeviceType>(), norm_subarray, s, false);
-#pragma omp critical
-    {
-      if (s == std::numeric_limits<T>::infinity()) {
-        norm = std::max(norm, local_norm);
-      } else {
-        norm += local_norm * local_norm;
-      }
+        norm_calculator(device_input_buffer, SubArray<1, T, DeviceType>(),
+                        norm_subarray, s, false);
+    if (s == std::numeric_limits<T>::infinity()) {
+      norm = std::max(norm, local_norm);
+    } else {
+      norm += local_norm * local_norm;
     }
   }
-
   if (s != std::numeric_limits<T>::infinity()) {
     if (!normalize_coordinates) {
       norm = std::sqrt(norm);
@@ -262,111 +217,11 @@ bool is_same(Hierarchy<D, T, DeviceType> &hierarchy1,
 }
 
 template <DIM D, typename T, typename DeviceType, typename CompressorType>
-enum compress_status_type compress_subdomain(
-    DomainDecomposer<D, T, CompressorType, DeviceType> &domain_decomposer,
-    SIZE subdomain_id, T local_tol, T s, T &norm,
-    enum error_bound_type local_ebtype, Config &config,
-    std::vector<Byte *> &compressed_subdomain_data,
-    std::vector<SIZE> &compressed_subdomain_size, int dev_id) {
-
-  Timer timer_series;
-  if (log::level & log::TIME)
-    timer_series.start();
-
-  using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
-  using HierarchyType = typename CompressorType::HierarchyType;
-  CompressorType &compressor = *Cache::cache.compressor;
-  Array<D, T, DeviceType> &device_subdomain_buffer =
-      Cache::cache.device_subdomain_buffer[0];
-  Array<1, Byte, DeviceType> &device_compressed_buffer =
-      Cache::cache.device_compressed_buffer[0];
-
-  if (!Cache::cache.InHierarchyCache(
-          domain_decomposer.subdomain_shape(subdomain_id),
-          domain_decomposer.uniform)) {
-    Cache::cache.ClearHierarchyCache();
-    Cache::cache.InsertHierarchyCache(
-        domain_decomposer.subdomain_hierarchy(subdomain_id));
-  }
-
-  log::info("Adjust device buffers");
-  std::vector<SIZE> shape = domain_decomposer.subdomain_shape(subdomain_id);
-  SIZE num_elements = 1;
-  for (int i = 0; i < shape.size(); i++)
-    num_elements *= shape[i];
-  device_subdomain_buffer.resize(shape);
-  device_compressed_buffer.resize({num_elements * sizeof(T)});
-
-  DeviceRuntime<DeviceType>::SyncDevice();
-
-  if (log::level & log::TIME) {
-    timer_series.end();
-    timer_series.print("Prepare device environment");
-    timer_series.clear();
-    timer_series.start();
-  }
-
-  // Copy data
-  domain_decomposer.copy_subdomain(
-      device_subdomain_buffer, subdomain_id,
-      subdomain_copy_direction::OriginalToSubdomain, 0);
-
-  HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(
-      domain_decomposer.subdomain_shape(subdomain_id));
-
-  log::info("Adapt Compressor to hierarchy");
-  compressor.Adapt(hierarchy, config, 0);
-
-  std::stringstream ss;
-  for (DIM d = 0; d < D; d++) {
-    ss << compressor.hierarchy->level_shape(compressor.hierarchy->l_target(), d)
-       << " ";
-  }
-  log::info("Compressing subdomain " + std::to_string(subdomain_id) +
-            " with shape: " + ss.str());
-
-  compressor.Compress(device_subdomain_buffer, local_ebtype, local_tol, s, norm,
-                      device_compressed_buffer, 0);
-
-  if (device_compressed_buffer.shape(0) >
-      compressor.hierarchy->total_num_elems() * sizeof(T) +
-          OUTPUT_SAFTY_OVERHEAD) {
-    log::err("Output too large");
-    return compress_status_type::OutputTooLargeFailure;
-  }
-  SIZE byte_offset = 0;
-  Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
-                              &device_compressed_buffer.shape(0), 1,
-                              byte_offset, 0);
-  Serialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
-                              device_compressed_buffer.data(),
-                              device_compressed_buffer.shape(0), byte_offset,
-                              0);
-  if (config.compress_with_dryrun) {
-    domain_decomposer.copy_subdomain(
-        device_subdomain_buffer, subdomain_id,
-        subdomain_copy_direction::SubdomainToOriginal, 0);
-  }
-  DeviceRuntime<DeviceType>::SyncQueue(0);
-  compressed_subdomain_size[dev_id] =
-      device_compressed_buffer.shape(0) + sizeof(SIZE);
-
-  if (log::level & log::TIME) {
-    timer_series.end();
-    timer_series.print("Compress single subdomain");
-    timer_series.clear();
-  }
-  return compress_status_type::Success;
-}
-
-template <DIM D, typename T, typename DeviceType, typename CompressorType>
 enum compress_status_type compress_subdomain_series(
     DomainDecomposer<D, T, CompressorType, DeviceType> &domain_decomposer,
-    std::vector<SIZE> &subdomain_ids, T local_tol, T s, T &norm,
-    enum error_bound_type local_ebtype, Config &config,
-    std::vector<Byte *> &compressed_subdomain_data,
-    std::vector<SIZE> &compressed_subdomain_size, int dev_id) {
-  assert(subdomain_ids.size() > 0);
+    T local_tol, T s, T &norm, enum error_bound_type local_ebtype,
+    Config &config, Byte *compressed_subdomain_data,
+    SIZE &compressed_subdomain_size) {
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
@@ -375,8 +230,8 @@ enum compress_status_type compress_subdomain_series(
   // For serialization
   SIZE byte_offset = 0;
 
-  for (SIZE i = 0; i < subdomain_ids.size(); i++) {
-    SIZE subdomain_id = subdomain_ids[i];
+  for (SIZE subdomain_id = 0; subdomain_id < domain_decomposer.num_subdomains();
+       subdomain_id++) {
     // Copy data
     domain_decomposer.copy_subdomain(
         device_subdomain_buffer, subdomain_id,
@@ -395,27 +250,26 @@ enum compress_status_type compress_subdomain_series(
     compressor.Compress(device_subdomain_buffer, local_ebtype, local_tol, s,
                         norm, device_compressed_buffer, 0);
 
+    // Check if we have enough space
     if (device_compressed_buffer.shape(0) >
-        hierarchy.total_num_elems() * sizeof(T)) {
+        compressed_subdomain_size - byte_offset - sizeof(SIZE)) {
       log::err("Output too large");
       return compress_status_type::OutputTooLargeFailure;
     }
-    Serialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
+    Serialize<SIZE, DeviceType>(compressed_subdomain_data,
                                 &device_compressed_buffer.shape(0), 1,
                                 byte_offset, 0);
-    Serialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
-                                device_compressed_buffer.data(),
-                                device_compressed_buffer.shape(0), byte_offset,
-                                0);
+    Serialize<Byte, DeviceType>(
+        compressed_subdomain_data, device_compressed_buffer.data(),
+        device_compressed_buffer.shape(0), byte_offset, 0);
     if (config.compress_with_dryrun) {
       domain_decomposer.copy_subdomain(
           device_subdomain_buffer, subdomain_id,
           subdomain_copy_direction::SubdomainToOriginal, 0);
     }
     DeviceRuntime<DeviceType>::SyncQueue(0);
-    compressed_subdomain_size[dev_id] +=
-        device_compressed_buffer.shape(0) + sizeof(SIZE);
   }
+  compressed_subdomain_size = byte_offset;
   if (log::level & log::TIME) {
     timer_series.end();
     timer_series.print("Compress subdomains series");
@@ -429,11 +283,9 @@ enum compress_status_type compress_subdomain_series(
 template <DIM D, typename T, typename DeviceType, typename CompressorType>
 enum compress_status_type compress_subdomain_series_w_prefetch(
     DomainDecomposer<D, T, CompressorType, DeviceType> &domain_decomposer,
-    std::vector<SIZE> &subdomain_ids, T local_tol, T s, T &norm,
-    enum error_bound_type local_ebtype, Config &config,
-    std::vector<Byte *> &compressed_subdomain_data,
-    std::vector<SIZE> &compressed_subdomain_size, int dev_id) {
-  assert(subdomain_ids.size() > 0);
+    T local_tol, T s, T &norm, enum error_bound_type local_ebtype,
+    Config &config, Byte *compressed_subdomain_data,
+    SIZE &compressed_subdomain_size) {
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
@@ -451,8 +303,7 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
     Cache::cache.ClearHierarchyCache();
   }
 
-  for (SIZE i = 0; i < subdomain_ids.size(); i++) {
-    SIZE id = subdomain_ids[i];
+  for (SIZE id = 0; id < domain_decomposer.num_subdomains(); id++) {
     if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(id),
                                        domain_decomposer.uniform)) {
       Cache::cache.InsertHierarchyCache(
@@ -461,7 +312,7 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
   }
 
   log::info("Adjust device buffers");
-  std::vector<SIZE> shape = domain_decomposer.subdomain_shape(subdomain_ids[0]);
+  std::vector<SIZE> shape = domain_decomposer.subdomain_shape(0);
   SIZE num_elements = 1;
   for (int i = 0; i < shape.size(); i++)
     num_elements *= shape[i];
@@ -486,19 +337,20 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
   int current_buffer = 0;
   int current_queue = current_buffer;
   domain_decomposer.copy_subdomain(
-      device_subdomain_buffer[current_buffer], subdomain_ids[0],
+      device_subdomain_buffer[current_buffer], 0,
       subdomain_copy_direction::OriginalToSubdomain, current_queue);
 
-  for (SIZE i = 0; i < subdomain_ids.size(); i++) {
-    SIZE curr_subdomain_id = subdomain_ids[i];
+  for (SIZE curr_subdomain_id = 0;
+       curr_subdomain_id < domain_decomposer.num_subdomains();
+       curr_subdomain_id++) {
     SIZE next_subdomain_id;
     int next_buffer = (current_buffer + 1) % 2;
     int next_queue = next_buffer;
     HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(
         domain_decomposer.subdomain_shape(curr_subdomain_id));
-    if (i + 1 < subdomain_ids.size()) {
+    if (curr_subdomain_id + 1 < domain_decomposer.num_subdomains()) {
       // Prefetch the next subdomain
-      next_subdomain_id = subdomain_ids[i + 1];
+      next_subdomain_id = curr_subdomain_id + 1;
       // Copy data
       domain_decomposer.copy_subdomain(
           device_subdomain_buffer[next_buffer], next_subdomain_id,
@@ -520,23 +372,22 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
         device_subdomain_buffer[current_buffer], local_ebtype, local_tol, s,
         norm, device_compressed_buffer[current_buffer], current_queue);
 
+    // Check if we have enough space
     if (device_compressed_buffer[current_buffer].shape(0) >
-        compressor.hierarchy->total_num_elems() * sizeof(T)) {
+        compressed_subdomain_size - byte_offset - sizeof(SIZE)) {
       log::err("Output too large");
       return compress_status_type::OutputTooLargeFailure;
     }
 
     Serialize<SIZE, DeviceType>(
-        (Byte *)compressed_subdomain_data[dev_id],
+        compressed_subdomain_data,
         &device_compressed_buffer[current_buffer].shape(0), 1, byte_offset,
         current_queue);
     Serialize<Byte, DeviceType>(
-        (Byte *)compressed_subdomain_data[dev_id],
+        compressed_subdomain_data,
         device_compressed_buffer[current_buffer].data(),
         device_compressed_buffer[current_buffer].shape(0), byte_offset,
         current_queue);
-    compressed_subdomain_size[dev_id] +=
-        device_compressed_buffer[current_buffer].shape(0) + sizeof(SIZE);
     if (config.compress_with_dryrun) {
       domain_decomposer.copy_subdomain(
           device_subdomain_buffer[current_buffer], curr_subdomain_id,
@@ -545,6 +396,7 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
     current_buffer = next_buffer;
     current_queue = next_queue;
   }
+  compressed_subdomain_size = byte_offset;
   DeviceRuntime<DeviceType>::SyncDevice();
   if (log::level & log::TIME) {
     timer_series.end();
@@ -555,103 +407,10 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
 }
 
 template <DIM D, typename T, typename DeviceType, typename CompressorType>
-enum compress_status_type decompress_subdomain(
-    DomainDecomposer<D, T, CompressorType, DeviceType> &domain_decomposer,
-    SIZE subdomain_id, T local_tol, T s, T norm,
-    enum error_bound_type local_ebtype, Config &config,
-    std::vector<Byte *> &compressed_subdomain_data,
-    std::vector<SIZE> &compressed_subdomain_size, int dev_id) {
-  Timer timer_series;
-  if (log::level & log::TIME)
-    timer_series.start();
-
-  using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
-  using HierarchyType = typename CompressorType::HierarchyType;
-  CompressorType &compressor = *Cache::cache.compressor;
-  Array<D, T, DeviceType> &device_subdomain_buffer =
-      Cache::cache.device_subdomain_buffer[0];
-  Array<1, Byte, DeviceType> &device_compressed_buffer =
-      Cache::cache.device_compressed_buffer[0];
-
-  if (!Cache::cache.InHierarchyCache(
-          domain_decomposer.subdomain_shape(subdomain_id),
-          domain_decomposer.uniform)) {
-    Cache::cache.ClearHierarchyCache();
-    Cache::cache.InsertHierarchyCache(
-        domain_decomposer.subdomain_hierarchy(subdomain_id));
-  }
-
-  log::info("Adjust device buffers");
-  std::vector<SIZE> shape = domain_decomposer.subdomain_shape(subdomain_id);
-  SIZE num_elements = 1;
-  for (int i = 0; i < shape.size(); i++)
-    num_elements *= shape[i];
-  device_subdomain_buffer.resize(shape);
-  device_compressed_buffer.resize({num_elements * sizeof(T)});
-
-  DeviceRuntime<DeviceType>::SyncDevice();
-
-  if (log::level & log::TIME) {
-    timer_series.end();
-    timer_series.print("Prepare device environment");
-    timer_series.clear();
-    timer_series.start();
-  }
-
-  // Deserialize and copy data
-  SIZE compressed_size;
-  SIZE *compressed_size_ptr = &compressed_size;
-  Byte *compressed_data;
-  SIZE byte_offset = 0;
-  Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
-                                compressed_size_ptr, 1, byte_offset, false, 0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
-  Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
-                                compressed_data, compressed_size, byte_offset,
-                                true, 0);
-
-  device_compressed_buffer.resize({compressed_size});
-
-  MemoryManager<DeviceType>::Copy1D(device_compressed_buffer.data(),
-                                    compressed_data, compressed_size, 0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
-
-  HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(
-      domain_decomposer.subdomain_shape(subdomain_id));
-
-  log::info("Adapt Compressor to hierarchy");
-  compressor.Adapt(hierarchy, config, 0);
-
-  std::stringstream ss;
-  for (DIM d = 0; d < D; d++) {
-    ss << compressor.hierarchy->level_shape(compressor.hierarchy->l_target(), d)
-       << " ";
-  }
-  log::info("Decompressing subdomain " + std::to_string(subdomain_id) +
-            " with shape: " + ss.str());
-  compressor.Decompress(device_compressed_buffer, local_ebtype, local_tol, s,
-                        norm, device_subdomain_buffer, 0);
-
-  domain_decomposer.copy_subdomain(
-      device_subdomain_buffer, subdomain_id,
-      subdomain_copy_direction::SubdomainToOriginal, 0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
-  if (log::level & log::TIME) {
-    timer_series.end();
-    timer_series.print("Decompress single subdomain");
-    timer_series.clear();
-  }
-  return compress_status_type::Success;
-}
-
-template <DIM D, typename T, typename DeviceType, typename CompressorType>
 enum compress_status_type decompress_subdomain_series(
     DomainDecomposer<D, T, CompressorType, DeviceType> &domain_decomposer,
-    std::vector<SIZE> &subdomain_ids, T local_tol, T s, T norm,
-    enum error_bound_type local_ebtype, Config &config,
-    std::vector<Byte *> &compressed_subdomain_data,
-    std::vector<SIZE> &compressed_subdomain_size, int dev_id) {
-  assert(subdomain_ids.size() > 0);
+    T local_tol, T s, T norm, enum error_bound_type local_ebtype,
+    Config &config, Byte *compressed_subdomain_data) {
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
@@ -660,21 +419,19 @@ enum compress_status_type decompress_subdomain_series(
   // For deserialization
   SIZE byte_offset = 0;
 
-  for (SIZE i = 0; i < subdomain_ids.size(); i++) {
-    SIZE subdomain_id = subdomain_ids[i];
-
+  for (SIZE subdomain_id = 0; subdomain_id < domain_decomposer.num_subdomains();
+       subdomain_id++) {
     // Deserialize and copy data
     SIZE compressed_size;
     SIZE *compressed_size_ptr = &compressed_size;
     Byte *compressed_data;
 
-    Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
+    Deserialize<SIZE, DeviceType>(compressed_subdomain_data,
                                   compressed_size_ptr, 1, byte_offset, false,
                                   0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
-    Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
-                                  compressed_data, compressed_size, byte_offset,
-                                  true, 0);
+    Deserialize<Byte, DeviceType>(compressed_subdomain_data, compressed_data,
+                                  compressed_size, byte_offset, true, 0);
 
     device_compressed_buffer.resize({compressed_size});
 
@@ -712,11 +469,8 @@ enum compress_status_type decompress_subdomain_series(
 template <DIM D, typename T, typename DeviceType, typename CompressorType>
 enum compress_status_type decompress_subdomain_series_w_prefetch(
     DomainDecomposer<D, T, CompressorType, DeviceType> &domain_decomposer,
-    std::vector<SIZE> &subdomain_ids, T local_tol, T s, T norm,
-    enum error_bound_type local_ebtype, Config &config,
-    std::vector<Byte *> &compressed_subdomain_data,
-    std::vector<SIZE> &compressed_subdomain_size, int dev_id) {
-  assert(subdomain_ids.size() > 0);
+    T local_tol, T s, T norm, enum error_bound_type local_ebtype,
+    Config &config, Byte *compressed_subdomain_data) {
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
@@ -735,8 +489,7 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
     Cache::cache.ClearHierarchyCache();
   }
 
-  for (SIZE i = 0; i < subdomain_ids.size(); i++) {
-    SIZE id = subdomain_ids[i];
+  for (SIZE id = 0; id < domain_decomposer.num_subdomains(); id++) {
     if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(id),
                                        domain_decomposer.uniform)) {
       Cache::cache.InsertHierarchyCache(
@@ -745,7 +498,7 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
   }
 
   log::info("Adjust device buffers");
-  std::vector<SIZE> shape = domain_decomposer.subdomain_shape(subdomain_ids[0]);
+  std::vector<SIZE> shape = domain_decomposer.subdomain_shape(0);
   SIZE num_elements = 1;
   for (int i = 0; i < shape.size(); i++)
     num_elements *= shape[i];
@@ -771,13 +524,12 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
   SIZE *compressed_size_ptr = &compressed_size;
   Byte *compressed_data;
 
-  Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
-                                compressed_size_ptr, 1, byte_offset, false,
-                                current_queue);
+  Deserialize<SIZE, DeviceType>(compressed_subdomain_data, compressed_size_ptr,
+                                1, byte_offset, false, current_queue);
   DeviceRuntime<DeviceType>::SyncQueue(current_queue);
-  Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
-                                compressed_data, compressed_size, byte_offset,
-                                true, current_queue);
+  Deserialize<Byte, DeviceType>(compressed_subdomain_data, compressed_data,
+                                compressed_size, byte_offset, true,
+                                current_queue);
 
   device_compressed_buffer[current_buffer].resize({compressed_size});
 
@@ -785,29 +537,30 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
       device_compressed_buffer[current_buffer].data(), compressed_data,
       compressed_size, current_queue);
 
-  for (SIZE i = 0; i < subdomain_ids.size(); i++) {
-    SIZE curr_subdomain_id = subdomain_ids[i];
+  for (SIZE curr_subdomain_id = 0;
+       curr_subdomain_id < domain_decomposer.num_subdomains();
+       curr_subdomain_id++) {
     SIZE next_subdomain_id;
     int next_buffer = (current_buffer + 1) % 2;
     int next_queue = next_buffer;
     HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(
         domain_decomposer.subdomain_shape(curr_subdomain_id));
-    if (i + 1 < subdomain_ids.size()) {
+    if (curr_subdomain_id + 1 < domain_decomposer.num_subdomains()) {
       // Prefetch the next subdomain
-      next_subdomain_id = subdomain_ids[i + 1];
+      next_subdomain_id = curr_subdomain_id + 1;
 
       // Deserialize and copy next compressed data on queue 1
       SIZE compressed_size;
       SIZE *compressed_size_ptr = &compressed_size;
       Byte *compressed_data;
 
-      Deserialize<SIZE, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
+      Deserialize<SIZE, DeviceType>(compressed_subdomain_data,
                                     compressed_size_ptr, 1, byte_offset, false,
                                     next_queue);
       DeviceRuntime<DeviceType>::SyncQueue(next_queue);
-      Deserialize<Byte, DeviceType>((Byte *)compressed_subdomain_data[dev_id],
-                                    compressed_data, compressed_size,
-                                    byte_offset, true, next_queue);
+      Deserialize<Byte, DeviceType>(compressed_subdomain_data, compressed_data,
+                                    compressed_size, byte_offset, true,
+                                    next_queue);
 
       device_compressed_buffer[next_buffer].resize({compressed_size});
 
@@ -829,12 +582,12 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
               " with shape: " + ss.str());
     compressor.LosslessDecompress(device_compressed_buffer[current_buffer],
                                   current_queue);
-    if (i > 0) {
+    if (curr_subdomain_id > 0) {
       // We delay D2H since since it can delay the D2H in lossless decompession
       // and dequantization
       int previous_buffer = std::abs((current_buffer - 1) % 2);
       int previous_queue = previous_buffer;
-      SIZE prev_subdomain_id = subdomain_ids[i - 1];
+      SIZE prev_subdomain_id = curr_subdomain_id - 1;
       domain_decomposer.copy_subdomain(
           device_subdomain_buffer[previous_buffer], prev_subdomain_id,
           subdomain_copy_direction::SubdomainToOriginal, previous_queue);
@@ -852,7 +605,7 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
   // Copy the last subdomain
   int previous_buffer = std::abs((current_buffer - 1) % 2);
   int previous_queue = previous_buffer;
-  SIZE prev_subdomain_id = subdomain_ids[subdomain_ids.size() - 1];
+  SIZE prev_subdomain_id = domain_decomposer.num_subdomains() - 1;
   domain_decomposer.copy_subdomain(
       device_subdomain_buffer[previous_buffer], prev_subdomain_id,
       subdomain_copy_direction::SubdomainToOriginal, previous_queue);
@@ -963,20 +716,6 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
     adjust_shape(shape, config);
   }
 
-  if (config.num_dev <= 0) {
-    log::err("Number of device needs to be greater than 0.");
-    exit(-1);
-  }
-  int adjusted_num_dev =
-      std::min(DeviceRuntime<DeviceType>::GetDeviceCount(), config.num_dev);
-  if (adjusted_num_dev != config.num_dev) {
-    log::info("Using " + std::to_string(adjusted_num_dev) +
-              " devices (adjusted from " + std::to_string(config.num_dev) +
-              " devices)");
-  } else {
-    log::info("Using " + std::to_string(adjusted_num_dev) + " devices.");
-  }
-
   Timer timer_total, timer_each;
   if (log::level & log::TIME)
     timer_total.start();
@@ -994,11 +733,11 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
 
   DomainDecomposer<D, T, CompressorType, DeviceType> domain_decomposer;
   if (uniform) {
-    domain_decomposer = DomainDecomposer<D, T, CompressorType, DeviceType>(
-        shape, adjusted_num_dev, config);
+    domain_decomposer =
+        DomainDecomposer<D, T, CompressorType, DeviceType>(shape, config);
   } else {
     domain_decomposer = DomainDecomposer<D, T, CompressorType, DeviceType>(
-        shape, adjusted_num_dev, config, coords);
+        shape, config, coords);
   }
   domain_decomposer.set_original_data((T *)original_data);
 
@@ -1028,9 +767,8 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
       // norm = calc_norm_decomposed(domain_decomposer, s,
       //                             config.normalize_coordinates,
       //                             total_num_elem);
-      norm = calc_norm_decomposed_w_prefetch(domain_decomposer, s,
-                                             config.normalize_coordinates,
-                                             total_num_elem, adjusted_num_dev);
+      norm = calc_norm_decomposed_w_prefetch(
+          domain_decomposer, s, config.normalize_coordinates, total_num_elem);
     }
     local_tol = calc_local_abs_tol(ebtype, norm, tol, s,
                                    domain_decomposer.num_subdomains());
@@ -1113,26 +851,8 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
   MemoryManager<DeviceType>::Free(serizalied_meta);
 
   SIZE byte_offset = metadata_size;
-  std::vector<Byte *> compressed_subdomain_data(
-      domain_decomposer.num_devices());
-  std::vector<SIZE> compressed_subdomain_size(domain_decomposer.num_devices());
-  // First buffer is on the final output buffer
-  compressed_subdomain_data[0] = (Byte *)compressed_data + byte_offset;
-  // Other buffer is on separated allocation
-  for (int dev_id = 1; dev_id < domain_decomposer.num_devices(); dev_id++) {
-    SIZE buffer_size =
-        domain_decomposer.total_subdomain_size_for_device(dev_id);
-    buffer_size += sizeof(SIZE) *
-                   domain_decomposer.subdomain_ids_for_device(dev_id).size();
-
-    if (MemoryManager<DeviceType>::IsDevicePointer((void *)original_data)) {
-      MemoryManager<DeviceType>::Malloc1D(compressed_subdomain_data[dev_id],
-                                          buffer_size);
-    } else {
-      MemoryManager<DeviceType>::MallocHost(compressed_subdomain_data[dev_id],
-                                            buffer_size);
-    }
-  }
+  Byte *compressed_subdomain_data = (Byte *)compressed_data + byte_offset;
+  SIZE compressed_subdomain_size = output_buffer_size - metadata_size;
 
   if (log::level & log::TIME) {
     timer_each.end();
@@ -1140,52 +860,19 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
     timer_each.clear();
   }
 
-  enum compress_status_type all_status[adjusted_num_dev];
+  enum compress_status_type compress_status;
   if (log::level & log::TIME)
     timer_each.start();
-    // Set the number of threads equal to the number of devices
-    // So that each thread is responsible for one device
-#if MGARD_ENABLE_MULTI_DEVICE
-  omp_set_num_threads(adjusted_num_dev);
-#pragma omp parallel for firstprivate(config)
-#endif
-  for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
-#if MGARD_ENABLE_MULTI_DEVICE
-    config.dev_id = dev_id;
-#endif
-    DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
-    // Create a series of subdomain ids that are assigned to the current device
-    std::vector<SIZE> subdomain_ids =
-        domain_decomposer.subdomain_ids_for_device(dev_id);
-    if (subdomain_ids.size() == 1) {
-      enum compress_status_type status = compress_subdomain(
-          domain_decomposer, subdomain_ids[0], local_tol, s, norm, local_ebtype,
-          config, compressed_subdomain_data, compressed_subdomain_size, dev_id);
-      if (status == compress_status_type::OutputTooLargeFailure) {
-        all_status[dev_id] = compress_status_type::OutputTooLargeFailure;
-      }
-    } else {
-      // Compress a series of subdomains according to the subdomain id list
-      if (!config.prefetch) {
-        enum compress_status_type status = compress_subdomain_series(
-            domain_decomposer, subdomain_ids, local_tol, s, norm, local_ebtype,
-            config, compressed_subdomain_data, compressed_subdomain_size,
-            dev_id);
-        if (status == compress_status_type::OutputTooLargeFailure) {
-          all_status[dev_id] = compress_status_type::OutputTooLargeFailure;
-        }
-      } else {
-        enum compress_status_type status = compress_subdomain_series_w_prefetch(
-            domain_decomposer, subdomain_ids, local_tol, s, norm, local_ebtype,
-            config, compressed_subdomain_data, compressed_subdomain_size,
-            dev_id);
-        if (status == compress_status_type::OutputTooLargeFailure) {
-          all_status[dev_id] = compress_status_type::OutputTooLargeFailure;
-        }
-      }
-    }
+  DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
+  if (!config.prefetch) {
+    compress_status = compress_subdomain_series(
+        domain_decomposer, local_tol, s, norm, local_ebtype, config,
+        compressed_subdomain_data, compressed_subdomain_size);
+  } else {
+    compress_status = compress_subdomain_series_w_prefetch(
+        domain_decomposer, local_tol, s, norm, local_ebtype, config,
+        compressed_subdomain_data, compressed_subdomain_size);
   }
-
   if (log::level & log::TIME) {
     timer_each.end();
     timer_each.print("Aggregated low-level compression");
@@ -1222,21 +909,8 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
       (Byte *)compressed_data, serizalied_meta, metadata_size, byte_offset, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   MemoryManager<DeviceType>::Free(serizalied_meta);
-  // The first device output is already inplace so start from the second one
-  byte_offset += compressed_subdomain_size[0];
-  for (uint32_t i = 1; i < domain_decomposer.num_devices(); i++) {
-    SIZE subdomain_compressed_size = compressed_subdomain_size[i];
-    Serialize<Byte, DeviceType>((Byte *)compressed_data,
-                                compressed_subdomain_data[i],
-                                subdomain_compressed_size, byte_offset, 0);
-  }
-
+  byte_offset += compressed_subdomain_size;
   DeviceRuntime<DeviceType>::SyncQueue(0);
-
-  for (uint32_t i = 1; i < domain_decomposer.num_devices(); i++) {
-    MemoryManager<DeviceType>::FreeHost(compressed_subdomain_data[i]);
-  }
-
   compressed_size = byte_offset;
 
   if (!input_previously_pinned && config.prefetch) {
@@ -1270,12 +944,7 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
     timer_total.clear();
   }
 
-  for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
-    if (all_status[dev_id] == compress_status_type::OutputTooLargeFailure) {
-      return compress_status_type::OutputTooLargeFailure;
-    }
-  }
-  return compress_status_type::Success;
+  return compress_status;
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -1323,21 +992,6 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
     total_num_elem *= shape[i];
 
   config.apply();
-
-  if (config.num_dev <= 0) {
-    log::err("Number of device needs to be greater than 0.");
-    exit(-1);
-  }
-
-  int adjusted_num_dev =
-      std::min(DeviceRuntime<DeviceType>::GetDeviceCount(), config.num_dev);
-  if (adjusted_num_dev != config.num_dev) {
-    log::info("Using " + std::to_string(adjusted_num_dev) +
-              " devices (adjusted from " + std::to_string(config.num_dev) +
-              " devices)");
-  } else {
-    log::info("Using " + std::to_string(adjusted_num_dev) + " devices.");
-  }
 
   Timer timer_total, timer_each;
   if (log::level & log::TIME)
@@ -1434,11 +1088,11 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
 
   if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
     domain_decomposer = DomainDecomposer<D, T, CompressorType, DeviceType>(
-        shape, adjusted_num_dev, m.domain_decomposed, m.domain_decomposed_dim,
+        shape, m.domain_decomposed, m.domain_decomposed_dim,
         m.domain_decomposed_size, config);
   } else {
     domain_decomposer = DomainDecomposer<D, T, CompressorType, DeviceType>(
-        shape, adjusted_num_dev, m.domain_decomposed, m.domain_decomposed_dim,
+        shape, m.domain_decomposed, m.domain_decomposed_dim,
         m.domain_decomposed_size, config, coords);
   }
   domain_decomposer.set_original_data((T *)decompressed_data);
@@ -1461,78 +1115,26 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
   }
 
   // Deserialize compressed data
-  std::vector<Byte *> compressed_subdomain_data(
-      domain_decomposer.num_devices());
-  std::vector<SIZE> compressed_subdomain_size(domain_decomposer.num_devices());
-  SIZE byte_offset = m.metadata_size;
-  for (SIZE dev_id = 0; dev_id < domain_decomposer.num_devices(); dev_id++) {
-    compressed_subdomain_data[dev_id] = (Byte *)compressed_data + byte_offset;
-    for (SIZE i = 0;
-         i < domain_decomposer.subdomain_ids_for_device(dev_id).size(); i++) {
-      SIZE compressed_size;
-      SIZE *compressed_size_ptr = &compressed_size;
-      Deserialize<SIZE, DeviceType>((Byte *)compressed_data,
-                                    compressed_size_ptr, 1, byte_offset, false,
-                                    0);
-      DeviceRuntime<DeviceType>::SyncQueue(0);
-      byte_offset += compressed_size; // Skip compressed data
-    }
-  }
+  Byte *compressed_subdomain_data = (Byte *)compressed_data + m.metadata_size;
 
   if (log::level & log::TIME) {
     timer_each.end();
     timer_each.print("Deserialization");
     timer_each.clear();
   }
-  enum compress_status_type all_status[adjusted_num_dev];
+  enum compress_status_type decompress_status;
   if (log::level & log::TIME)
     timer_each.start();
-    // decompress
-    // Set the number of threads equal to the number of devices
-    // So that each thread is responsible for one device
-#if MGARD_ENABLE_MULTI_DEVICE
-  omp_set_num_threads(adjusted_num_dev);
-#pragma omp parallel for firstprivate(config)
-#endif
-  for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
-#if MGARD_ENABLE_MULTI_DEVICE
-    config.dev_id = dev_id;
-#endif
-    DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
-    // Create a series of subdomain ids that are assigned to the current device
-    std::vector<SIZE> subdomain_ids =
-        domain_decomposer.subdomain_ids_for_device(dev_id);
-    if (subdomain_ids.size() == 1) {
-      enum compress_status_type status = decompress_subdomain(
-          domain_decomposer, subdomain_ids[0], local_tol, (T)m.s, (T)m.norm,
-          local_ebtype, config, compressed_subdomain_data,
-          compressed_subdomain_size, dev_id);
-      if (status == compress_status_type::Failure) {
-        all_status[dev_id] = compress_status_type::Failure;
-      }
-    } else {
-      // Decompress a series of subdomains according to the subdomain id list
-      if (!config.prefetch) {
-        enum compress_status_type status = decompress_subdomain_series(
-            domain_decomposer, subdomain_ids, local_tol, (T)m.s, (T)m.norm,
-            local_ebtype, config, compressed_subdomain_data,
-            compressed_subdomain_size, dev_id);
-        if (status == compress_status_type::Failure) {
-          all_status[dev_id] = compress_status_type::Failure;
-        }
-      } else {
-        enum compress_status_type status =
-            decompress_subdomain_series_w_prefetch(
-                domain_decomposer, subdomain_ids, local_tol, (T)m.s, (T)m.norm,
-                local_ebtype, config, compressed_subdomain_data,
-                compressed_subdomain_size, dev_id);
-        if (status == compress_status_type::Failure) {
-          all_status[dev_id] = compress_status_type::Failure;
-        }
-      }
-    }
+  DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
+  if (!config.prefetch) {
+    decompress_status = decompress_subdomain_series(
+        domain_decomposer, local_tol, (T)m.s, (T)m.norm, local_ebtype, config,
+        compressed_subdomain_data);
+  } else {
+    decompress_status = decompress_subdomain_series_w_prefetch(
+        domain_decomposer, local_tol, (T)m.s, (T)m.norm, local_ebtype, config,
+        compressed_subdomain_data);
   }
-
   if (log::level & log::TIME) {
     timer_each.end();
     timer_each.print("Aggregated low-level decompression");
@@ -1576,12 +1178,7 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
     timer_total.clear();
   }
 
-  for (SIZE dev_id = 0; dev_id < adjusted_num_dev; dev_id++) {
-    if (all_status[dev_id] == compress_status_type::Failure) {
-      return compress_status_type::Failure;
-    }
-  }
-  return compress_status_type::Success;
+  return decompress_status;
 }
 
 template <DIM D, typename T, typename DeviceType>
