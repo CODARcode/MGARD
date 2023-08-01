@@ -23,7 +23,8 @@ namespace MDR {
 template <DIM D, typename T_data, typename DeviceType>
 class ComposedReconstructor
     : public concepts::ReconstructorInterface<D, T_data, DeviceType> {
-
+public:
+  using HierarchyType = Hierarchy<D, T_data, DeviceType>;
   using T_bitplane = uint32_t;
   using T_error = double;
   using Decomposer = MGARDOrthoganalDecomposer<D, T_data, DeviceType>;
@@ -33,26 +34,10 @@ class ComposedReconstructor
   using Compressor = NullLevelCompressor<T_bitplane, DeviceType>;
   using Retriever = ConcatLevelFileRetriever;
 
-public:
-  ComposedReconstructor(Hierarchy<D, T_data, DeviceType> hierarchy,
-                        Config config, std::string metadata_file,
-                        std::vector<std::string> files)
-      : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
-        encoder(hierarchy),
-        compressor(Encoder::buffer_size(
-                       hierarchy.level_num_elems(hierarchy.l_target())),
-                   config),
-        total_num_bitplanes(config.total_num_bitplanes),
-        retriever(metadata_file, files) {
-    prev_reconstructed = false;
-    partial_reconsctructed_data = Array<D, T_data, DeviceType>(
-        hierarchy.level_shape(hierarchy.l_target()));
-  }
-
   ComposedReconstructor(Hierarchy<D, T_data, DeviceType> hierarchy,
                         Config config)
-      : hierarchy(hierarchy), decomposer(hierarchy), interleaver(hierarchy),
-        encoder(hierarchy),
+      : hierarchy(hierarchy), decomposer(this->hierarchy),
+        interleaver(this->hierarchy), encoder(this->hierarchy),
         compressor(Encoder::buffer_size(
                        hierarchy.level_num_elems(hierarchy.l_target())),
                    config),
@@ -90,7 +75,7 @@ public:
     Array<1, T_data, DeviceType> array_with_pitch({1});
     size_t pitch_size = array_with_pitch.ld(0) * sizeof(T_data);
     size_t size = 0;
-    size += hierarchy.estimate_memory_usgae(shape);
+    size += hierarchy.EstimateMemoryFootprint(shape);
     size_t partial_data_size = 1;
     for (DIM d = 0; d < D; d++) {
       if (d == D - 1) {

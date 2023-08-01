@@ -79,7 +79,7 @@ public:
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape) {
     size_t size = 0;
     Hierarchy<D, T, DeviceType> hierarchy;
-    size += hierarchy.estimate_memory_usgae(shape);
+    size += hierarchy.EstimateMemoryFootprint(shape);
     size += sizeof(SubArray<1, T, DeviceType>) * (hierarchy.l_target() + 1);
     return size;
   }

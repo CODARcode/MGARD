@@ -308,43 +308,61 @@ public:
 template <> class DeviceQueues<SYCL> {
 public:
   MGARDX_CONT
-  DeviceQueues() {
-    sycl::default_selector d_selector;
-    sycl::platform d_platform(d_selector);
-    std::vector<sycl::device> d_devices = d_platform.get_devices();
-    NumDevices = d_devices.size();
-    queues = new sycl::queue *[NumDevices];
-    for (SIZE d = 0; d < NumDevices; d++) {
-      queues[d] = new sycl::queue[MGARDX_NUM_QUEUES];
-      for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
-        queues[d][i] = sycl::queue(d_devices[d], exception_handler);
+  void Initialize() {
+    if (!initialized) {
+      log::dbg("Calling DeviceQueues<SYCL>::Initialize");
+      sycl::default_selector d_selector;
+      sycl::platform d_platform(d_selector);
+      std::vector<sycl::device> d_devices = d_platform.get_devices();
+      NumDevices = d_devices.size();
+      queues = new sycl::queue *[NumDevices];
+      for (SIZE d = 0; d < NumDevices; d++) {
+        queues[d] = new sycl::queue[MGARDX_NUM_QUEUES];
+        for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
+          queues[d][i] = sycl::queue(d_devices[d], exception_handler);
+        }
       }
+      initialized = true;
     }
   }
 
+  MGARDX_CONT
+  void Destroy() {
+    if (initialized) {
+      log::dbg("Calling DeviceQueues<SYCL>::Destroy");
+      for (SIZE d = 0; d < NumDevices; d++) {
+        delete[] queues[d];
+      }
+      delete[] queues;
+      queues = nullptr;
+      initialized = false;
+    }
+  }
+
+  MGARDX_CONT
+  DeviceQueues() { Initialize(); }
+
   MGARDX_CONT sycl::queue GetQueue(int dev_id, SIZE queue_id) {
+    Initialize();
     return queues[dev_id][queue_id];
   }
 
   MGARDX_CONT void SyncQueue(int dev_id, SIZE queue_id) {
+    Initialize();
     queues[dev_id][queue_id].wait();
   }
 
   MGARDX_CONT void SyncAllQueues(int dev_id) {
     for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
+      Initialize();
       queues[dev_id][i].wait();
     }
   }
 
   MGARDX_CONT
-  ~DeviceQueues() {
-    for (SIZE d = 0; d < NumDevices; d++) {
-      delete[] queues[d];
-    }
-    delete[] queues;
-    queues = nullptr;
-  }
+  ~DeviceQueues() { Destroy(); }
 
+  int initialized = false;
   int NumDevices;
   sycl::queue **queues = nullptr;
 };
@@ -356,6 +374,10 @@ template <> class DeviceRuntime<SYCL> {
 public:
   MGARDX_CONT
   DeviceRuntime() {}
+
+  MGARDX_CONT static void Initialize() { queues.Initialize(); }
+
+  MGARDX_CONT static void Destroy() { queues.Destroy(); }
 
   MGARDX_CONT static int GetDeviceCount() { return DeviceSpecs.NumDevices; }
 
