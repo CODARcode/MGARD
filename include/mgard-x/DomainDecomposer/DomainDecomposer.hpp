@@ -18,7 +18,7 @@ enum class subdomain_copy_direction : uint8_t {
   SubdomainToOriginal
 };
 
-template <DIM D, typename T, typename CompressorType, typename DeviceType>
+template <DIM D, typename T, typename OperatorType, typename DeviceType>
 class DomainDecomposer {
 public:
   size_t EstimateMemoryFootprint(std::vector<SIZE> shape,
@@ -41,25 +41,22 @@ public:
               std::to_string((double)(input_space + output_space) / 1e9) +
               " GB");
 
-    // using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
-    using HierarchyType = typename CompressorType::HierarchyType;
-    // if (!Cache::cache.InHierarchyCache(shape, uniform)) {
+    using HierarchyType = typename OperatorType::HierarchyType;
     HierarchyType hierarchy;
     estimate_memory_usgae += hierarchy.EstimateMemoryFootprint(shape);
     log::info(
         "Hierarchy space: " +
         std::to_string((double)hierarchy.EstimateMemoryFootprint(shape) / 1e9) +
         " GB");
-    // }
 
     // For prefetching
     if (enable_prefetch) {
       estimate_memory_usgae *= 2;
     }
     estimate_memory_usgae +=
-        CompressorType::EstimateMemoryFootprint(shape, config);
+        OperatorType::EstimateMemoryFootprint(shape, config);
     log::info("Compressor space: " +
-              std::to_string((double)CompressorType::EstimateMemoryFootprint(
+              std::to_string((double)OperatorType::EstimateMemoryFootprint(
                                  shape, config) /
                              1e9) +
               " GB");
