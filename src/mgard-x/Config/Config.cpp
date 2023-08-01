@@ -14,7 +14,6 @@ namespace mgard_x {
 Config::Config() {
   dev_type = device_type::AUTO;
   dev_id = 0;
-  num_dev = 1;
   domain_decomposition = domain_decomposition_type::MaxDim;
   decomposition = decomposition_type::MultiDim;
   estimate_outlier_ratio = 1.0;

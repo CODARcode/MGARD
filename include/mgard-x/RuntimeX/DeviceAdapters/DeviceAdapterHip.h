@@ -441,7 +441,7 @@ public:
     gpuErrchk(hipSetDevice(dev_id));
     size_t free, total;
     hipMemGetInfo(&free, &total);
-    AvailableMemory[dev_id] = free;
+    AvailableMemory[dev_id] = total;
     return AvailableMemory[dev_id];
   }
 
