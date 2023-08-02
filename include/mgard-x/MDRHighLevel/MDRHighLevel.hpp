@@ -504,7 +504,7 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
     MemoryManager<DeviceType>::HostUnregister((void *)original_data);
   }
 
-  DeviceRuntime<DeviceType>::Destroy();
+  DeviceRuntime<DeviceType>::Finalize();
 
   if (log::level & log::TIME) {
     timer_each.end();
@@ -558,7 +558,7 @@ void MDRequest(std::vector<SIZE> shape,
           shape, m.domain_decomposed, m.domain_decomposed_dim,
           m.domain_decomposed_size, config);
   generate_request(domain_decomposer, config, refactored_metadata);
-  DeviceRuntime<DeviceType>::Destroy();
+  DeviceRuntime<DeviceType>::Finalize();
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -715,7 +715,7 @@ void MDReconstruct(std::vector<SIZE> shape,
       delete[] coords[d];
   }
 
-  DeviceRuntime<DeviceType>::Destroy();
+  DeviceRuntime<DeviceType>::Finalize();
 
   if (log::level & log::TIME) {
     timer_total.end();
