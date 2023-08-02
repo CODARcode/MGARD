@@ -923,7 +923,7 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
 
   if (!config.cache_compressor)
     Cache::cache.SafeRelease();
-  DeviceRuntime<DeviceType>::Destroy();
+  DeviceRuntime<DeviceType>::Finalize();
 
   MemoryManager<DeviceType>::ReduceMemoryFootprint =
       reduce_memory_footprint_original;
@@ -1162,7 +1162,7 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
 
   if (!config.cache_compressor)
     Cache::cache.SafeRelease();
-  DeviceRuntime<DeviceType>::Destroy();
+  DeviceRuntime<DeviceType>::Finalize();
 
   MemoryManager<DeviceType>::ReduceMemoryFootprint =
       reduce_memory_footprint_original;

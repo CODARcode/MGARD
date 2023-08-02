@@ -535,7 +535,7 @@ public:
   }
 
   MGARDX_CONT
-  ~DeviceQueues() { Destroy(); }
+  ~DeviceQueues() {}
 
   bool initialized = false;
   int NumDevices;
@@ -552,7 +552,7 @@ public:
 
   MGARDX_CONT static void Initialize() { queues.Initialize(); }
 
-  MGARDX_CONT static void Destroy() { queues.Destroy(); }
+  MGARDX_CONT static void Finalize() { queues.Destroy(); }
 
   MGARDX_CONT static int GetDeviceCount() { return DeviceSpecs.NumDevices; }
 

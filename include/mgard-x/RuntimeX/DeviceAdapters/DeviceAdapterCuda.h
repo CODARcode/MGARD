@@ -623,7 +623,7 @@ public:
   }
 
   MGARDX_CONT
-  ~DeviceQueues() { Destroy(); }
+  ~DeviceQueues() {}
 
   int NumDevices;
   cudaStream_t **streams = nullptr;
@@ -640,7 +640,7 @@ public:
 
   MGARDX_CONT static void Initialize() { queues.Initialize(); }
 
-  MGARDX_CONT static void Destroy() { queues.Destroy(); }
+  MGARDX_CONT static void Finalize() { queues.Destroy(); }
 
   MGARDX_CONT static int GetDeviceCount() { return DeviceSpecs.NumDevices; }
 
