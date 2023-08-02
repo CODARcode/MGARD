@@ -56,9 +56,9 @@ public:
     estimate_memory_usgae +=
         OperatorType::EstimateMemoryFootprint(shape, config);
     log::info("Compressor space: " +
-              std::to_string((double)OperatorType::EstimateMemoryFootprint(
-                                 shape, config) /
-                             1e9) +
+              std::to_string(
+                  (double)OperatorType::EstimateMemoryFootprint(shape, config) /
+                  1e9) +
               " GB");
 
     return estimate_memory_usgae;
