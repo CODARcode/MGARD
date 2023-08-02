@@ -518,15 +518,18 @@ public:
   DeviceQueues() { Initialize(); }
 
   MGARDX_CONT hipStream_t GetQueue(int dev_id, SIZE queue_id) {
-    Initialize() return streams[dev_id][queue_id];
+    Initialize();
+    return streams[dev_id][queue_id];
   }
 
   MGARDX_CONT void SyncQueue(int dev_id, SIZE queue_id) {
-    Initialize() hipStreamSynchronize(streams[dev_id][queue_id]);
+    Initialize();
+    hipStreamSynchronize(streams[dev_id][queue_id]);
   }
 
   MGARDX_CONT void SyncAllQueues(int dev_id) {
-    Initialize() for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
+    Initialize();
+    for (SIZE i = 0; i < MGARDX_NUM_QUEUES; i++) {
       gpuErrchk(hipStreamSynchronize(streams[dev_id][i]));
     }
   }
