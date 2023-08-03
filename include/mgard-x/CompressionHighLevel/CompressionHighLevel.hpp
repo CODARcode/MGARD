@@ -253,7 +253,16 @@ enum compress_status_type compress_subdomain_series(
     // Check if we have enough space
     if (device_compressed_buffer.shape(0) >
         compressed_subdomain_size - byte_offset - sizeof(SIZE)) {
-      log::err("Output too large");
+      log::err("Output too large (original size: " +
+               std::to_string((double)compressor.hierarchy->total_num_elems() *
+                              sizeof(T) / 1e9) +
+               " GB, compressed size: " +
+               std::to_string((double)device_compressed_buffer.shape(0) / 1e9) +
+               " GB, leftover buffer space: " +
+               std::to_string((double)(compressed_subdomain_size - byte_offset -
+                                       sizeof(SIZE)) /
+                              1e9) +
+               " GB)");
       return compress_status_type::OutputTooLargeFailure;
     }
     Serialize<SIZE, DeviceType>(compressed_subdomain_data,
@@ -375,7 +384,18 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
     // Check if we have enough space
     if (device_compressed_buffer[current_buffer].shape(0) >
         compressed_subdomain_size - byte_offset - sizeof(SIZE)) {
-      log::err("Output too large");
+      log::err(
+          "Output too large (original size: " +
+          std::to_string((double)compressor.hierarchy->total_num_elems() *
+                         sizeof(T) / 1e9) +
+          " GB, compressed size: " +
+          std::to_string(
+              (double)device_compressed_buffer[current_buffer].shape(0) / 1e9) +
+          " GB, leftover buffer space: " +
+          std::to_string(
+              (double)(compressed_subdomain_size - byte_offset - sizeof(SIZE)) /
+              1e9) +
+          " GB)");
       return compress_status_type::OutputTooLargeFailure;
     }
 
