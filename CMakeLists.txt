@@ -151,8 +151,6 @@ endif()
 if(MGARD_ENABLE_OPENMP)
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_OPENMP)
   set_source_files_properties(${MGARD_X_OPENMP_SRC} PROPERTIES LANGUAGE CXX)
-  # Multi-device has to be off when using OpenMP
-  set(MGARD_ENABLE_MULTI_DEVICE OFF)
 endif()
 
 if(MGARD_ENABLE_CUDA)
@@ -353,8 +351,7 @@ if(MGARD_ENABLE_LEGACY_CUDA)
   target_link_libraries(mgard-library PUBLIC nvcomp::nvcomp CUDA::cudart)
 endif()
 
-if(MGARD_ENABLE_MULTI_DEVICE OR 
-   MGARD_ENABLE_OPENMP)
+if(MGARD_ENABLE_OPENMP)
   find_package(OpenMP REQUIRED)
   target_link_libraries(mgard-library PUBLIC OpenMP::OpenMP_CXX)
   # A bug in CMake causing the '-fopenmp' flag missing when compiling device units during separate compilation
@@ -490,7 +487,6 @@ if (MGARD_ENABLE_LEGACY_CUDA)
   message(STATUS "CUDA Arch: ${CMAKE_CUDA_ARCHITECTURES}")
   list(POP_BACK CMAKE_MESSAGE_INDENT)
 endif()
-message(STATUS "multi-device:  ${MGARD_ENABLE_MULTI_DEVICE}")
 message(STATUS "auto tuning:   ${MGARD_ENABLE_AUTO_TUNING}")
 message(STATUS "MDR:           ${MGARD_ENABLE_MDR}")
 message(STATUS "timing:        ${MGARD_ENABLE_TIMING}")
