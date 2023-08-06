@@ -249,15 +249,35 @@ enum compress_status_type compress_subdomain_series(
               " with shape: " + ss.str());
     compressor.Compress(device_subdomain_buffer, local_ebtype, local_tol, s,
                         norm, device_compressed_buffer, 0);
-
+    SIZE compressed_size = device_compressed_buffer.shape(0);
+    double CR = (double)compressor.hierarchy->total_num_elems() * sizeof(T) /
+                compressed_size;
+    log::info("Subdomain CR: " + std::to_string(CR));
+    if (CR < 1.0) {
+      log::info("Using uncompressed data instead");
+      domain_decomposer.copy_subdomain(
+          device_subdomain_buffer, subdomain_id,
+          subdomain_copy_direction::OriginalToSubdomain, 0);
+      SIZE linearized_width = 1;
+      for (DIM d = 0; d < D - 1; d++)
+        linearized_width *= device_subdomain_buffer.shape(d);
+      MemoryManager<DeviceType>::CopyND(
+          device_compressed_buffer.data(),
+          device_subdomain_buffer.shape(D - 1) * sizeof(T),
+          (Byte *)device_subdomain_buffer.data(),
+          device_subdomain_buffer.ld(D - 1) * sizeof(T),
+          device_subdomain_buffer.shape(D - 1) * sizeof(T), linearized_width,
+          0);
+      compressed_size = compressor.hierarchy->total_num_elems() * sizeof(T);
+    }
     // Check if we have enough space
-    if (device_compressed_buffer.shape(0) >
+    if (compressed_size >
         compressed_subdomain_size - byte_offset - sizeof(SIZE)) {
       log::err("Output too large (original size: " +
                std::to_string((double)compressor.hierarchy->total_num_elems() *
                               sizeof(T) / 1e9) +
                " GB, compressed size: " +
-               std::to_string((double)device_compressed_buffer.shape(0) / 1e9) +
+               std::to_string((double)compressed_size / 1e9) +
                " GB, leftover buffer space: " +
                std::to_string((double)(compressed_subdomain_size - byte_offset -
                                        sizeof(SIZE)) /
@@ -265,12 +285,11 @@ enum compress_status_type compress_subdomain_series(
                " GB)");
       return compress_status_type::OutputTooLargeFailure;
     }
-    Serialize<SIZE, DeviceType>(compressed_subdomain_data,
-                                &device_compressed_buffer.shape(0), 1,
+    Serialize<SIZE, DeviceType>(compressed_subdomain_data, &compressed_size, 1,
                                 byte_offset, 0);
-    Serialize<Byte, DeviceType>(
-        compressed_subdomain_data, device_compressed_buffer.data(),
-        device_compressed_buffer.shape(0), byte_offset, 0);
+    Serialize<Byte, DeviceType>(compressed_subdomain_data,
+                                device_compressed_buffer.data(),
+                                compressed_size, byte_offset, 0);
     if (config.compress_with_dryrun) {
       domain_decomposer.copy_subdomain(
           device_subdomain_buffer, subdomain_id,
@@ -381,33 +400,49 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
         device_subdomain_buffer[current_buffer], local_ebtype, local_tol, s,
         norm, device_compressed_buffer[current_buffer], current_queue);
 
+    SIZE compressed_size = device_compressed_buffer[current_buffer].shape(0);
+    double CR = (double)compressor.hierarchy->total_num_elems() * sizeof(T) /
+                compressed_size;
+    log::info("Subdomain CR: " + std::to_string(CR));
+    if (CR < 1.0) {
+      log::info("Using uncompressed data instead");
+      domain_decomposer.copy_subdomain(
+          device_subdomain_buffer[current_buffer], curr_subdomain_id,
+          subdomain_copy_direction::OriginalToSubdomain, current_queue);
+      SIZE linearized_width = 1;
+      for (DIM d = 0; d < D - 1; d++)
+        linearized_width *= device_subdomain_buffer[current_buffer].shape(d);
+      MemoryManager<DeviceType>::CopyND(
+          device_compressed_buffer[current_buffer].data(),
+          device_subdomain_buffer[current_buffer].shape(D - 1) * sizeof(T),
+          (Byte *)device_subdomain_buffer[current_buffer].data(),
+          device_subdomain_buffer[current_buffer].ld(D - 1) * sizeof(T),
+          device_subdomain_buffer[current_buffer].shape(D - 1) * sizeof(T),
+          linearized_width, current_queue);
+      compressed_size = compressor.hierarchy->total_num_elems() * sizeof(T);
+    }
+
     // Check if we have enough space
-    if (device_compressed_buffer[current_buffer].shape(0) >
+    if (compressed_size >
         compressed_subdomain_size - byte_offset - sizeof(SIZE)) {
-      log::err(
-          "Output too large (original size: " +
-          std::to_string((double)compressor.hierarchy->total_num_elems() *
-                         sizeof(T) / 1e9) +
-          " GB, compressed size: " +
-          std::to_string(
-              (double)device_compressed_buffer[current_buffer].shape(0) / 1e9) +
-          " GB, leftover buffer space: " +
-          std::to_string(
-              (double)(compressed_subdomain_size - byte_offset - sizeof(SIZE)) /
-              1e9) +
-          " GB)");
+      log::err("Output too large (original size: " +
+               std::to_string((double)compressor.hierarchy->total_num_elems() *
+                              sizeof(T) / 1e9) +
+               " GB, compressed size: " +
+               std::to_string((double)compressed_size / 1e9) +
+               " GB, leftover buffer space: " +
+               std::to_string((double)(compressed_subdomain_size - byte_offset -
+                                       sizeof(SIZE)) /
+                              1e9) +
+               " GB)");
       return compress_status_type::OutputTooLargeFailure;
     }
 
-    Serialize<SIZE, DeviceType>(
-        compressed_subdomain_data,
-        &device_compressed_buffer[current_buffer].shape(0), 1, byte_offset,
-        current_queue);
-    Serialize<Byte, DeviceType>(
-        compressed_subdomain_data,
-        device_compressed_buffer[current_buffer].data(),
-        device_compressed_buffer[current_buffer].shape(0), byte_offset,
-        current_queue);
+    Serialize<SIZE, DeviceType>(compressed_subdomain_data, &compressed_size, 1,
+                                byte_offset, current_queue);
+    Serialize<Byte, DeviceType>(compressed_subdomain_data,
+                                device_compressed_buffer[current_buffer].data(),
+                                compressed_size, byte_offset, current_queue);
     if (config.compress_with_dryrun) {
       domain_decomposer.copy_subdomain(
           device_subdomain_buffer[current_buffer], curr_subdomain_id,
@@ -463,14 +498,32 @@ enum compress_status_type decompress_subdomain_series(
     Hierarchy<D, T, DeviceType> hierarchy =
         domain_decomposer.subdomain_hierarchy(subdomain_id);
     Compressor compressor(hierarchy, config);
-    std::stringstream ss;
-    for (DIM d = 0; d < D; d++) {
-      ss << hierarchy.level_shape(hierarchy.l_target(), d) << " ";
+
+    double CR = (double)compressor.hierarchy->total_num_elems() * sizeof(T) /
+                compressed_size;
+    log::info("Subdomain CR: " + std::to_string(CR));
+    if (CR > 1.0) {
+      std::stringstream ss;
+      for (DIM d = 0; d < D; d++) {
+        ss << hierarchy.level_shape(hierarchy.l_target(), d) << " ";
+      }
+      log::info("Decompressing subdomain " + std::to_string(subdomain_id) +
+                " with shape: " + ss.str());
+      compressor.Decompress(device_compressed_buffer, local_ebtype, local_tol,
+                            s, norm, device_subdomain_buffer, 0);
+    } else {
+      log::info("Skipping decompression as original data was saved instead");
+      device_subdomain_buffer.resize({compressor.hierarchy->level_shape(
+          compressor.hierarchy->l_target())});
+      SIZE linearized_width = 1;
+      for (DIM d = 0; d < D - 1; d++)
+        linearized_width *= device_subdomain_buffer.shape(d);
+      MemoryManager<DeviceType>::CopyND(
+          device_subdomain_buffer.data(), device_subdomain_buffer.ld(D - 1),
+          (T *)device_compressed_buffer.data(),
+          device_subdomain_buffer.shape(D - 1),
+          device_subdomain_buffer.shape(D - 1), linearized_width, 0);
     }
-    log::info("Decompressing subdomain " + std::to_string(subdomain_id) +
-              " with shape: " + ss.str());
-    compressor.Decompress(device_compressed_buffer, local_ebtype, local_tol, s,
-                          norm, device_subdomain_buffer, 0);
 
     domain_decomposer.copy_subdomain(
         device_subdomain_buffer, subdomain_id,
@@ -592,16 +645,21 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
     log::info("Adapt Compressor to hierarchy");
     compressor.Adapt(hierarchy, config, current_queue);
 
-    std::stringstream ss;
-    for (DIM d = 0; d < D; d++) {
-      ss << compressor.hierarchy->level_shape(compressor.hierarchy->l_target(),
-                                              d)
-         << " ";
+    double CR = (double)compressor.hierarchy->total_num_elems() * sizeof(T) /
+                compressed_size;
+    log::info("Subdomain CR: " + std::to_string(CR));
+    if (CR > 1.0) {
+      std::stringstream ss;
+      for (DIM d = 0; d < D; d++) {
+        ss << compressor.hierarchy->level_shape(
+                  compressor.hierarchy->l_target(), d)
+           << " ";
+      }
+      log::info("Decompressing subdomain " + std::to_string(curr_subdomain_id) +
+                " with shape: " + ss.str());
+      compressor.LosslessDecompress(device_compressed_buffer[current_buffer],
+                                    current_queue);
     }
-    log::info("Decompressing subdomain " + std::to_string(curr_subdomain_id) +
-              " with shape: " + ss.str());
-    compressor.LosslessDecompress(device_compressed_buffer[current_buffer],
-                                  current_queue);
     if (curr_subdomain_id > 0) {
       // We delay D2H since since it can delay the D2H in lossless decompession
       // and dequantization
@@ -612,10 +670,28 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
           device_subdomain_buffer[previous_buffer], prev_subdomain_id,
           subdomain_copy_direction::SubdomainToOriginal, previous_queue);
     }
-    compressor.Dequantize(device_subdomain_buffer[current_buffer], local_ebtype,
-                          local_tol, s, norm, current_queue);
-    compressor.Recompose(device_subdomain_buffer[current_buffer],
-                         current_queue);
+    if (CR > 1.0) {
+      compressor.Dequantize(device_subdomain_buffer[current_buffer],
+                            local_ebtype, local_tol, s, norm, current_queue);
+      compressor.Recompose(device_subdomain_buffer[current_buffer],
+                           current_queue);
+    } else {
+      log::info("Skipping decompression as original data was saved instead");
+      device_subdomain_buffer[current_buffer].resize(
+          {compressor.hierarchy->level_shape(
+              compressor.hierarchy->l_target())});
+      SIZE linearized_width = 1;
+      for (DIM d = 0; d < D - 1; d++)
+        linearized_width *= device_subdomain_buffer[current_buffer].shape(d);
+      MemoryManager<DeviceType>::CopyND(
+          device_subdomain_buffer[current_buffer].data(),
+          device_subdomain_buffer[current_buffer].ld(D - 1),
+          (T *)device_compressed_buffer[current_buffer].data(),
+          device_subdomain_buffer[current_buffer].shape(D - 1),
+          device_subdomain_buffer[current_buffer].shape(D - 1),
+          linearized_width, current_queue);
+    }
+
     // Need to ensure decompession is complete without blocking other operations
     DeviceRuntime<DeviceType>::SyncQueue(current_queue);
     current_buffer = next_buffer;
