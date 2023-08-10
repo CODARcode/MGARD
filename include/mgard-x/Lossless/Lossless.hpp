@@ -35,6 +35,9 @@ public:
     if (config.lossless == lossless_type::Huffman_LZ4) {
       lz4 = LZ4<DeviceType>(n * sizeof(H), config.lz4_block_size);
     }
+    if (config.lossless == lossless_type::Huffman_Zstd) {
+      zstd = Zstd<DeviceType>(n * sizeof(H), config.zstd_compress_level);
+    }
   }
 
   void Adapt(SIZE n, Config config, int queue_idx) {
@@ -46,6 +49,9 @@ public:
     if (config.lossless == lossless_type::Huffman_LZ4) {
       lz4.Resize(n * sizeof(H), config.lz4_block_size, queue_idx);
     }
+    if (config.lossless == lossless_type::Huffman_Zstd) {
+      zstd.Resize(n * sizeof(H), config.zstd_compress_level, queue_idx);
+    }
   }
 
   static size_t EstimateMemoryFootprint(SIZE primary_count, Config config) {
@@ -55,6 +61,10 @@ public:
     if (config.lossless == lossless_type::Huffman_LZ4) {
       size += LZ4<DeviceType>::EstimateMemoryFootprint(
           primary_count * sizeof(H), config.lz4_block_size);
+    }
+    if (config.lossless == lossless_type::Huffman_Zstd) {
+      size +=
+          Zstd<DeviceType>::EstimateMemoryFootprint(primary_count * sizeof(H));
     }
     return size;
   }
@@ -69,7 +79,7 @@ public:
     }
 
     if (config.lossless == lossless_type::Huffman_Zstd) {
-      ZstdCompress(compressed_data, config.zstd_compress_level);
+      zstd.Compress(compressed_data, queue_idx);
     }
   }
 
@@ -81,7 +91,7 @@ public:
     }
 
     if (config.lossless == lossless_type::Huffman_Zstd) {
-      ZstdDecompress(compressed_data);
+      zstd.Decompress(compressed_data, queue_idx);
     }
 
     huffman.DecompressPrimary(compressed_data, decompressed_data, queue_idx);
@@ -92,6 +102,7 @@ public:
   Config config;
   Huffman<Q, S, H, DeviceType> huffman;
   LZ4<DeviceType> lz4;
+  Zstd<DeviceType> zstd;
 };
 
 } // namespace mgard_x

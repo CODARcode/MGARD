@@ -21,83 +21,114 @@ namespace mgard_x {
     CHECK(!ZSTD_isError(err), "%s", ZSTD_getErrorName(err));                   \
   } while (0)
 
-template <typename DeviceType>
-void ZstdCompress(Array<1, Byte, DeviceType> &data, int compressionLevel) {
-  Timer timer;
-  if (log::level & log::TIME)
-    timer.start();
-  Array<1, Byte, DeviceType> &input_data = data;
-  Array<1, Byte, DeviceType> &output_data = data;
-  size_t input_count = input_data.shape(0);
-
-  size_t const estimated_out_size = ZSTD_compressBound(input_count);
-  Byte *out_data = nullptr;
-  MemoryManager<DeviceType>::MallocHost(out_data,
-                                        estimated_out_size + sizeof(size_t), 0);
-  Byte *in_data = nullptr;
-  MemoryManager<DeviceType>::MallocHost(in_data, input_count, 0);
-  MemoryManager<DeviceType>::Copy1D(in_data, input_data.data(), input_count, 0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
-
-  size_t const actual_out_size =
-      ZSTD_compress(out_data + sizeof(size_t), estimated_out_size, in_data,
-                    input_count, compressionLevel);
-  CHECK_ZSTD(actual_out_size);
-
-  *(size_t *)out_data = (size_t)input_count;
-
-  output_data.resize({(SIZE)(actual_out_size + sizeof(size_t))});
-  MemoryManager<DeviceType>::Copy1D(output_data.data(), out_data,
-                                    actual_out_size + sizeof(size_t), 0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
-  MemoryManager<DeviceType>::FreeHost(out_data);
-  MemoryManager<DeviceType>::FreeHost(in_data);
-
-  log::info("Zstd compression level: " + std::to_string(compressionLevel));
-  log::info("Zstd compress ratio: " +
-            std::to_string((double)(input_count) /
-                           (actual_out_size + sizeof(size_t))));
-  if (log::level & log::TIME) {
-    timer.end();
-    timer.print("Zstd compress");
-    timer.clear();
+template <typename DeviceType> class Zstd {
+public:
+  Zstd() {}
+  Zstd(SIZE n, int compressionLevel) : compressionLevel(compressionLevel) {
+    Resize(n, compressionLevel, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
   }
-}
 
-template <typename DeviceType>
-void ZstdDecompress(Array<1, Byte, DeviceType> &data) {
-  Timer timer;
-  if (log::level & log::TIME)
-    timer.start();
-  Array<1, Byte, DeviceType> &input_data = data;
-  Array<1, Byte, DeviceType> &output_data = data;
-  size_t input_count = input_data.shape(0);
-  Byte *in_data = nullptr;
-  MemoryManager<DeviceType>::MallocHost(in_data, input_count, 0);
-  MemoryManager<DeviceType>::Copy1D(in_data, input_data.data(), input_count, 0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
-
-  uint32_t actual_out_count = 0;
-  actual_out_count = *reinterpret_cast<const size_t *>(in_data);
-  Byte *out_data = nullptr;
-  MemoryManager<DeviceType>::MallocHost(out_data, actual_out_count, 0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
-
-  ZSTD_decompress(out_data, actual_out_count, in_data + sizeof(size_t),
-                  input_count - sizeof(size_t));
-
-  output_data.resize({(SIZE)actual_out_count});
-  MemoryManager<DeviceType>::Copy1D(output_data.data(), out_data,
-                                    actual_out_count, 0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
-  MemoryManager<DeviceType>::FreeHost(out_data);
-  MemoryManager<DeviceType>::FreeHost(in_data);
-  if (log::level & log::TIME) {
-    timer.end();
-    timer.print("Zstd decompress");
-    timer.clear();
+  void Resize(SIZE n, int compressionLevel, int queue_idx) {
+    Release(queue_idx);
+    this->compressionLevel = compressionLevel;
+    size_t const estimated_out_size = ZSTD_compressBound(n);
+    MemoryManager<DeviceType>::MallocHost(
+        out_data, estimated_out_size + sizeof(size_t), queue_idx);
+    MemoryManager<DeviceType>::MallocHost(in_data, n, queue_idx);
   }
-}
+
+  void Release(int queue_idx) {
+    if (out_data != nullptr) {
+      MemoryManager<DeviceType>::FreeHost(out_data, queue_idx);
+      out_data = nullptr;
+    }
+    if (in_data != nullptr) {
+      MemoryManager<DeviceType>::FreeHost(in_data, queue_idx);
+      in_data = nullptr;
+    }
+  }
+  ~Zstd() {
+    Release(0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+  }
+
+  static size_t EstimateMemoryFootprint(SIZE n) {
+    size_t size = 0;
+    return size;
+  }
+
+  void Compress(Array<1, Byte, DeviceType> &data, int queue_idx) {
+    Timer timer;
+    if (log::level & log::TIME)
+      timer.start();
+    Array<1, Byte, DeviceType> &input_data = data;
+    Array<1, Byte, DeviceType> &output_data = data;
+    size_t input_count = input_data.shape(0);
+
+    size_t const estimated_out_size = ZSTD_compressBound(input_count);
+    MemoryManager<DeviceType>::Copy1D(in_data, input_data.data(), input_count,
+                                      queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+
+    size_t const actual_out_size =
+        ZSTD_compress(out_data + sizeof(size_t), estimated_out_size, in_data,
+                      input_count, compressionLevel);
+    CHECK_ZSTD(actual_out_size);
+
+    *(size_t *)out_data = (size_t)input_count;
+
+    output_data.resize({(SIZE)(actual_out_size + sizeof(size_t))});
+    MemoryManager<DeviceType>::Copy1D(output_data.data(), out_data,
+                                      actual_out_size + sizeof(size_t),
+                                      queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+    log::info("Zstd compression level: " + std::to_string(compressionLevel));
+    log::info("Zstd compress ratio: " +
+              std::to_string((double)(input_count) /
+                             (actual_out_size + sizeof(size_t))));
+    if (log::level & log::TIME) {
+      timer.end();
+      timer.print("Zstd compress");
+      timer.print_throughput("Zstd compress", input_count);
+      timer.clear();
+    }
+  }
+
+  void Decompress(Array<1, Byte, DeviceType> &data, int queue_idx) {
+    Timer timer;
+    if (log::level & log::TIME)
+      timer.start();
+    Array<1, Byte, DeviceType> &input_data = data;
+    Array<1, Byte, DeviceType> &output_data = data;
+    size_t input_count = input_data.shape(0);
+    MemoryManager<DeviceType>::Copy1D(in_data, input_data.data(), input_count,
+                                      queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+
+    uint32_t actual_out_count = 0;
+    actual_out_count = *reinterpret_cast<const size_t *>(in_data);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+
+    ZSTD_decompress(out_data, actual_out_count, in_data + sizeof(size_t),
+                    input_count - sizeof(size_t));
+
+    output_data.resize({(SIZE)actual_out_count});
+    MemoryManager<DeviceType>::Copy1D(output_data.data(), out_data,
+                                      actual_out_count, queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+    if (log::level & log::TIME) {
+      timer.end();
+      timer.print("Zstd decompress");
+      timer.print_throughput("Zstd decompress", actual_out_count);
+      timer.clear();
+    }
+  }
+
+  int compressionLevel;
+  Byte *in_data = nullptr;
+  Byte *out_data = nullptr;
+};
 
 } // namespace mgard_x
 
