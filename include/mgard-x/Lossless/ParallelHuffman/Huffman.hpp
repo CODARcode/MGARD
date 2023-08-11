@@ -162,8 +162,8 @@ public:
     advance_with_align<size_t>(byte_offset, 1);
     advance_with_align<H>(byte_offset, ddata_size);
     // outliter
-    advance_with_align<LENGTH>(byte_offset, 1);
-    advance_with_align<LENGTH>(byte_offset, workspace.outlier_count);
+    advance_with_align<ATOMIC_IDX>(byte_offset, 1);
+    advance_with_align<ATOMIC_IDX>(byte_offset, workspace.outlier_count);
     advance_with_align<S>(byte_offset, workspace.outlier_count);
 
     compressed_data.resize({(SIZE)(byte_offset)});
@@ -209,11 +209,12 @@ public:
     advance_with_align<H>(byte_offset, ddata_size);
 
     // outlier
-    SerializeArray<LENGTH>(compressed_data_subarray, &workspace.outlier_count,
-                           1, byte_offset, queue_idx);
-    SerializeArray<LENGTH>(compressed_data_subarray,
-                           workspace.outlier_idx_subarray.data(),
-                           workspace.outlier_count, byte_offset, queue_idx);
+    SerializeArray<ATOMIC_IDX>(compressed_data_subarray,
+                               &workspace.outlier_count, 1, byte_offset,
+                               queue_idx);
+    SerializeArray<ATOMIC_IDX>(compressed_data_subarray,
+                               workspace.outlier_idx_subarray.data(),
+                               workspace.outlier_count, byte_offset, queue_idx);
     SerializeArray<S>(compressed_data_subarray,
                       workspace.outlier_subarray.data(),
                       workspace.outlier_count, byte_offset, queue_idx);
@@ -265,8 +266,8 @@ public:
     size_t decodebook_size;
     uint8_t *decodebook;
     size_t ddata_size;
-    // LENGTH outlier_count;
-    LENGTH *outlier_idx;
+    // ATOMIC_IDX outlier_count;
+    ATOMIC_IDX *outlier_idx;
     S *outlier;
 
     size_t *primary_count_ptr = &primary_count;
@@ -275,7 +276,7 @@ public:
     size_t *huffmeta_size_ptr = &huffmeta_size;
     size_t *decodebook_size_ptr = &decodebook_size;
     size_t *ddata_size_ptr = &ddata_size;
-    LENGTH *outlier_count_ptr = &workspace.outlier_count;
+    ATOMIC_IDX *outlier_count_ptr = &workspace.outlier_count;
 
     H *ddata;
 
@@ -300,15 +301,15 @@ public:
                         true, queue_idx);
 
     // outlier
-    DeserializeArray<LENGTH>(compressed_subarray, outlier_count_ptr, 1,
-                             byte_offset, false, queue_idx);
+    DeserializeArray<ATOMIC_IDX>(compressed_subarray, outlier_count_ptr, 1,
+                                 byte_offset, false, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    DeserializeArray<LENGTH>(compressed_subarray, outlier_idx,
-                             workspace.outlier_count, byte_offset, true,
-                             queue_idx);
+    DeserializeArray<ATOMIC_IDX>(compressed_subarray, outlier_idx,
+                                 workspace.outlier_count, byte_offset, true,
+                                 queue_idx);
     DeserializeArray<S>(compressed_subarray, outlier, workspace.outlier_count,
                         byte_offset, true, queue_idx);
-    workspace.outlier_idx_subarray = SubArray<1, LENGTH, DeviceType>(
+    workspace.outlier_idx_subarray = SubArray<1, ATOMIC_IDX, DeviceType>(
         {(SIZE)workspace.outlier_count}, outlier_idx);
     workspace.outlier_subarray =
         SubArray<1, S, DeviceType>({(SIZE)workspace.outlier_count}, outlier);

@@ -22,9 +22,9 @@ public:
   QuantizeLevelFunctor(T quantizer, SubArray<1, T, DeviceType> v,
                        SubArray<1, Q, DeviceType> quantized_v,
                        bool prep_huffman, SIZE dict_size,
-                       LENGTH outlier_idx_hierarchy_offset,
-                       SubArray<1, LENGTH, DeviceType> outlier_count,
-                       SubArray<1, LENGTH, DeviceType> outlier_indexes,
+                       ATOMIC_IDX outlier_idx_hierarchy_offset,
+                       SubArray<1, ATOMIC_IDX, DeviceType> outlier_count,
+                       SubArray<1, ATOMIC_IDX, DeviceType> outlier_indexes,
                        SubArray<1, QUANTIZED_INT, DeviceType> outliers)
       : quantizer(quantizer), v(v), quantized_v(quantized_v),
         prep_huffman(prep_huffman), dict_size(dict_size),
@@ -51,11 +51,11 @@ public:
           if (quantized_data >= 0 && quantized_data < dict_size) {
             // do nothing
           } else {
-            LENGTH outlier_write_offset =
-                Atomic<LENGTH, AtomicGlobalMemory, AtomicDeviceScope,
-                       DeviceType>::Add(outlier_count((IDX)0), (LENGTH)1);
+            ATOMIC_IDX outlier_write_offset =
+                Atomic<ATOMIC_IDX, AtomicGlobalMemory, AtomicDeviceScope,
+                       DeviceType>::Add(outlier_count((IDX)0), (ATOMIC_IDX)1);
 
-            LENGTH outlier_idx = idx + outlier_idx_hierarchy_offset;
+            ATOMIC_IDX outlier_idx = idx + outlier_idx_hierarchy_offset;
             // Avoid out of range error
             // If we have too much outlier than our allocation
             // we return the true outlier_count and do quanziation again
@@ -92,9 +92,9 @@ private:
   SubArray<1, Q, DeviceType> quantized_v;
   bool prep_huffman;
   SIZE dict_size;
-  LENGTH outlier_idx_hierarchy_offset;
-  SubArray<1, LENGTH, DeviceType> outlier_count;
-  SubArray<1, LENGTH, DeviceType> outlier_indexes;
+  ATOMIC_IDX outlier_idx_hierarchy_offset;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_count;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_indexes;
   SubArray<1, QUANTIZED_INT, DeviceType> outliers;
 };
 
@@ -106,9 +106,9 @@ public:
   MGARDX_CONT
   QuantizeLevelKernel(T quantizer, SubArray<1, T, DeviceType> v,
                       SubArray<1, Q, DeviceType> quantized_v, bool prep_huffman,
-                      SIZE dict_size, LENGTH outlier_idx_hierarchy_offset,
-                      SubArray<1, LENGTH, DeviceType> outlier_count,
-                      SubArray<1, LENGTH, DeviceType> outlier_indexes,
+                      SIZE dict_size, ATOMIC_IDX outlier_idx_hierarchy_offset,
+                      SubArray<1, ATOMIC_IDX, DeviceType> outlier_count,
+                      SubArray<1, ATOMIC_IDX, DeviceType> outlier_indexes,
                       SubArray<1, QUANTIZED_INT, DeviceType> outliers)
       : quantizer(quantizer), v(v), quantized_v(quantized_v),
         prep_huffman(prep_huffman), dict_size(dict_size),
@@ -146,9 +146,9 @@ private:
   SubArray<1, Q, DeviceType> quantized_v;
   bool prep_huffman;
   SIZE dict_size;
-  LENGTH outlier_idx_hierarchy_offset;
-  SubArray<1, LENGTH, DeviceType> outlier_count;
-  SubArray<1, LENGTH, DeviceType> outlier_indexes;
+  ATOMIC_IDX outlier_idx_hierarchy_offset;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_count;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_indexes;
   SubArray<1, QUANTIZED_INT, DeviceType> outliers;
 };
 
