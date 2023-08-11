@@ -22,7 +22,7 @@ template <DIM D, typename T, typename OperatorType, typename DeviceType>
 class DomainDecomposer {
 public:
   size_t EstimateMemoryFootprint(std::vector<SIZE> shape,
-                                 double reduction_ratio, bool enable_prefetch) {
+                                 bool enable_prefetch) {
     size_t estimate_memory_usgae = 0;
 
     Array<1, T, DeviceType> array_with_pitch({1});
@@ -33,7 +33,12 @@ public:
       input_space *= shape[d];
     }
 
-    size_t output_space = (double)input_space * reduction_ratio;
+    SIZE num_elements = 1;
+    for (int i = 0; i < shape.size(); i++)
+      num_elements *= shape[i];
+    size_t output_space = 0;
+    output_space += num_elements * sizeof(HUFFMAN_CODE);
+    output_space += config.estimate_outlier_ratio * sizeof(QUANTIZED_INT);
 
     estimate_memory_usgae = input_space + output_space;
 
@@ -67,7 +72,7 @@ public:
   bool need_domain_decomposition(std::vector<SIZE> shape,
                                  bool enable_prefetch) {
     // using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
-    size_t estm = EstimateMemoryFootprint(shape, 1.0, enable_prefetch);
+    size_t estm = EstimateMemoryFootprint(shape, enable_prefetch);
     size_t aval =
         std::min((SIZE)DeviceRuntime<DeviceType>::GetAvailableMemory(),
                  config.max_memory_footprint);
@@ -158,6 +163,17 @@ public:
         return shape;
       }
     }
+  }
+
+  SIZE subdomain_compressed_buffer_size(int subdomain_id) {
+    std::vector<SIZE> shape = subdomain_shape(subdomain_id);
+    SIZE num_elements = 1;
+    for (int i = 0; i < shape.size(); i++)
+      num_elements *= shape[i];
+    SIZE size = 0;
+    size += num_elements * sizeof(HUFFMAN_CODE);
+    size += config.estimate_outlier_ratio * sizeof(QUANTIZED_INT);
+    return size;
   }
 
   bool generate_max_dim_domain_decomposition_strategy(

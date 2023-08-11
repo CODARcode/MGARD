@@ -18,14 +18,14 @@ public:
 
   MGARDX_CONT
   Task(FunctorType functor, IDX ngridz, IDX ngridy, IDX ngridx, IDX nblockz,
-       IDX nblocky, IDX nblockx, LENGTH shared_memory_size, int queue_idx)
+       IDX nblocky, IDX nblockx, SIZE shared_memory_size, int queue_idx)
       : functor(functor), ngridz(ngridz), ngridy(ngridy), ngridx(ngridx),
         nblockz(nblockz), nblocky(nblocky), nblockx(nblockx),
         shared_memory_size(shared_memory_size), queue_idx(queue_idx) {}
 
   MGARDX_CONT
   Task(FunctorType functor, IDX ngridz, IDX ngridy, IDX ngridx, IDX nblockz,
-       IDX nblocky, IDX nblockx, LENGTH shared_memory_size, int queue_idx,
+       IDX nblocky, IDX nblockx, SIZE shared_memory_size, int queue_idx,
        std::string functor_name)
       : functor(functor), ngridz(ngridz), ngridy(ngridy), ngridx(ngridx),
         nblockz(nblockz), nblocky(nblocky), nblockx(nblockx),
@@ -41,7 +41,7 @@ public:
   MGARDX_CONT_EXEC IDX GetBlockDimZ() { return nblockz; }
   MGARDX_CONT_EXEC IDX GetBlockDimY() { return nblocky; }
   MGARDX_CONT_EXEC IDX GetBlockDimX() { return nblockx; }
-  MGARDX_CONT_EXEC LENGTH GetSharedMemorySize() { return shared_memory_size; }
+  MGARDX_CONT_EXEC SIZE GetSharedMemorySize() { return shared_memory_size; }
   MGARDX_CONT void SetFunctorName(std::string functor_name) {
     this->functor_name = functor_name;
   }
@@ -52,7 +52,7 @@ private:
   FunctorType functor;
   IDX ngridz, ngridy, ngridx;
   IDX nblockz, nblocky, nblockx;
-  LENGTH shared_memory_size;
+  SIZE shared_memory_size;
   int queue_idx;
   std::string functor_name;
 };

@@ -55,7 +55,7 @@ class GroupedWarpEncoderFunctor : public Functor<DeviceType> {
 public:
   MGARDX_CONT GroupedWarpEncoderFunctor() {}
   MGARDX_CONT GroupedWarpEncoderFunctor(
-      LENGTH n, SIZE exp, SubArray<1, T, DeviceType> v,
+      SIZE n, SIZE exp, SubArray<1, T, DeviceType> v,
       SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
       SubArray<2, T_error, DeviceType> level_errors_workspace)
       : n(n), exp(exp), encoded_bitplanes(encoded_bitplanes), v(v),
@@ -384,7 +384,7 @@ public:
 
 private:
   // parameters
-  LENGTH n;
+  SIZE n;
   SIZE exp;
   SubArray<1, T, DeviceType> v;
   SubArray<2, T_bitplane, DeviceType> encoded_bitplanes;
@@ -429,7 +429,7 @@ public:
   constexpr static std::string_view Name = "grouped warp bp encoder";
   MGARDX_CONT
   GroupedWarpEncoderKernel(
-      LENGTH n, SIZE exp, SubArray<1, T, DeviceType> v,
+      SIZE n, SIZE exp, SubArray<1, T, DeviceType> v,
       SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
       SubArray<2, T_error, DeviceType> level_errors_workspace)
       : n(n), exp(exp), encoded_bitplanes(encoded_bitplanes), v(v),
@@ -464,7 +464,7 @@ public:
   }
 
 private:
-  LENGTH n;
+  SIZE n;
   SIZE exp;
   SubArray<1, T, DeviceType> v;
   SubArray<2, T_bitplane, DeviceType> encoded_bitplanes;
@@ -479,7 +479,7 @@ class GroupedWarpDecoderFunctor : public Functor<DeviceType> {
 public:
   MGARDX_CONT GroupedWarpDecoderFunctor() {}
   MGARDX_CONT GroupedWarpDecoderFunctor(
-      LENGTH n, SIZE starting_bitplane, SIZE exp,
+      SIZE n, SIZE starting_bitplane, SIZE exp,
       SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
       SubArray<1, bool, DeviceType> signs, SubArray<1, T, DeviceType> v)
       : n(n), starting_bitplane(starting_bitplane), exp(exp),
@@ -712,7 +712,7 @@ public:
 
 private:
   // parameters
-  LENGTH n;
+  SIZE n;
   SIZE starting_bitplane;
   SIZE exp;
   SubArray<2, T_bitplane, DeviceType> encoded_bitplanes;
@@ -752,7 +752,7 @@ public:
   constexpr static std::string_view Name = "grouped warp bp decoder";
   MGARDX_CONT
   GroupedWarpDecoderKernel(
-      LENGTH n, SIZE starting_bitplane, SIZE exp,
+      SIZE n, SIZE starting_bitplane, SIZE exp,
       SubArray<2, T_bitplane, DeviceType> encoded_bitplanes,
       SubArray<1, bool, DeviceType> signs, SubArray<1, T, DeviceType> v)
       : n(n), starting_bitplane(starting_bitplane), exp(exp),
@@ -786,7 +786,7 @@ public:
   }
 
 private:
-  LENGTH n;
+  SIZE n;
   SIZE starting_bitplane;
   SIZE exp;
   SubArray<2, T_bitplane, DeviceType> encoded_bitplanes;
@@ -1037,7 +1037,7 @@ public:
     if (BINARY_TYPE == BINARY) {
       MaxLengthPerTBPerIter *= 2;
     }
-    LENGTH NumIters = (n - 1) / (MGARDX_NUM_SMs * NumElemPerTBPerIter) + 1;
+    SIZE NumIters = (n - 1) / (MGARDX_NUM_SMs * NumElemPerTBPerIter) + 1;
     return MaxLengthPerTBPerIter * MGARDX_NUM_SMs * NumIters;
   }
 

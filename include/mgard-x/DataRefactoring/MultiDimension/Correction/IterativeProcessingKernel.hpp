@@ -106,8 +106,8 @@ public:
     //   idx[2], idx[1], idx[0], ldvs_sm[4], ldvs_sm[3], ldvs_sm[2], ldvs_sm[1],
     //   ldvs_sm[0]); printf("ipk1 other_offset_v: %llu\n", other_offset_v);
 
-    //   LENGTH curr_stride = 1;
-    //   LENGTH ret_idx = 0;
+    //   SIZE curr_stride = 1;
+    //   SIZE ret_idx = 0;
     //   for (DIM i = 0; i < D; i++) {
     //     ret_idx += idx[i] * curr_stride;
     //     printf("%llu * %llu = %llu\n", curr_stride, ldvs_sm[i],
@@ -551,7 +551,7 @@ private:
   SubArray<D, T, DeviceType> v;
 
   // thread local variables
-  LENGTH threadId;
+  SIZE threadId;
 
   T *vec_sm;
   SIZE ldsm1, ldsm2;
@@ -1217,7 +1217,7 @@ private:
   SubArray<D, T, DeviceType> v;
 
   // thread local variables
-  LENGTH threadId;
+  SIZE threadId;
 
   T *vec_sm;
   SIZE ldsm1, ldsm2;
@@ -1907,7 +1907,7 @@ private:
   SubArray<D, T, DeviceType> v;
 
   // thread local variables
-  LENGTH threadId;
+  SIZE threadId;
 
   T *vec_sm;
   SIZE ldsm1, ldsm2;

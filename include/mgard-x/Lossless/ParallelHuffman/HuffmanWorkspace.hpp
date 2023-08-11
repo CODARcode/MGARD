@@ -59,8 +59,8 @@ public:
                                         SIZE chunk_size,
                                         double estimated_outlier_ratio = 1) {
     size_t size = 0;
-    size += sizeof(LENGTH);
-    size += primary_count * estimated_outlier_ratio * sizeof(LENGTH);
+    size += sizeof(ATOMIC_IDX);
+    size += primary_count * estimated_outlier_ratio * sizeof(ATOMIC_IDX);
     size += primary_count * estimated_outlier_ratio * sizeof(S);
 
     size += dict_size * sizeof(unsigned int);
@@ -97,8 +97,8 @@ public:
   void allocate(SIZE primary_count, SIZE dict_size, SIZE chunk_size,
                 double estimated_outlier_ratio) {
 
-    outlier_count_array = Array<1, LENGTH, DeviceType>({1}, false, false);
-    outlier_idx_array = Array<1, LENGTH, DeviceType>(
+    outlier_count_array = Array<1, ATOMIC_IDX, DeviceType>({1}, false, false);
+    outlier_idx_array = Array<1, ATOMIC_IDX, DeviceType>(
         {(SIZE)(primary_count * estimated_outlier_ratio)});
     outlier_array = Array<1, S, DeviceType>(
         {(SIZE)(primary_count * estimated_outlier_ratio)});
@@ -222,9 +222,9 @@ public:
 
   bool pre_allocated;
 
-  LENGTH outlier_count;
-  Array<1, LENGTH, DeviceType> outlier_count_array;
-  Array<1, LENGTH, DeviceType> outlier_idx_array;
+  ATOMIC_IDX outlier_count;
+  Array<1, ATOMIC_IDX, DeviceType> outlier_count_array;
+  Array<1, ATOMIC_IDX, DeviceType> outlier_idx_array;
   Array<1, S, DeviceType> outlier_array;
 
   Array<1, unsigned int, DeviceType> freq_array;
@@ -254,8 +254,8 @@ public:
   Array<1, int, DeviceType> status_array;
   Array<1, uint32_t, DeviceType> diagonal_path_intersections_array;
 
-  SubArray<1, LENGTH, DeviceType> outlier_count_subarray;
-  SubArray<1, LENGTH, DeviceType> outlier_idx_subarray;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_count_subarray;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_idx_subarray;
   SubArray<1, S, DeviceType> outlier_subarray;
 
   SubArray<1, unsigned int, DeviceType> freq_subarray;

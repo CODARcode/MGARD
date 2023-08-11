@@ -119,8 +119,8 @@ using KOKKOS = Kokkos::DefaultExecutionSpace;
 using KOKKOS = NONE;
 #endif
 
-using IDX = unsigned long long int;
-using LENGTH = unsigned long long int;
+using IDX = uint64_t;
+using ATOMIC_IDX = unsigned long long int;
 using SIZE = uint64_t;
 using DIM = uint8_t;
 using QUANTIZED_INT = int64_t;

@@ -20,8 +20,8 @@ public:
   MGARDX_CONT OutlierSeparatorFunctor() {}
   MGARDX_CONT
   OutlierSeparatorFunctor(SubArray<1, T, DeviceType> v, SIZE dict_size,
-                          SubArray<1, LENGTH, DeviceType> outlier_count,
-                          SubArray<1, LENGTH, DeviceType> outlier_index,
+                          SubArray<1, ATOMIC_IDX, DeviceType> outlier_count,
+                          SubArray<1, ATOMIC_IDX, DeviceType> outlier_index,
                           SubArray<1, T, DeviceType> outlier_value)
       : v(v), dict_size(dict_size), outlier_count(outlier_count),
         outlier_index(outlier_index), outlier_value(outlier_value) {
@@ -38,9 +38,9 @@ public:
         // printf("%d %lld %d\n", value, dict_size, value < 0 || value >=
         // dict_size);
         if (value < 0 || value >= dict_size) {
-          LENGTH outlier_write_index =
-              Atomic<LENGTH, AtomicGlobalMemory, AtomicDeviceScope,
-                     DeviceType>::Add(outlier_count((IDX)0), (LENGTH)1);
+          ATOMIC_IDX outlier_write_index =
+              Atomic<ATOMIC_IDX, AtomicGlobalMemory, AtomicDeviceScope,
+                     DeviceType>::Add(outlier_count((IDX)0), (ATOMIC_IDX)1);
           if (outlier_write_index < outlier_index.shape(0)) {
             *outlier_index(outlier_write_index) = id;
             *outlier_value(outlier_write_index) = value;
@@ -49,7 +49,7 @@ public:
         }
       } else if constexpr (OP == MGARDX_RESTORE_OUTLIER) {
         if (id < outlier_value.shape(0)) {
-          LENGTH index = *outlier_index(id);
+          ATOMIC_IDX index = *outlier_index(id);
           QUANTIZED_INT value = *outlier_value(id);
           *v(index) = value;
         }
@@ -62,8 +62,8 @@ public:
 private:
   SubArray<1, T, DeviceType> v;
   SIZE dict_size;
-  SubArray<1, LENGTH, DeviceType> outlier_count;
-  SubArray<1, LENGTH, DeviceType> outlier_index;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_count;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_index;
   SubArray<1, T, DeviceType> outlier_value;
 };
 
@@ -74,8 +74,8 @@ public:
   constexpr static std::string_view Name = "OutlierSeparator";
   MGARDX_CONT
   OutlierSeparatorKernel(SubArray<1, T, DeviceType> v, SIZE dict_size,
-                         SubArray<1, LENGTH, DeviceType> outlier_count,
-                         SubArray<1, LENGTH, DeviceType> outlier_index,
+                         SubArray<1, ATOMIC_IDX, DeviceType> outlier_count,
+                         SubArray<1, ATOMIC_IDX, DeviceType> outlier_index,
                          SubArray<1, T, DeviceType> outlier_value)
       : v(v), dict_size(dict_size), outlier_count(outlier_count),
         outlier_index(outlier_index), outlier_value(outlier_value) {}
@@ -100,8 +100,8 @@ public:
 private:
   SubArray<1, T, DeviceType> v;
   SIZE dict_size;
-  SubArray<1, LENGTH, DeviceType> outlier_count;
-  SubArray<1, LENGTH, DeviceType> outlier_index;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_count;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_index;
   SubArray<1, T, DeviceType> outlier_value;
 };
 

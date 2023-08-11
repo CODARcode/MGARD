@@ -1166,7 +1166,7 @@ private:
   SIZE r_sm_ex, c_sm_ex, f_sm_ex;
   SIZE r_gl, c_gl, f_gl;
   SIZE r_gl_ex, c_gl_ex, f_gl_ex;
-  LENGTH threadId;
+  SIZE threadId;
   T res;
   T *sm;
   SIZE ldsm1;
@@ -2339,7 +2339,7 @@ private:
   SIZE r_sm_ex, c_sm_ex, f_sm_ex;
   SIZE r_gl, c_gl, f_gl;
   SIZE r_gl_ex, c_gl_ex, f_gl_ex;
-  LENGTH threadId;
+  SIZE threadId;
   T res;
   T *sm;
   SIZE ldsm1;

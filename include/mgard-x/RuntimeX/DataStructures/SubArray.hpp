@@ -110,8 +110,8 @@ public:
 
   MGARDX_CONT_EXEC
   T &operator[](SIZE idx[D]) {
-    LENGTH curr_stride = 1;
-    LENGTH offset = 0;
+    SIZE curr_stride = 1;
+    SIZE offset = 0;
     for (int d = D - 1; d >= 0; d--) {
       offset += idx[d] * curr_stride;
       curr_stride *= __ldvs[d];
@@ -181,7 +181,7 @@ private:
   bool pitched;
   bool managed;
 
-  LENGTH ptr_offset;
+  SIZE ptr_offset;
 
   MGARDX_CONT_EXEC
   SIZE calc_offset(SIZE idx[D]) {

@@ -10,15 +10,15 @@
 
 namespace mgard_x {
 
-MGARDX_CONT_EXEC LENGTH get_idx(const LENGTH ld1, const LENGTH ld2,
-                                const SIZE z, const SIZE y, const SIZE x) {
+MGARDX_CONT_EXEC SIZE get_idx(const SIZE ld1, const SIZE ld2, const SIZE z,
+                              const SIZE y, const SIZE x) {
   return ld2 * ld1 * z + ld1 * y + x;
 }
 
 // leading dimension first
-MGARDX_CONT LENGTH get_idx(std::vector<SIZE> lds, std::vector<SIZE> idx) {
-  LENGTH curr_stride = 1;
-  LENGTH ret_idx = 0;
+MGARDX_CONT SIZE get_idx(std::vector<SIZE> lds, std::vector<SIZE> idx) {
+  SIZE curr_stride = 1;
+  SIZE ret_idx = 0;
   for (DIM i = 0; i < idx.size(); i++) {
     ret_idx += idx[i] * curr_stride;
     curr_stride *= lds[i];
@@ -26,9 +26,9 @@ MGARDX_CONT LENGTH get_idx(std::vector<SIZE> lds, std::vector<SIZE> idx) {
   return ret_idx;
 }
 
-template <DIM D> MGARDX_CONT_EXEC LENGTH get_idx(SIZE *lds, SIZE *idx) {
-  LENGTH curr_stride = 1;
-  LENGTH ret_idx = 0;
+template <DIM D> MGARDX_CONT_EXEC SIZE get_idx(SIZE *lds, SIZE *idx) {
+  SIZE curr_stride = 1;
+  SIZE ret_idx = 0;
   for (DIM i = 0; i < D; i++) {
     ret_idx += idx[i] * curr_stride;
     curr_stride *= lds[i];
