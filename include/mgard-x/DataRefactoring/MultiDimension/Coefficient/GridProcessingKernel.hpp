@@ -2151,7 +2151,7 @@ private:
   // SIZE *ldws;
   DIM unprocessed_n;
   SubArray<1, DIM, DeviceType> unprocessed_dims;
-  LENGTH threadId;
+  SIZE threadId;
   T *v_sm;
   T *ratio_f_sm;
   T *ratio_c_sm;
@@ -2467,8 +2467,8 @@ public:
     // }
     // }
 
-    // LENGTH other_offset_v = get_idx<D_GLOBAL>(ldvs_sm, idx);
-    // LENGTH other_offset_w = get_idx<D_GLOBAL>(ldws_sm, idx);
+    // SIZE other_offset_v = get_idx<D_GLOBAL>(ldvs_sm, idx);
+    // SIZE other_offset_w = get_idx<D_GLOBAL>(ldws_sm, idx);
 
     // dv = dv + other_offset_v;
     // dw = dw + other_offset_w;
@@ -4522,7 +4522,7 @@ private:
   // SIZE *ldws;
   DIM unprocessed_n;
   SubArray<1, DIM, DeviceType> unprocessed_dims;
-  LENGTH threadId;
+  SIZE threadId;
   T *v_sm;
   T *ratio_f_sm;
   T *ratio_c_sm;

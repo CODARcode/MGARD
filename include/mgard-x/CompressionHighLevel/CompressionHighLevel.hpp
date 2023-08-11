@@ -346,8 +346,10 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
     num_elements *= shape[i];
   device_subdomain_buffer[0].resize(shape);
   device_subdomain_buffer[1].resize(shape);
-  device_compressed_buffer[0].resize({num_elements * sizeof(T)});
-  device_compressed_buffer[1].resize({num_elements * sizeof(T)});
+  device_compressed_buffer[0].resize(
+      {domain_decomposer.subdomain_compressed_buffer_size(0)});
+  device_compressed_buffer[1].resize(
+      {domain_decomposer.subdomain_compressed_buffer_size(0)});
 
   DeviceRuntime<DeviceType>::SyncDevice();
 
@@ -577,8 +579,10 @@ enum compress_status_type decompress_subdomain_series_w_prefetch(
     num_elements *= shape[i];
   device_subdomain_buffer[0].resize(shape);
   device_subdomain_buffer[1].resize(shape);
-  device_compressed_buffer[0].resize({num_elements * sizeof(T)});
-  device_compressed_buffer[1].resize({num_elements * sizeof(T)});
+  device_compressed_buffer[0].resize(
+      {domain_decomposer.subdomain_compressed_buffer_size(0)});
+  device_compressed_buffer[1].resize(
+      {domain_decomposer.subdomain_compressed_buffer_size(0)});
 
   DeviceRuntime<DeviceType>::SyncDevice();
 

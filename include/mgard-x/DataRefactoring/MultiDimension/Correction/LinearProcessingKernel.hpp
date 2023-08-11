@@ -463,7 +463,7 @@ private:
 
   // thread local variables
 
-  LENGTH threadId;
+  SIZE threadId;
 
   T *v_sm;
   SIZE ldsm1, ldsm2;
@@ -671,8 +671,8 @@ public:
     v2.offset(idx);
     w.offset(idx);
 
-    // LENGTH other_offset_v = get_idx<D>(ldvs_sm, idx);
-    // LENGTH other_offset_w = get_idx<D>(ldws_sm, idx);
+    // SIZE other_offset_v = get_idx<D>(ldvs_sm, idx);
+    // SIZE other_offset_w = get_idx<D>(ldws_sm, idx);
 
     // dv1 = dv1 + other_offset_v;
     // dv2 = dv2 + other_offset_v;
@@ -923,7 +923,7 @@ private:
 
   // thread local variables
 
-  LENGTH threadId;
+  SIZE threadId;
 
   T *v_sm;
   SIZE ldsm1, ldsm2;
@@ -1126,8 +1126,8 @@ public:
     v2.offset(idx);
     w.offset(idx);
 
-    // LENGTH other_offset_v = get_idx<D>(ldvs_sm, idx);
-    // LENGTH other_offset_w = get_idx<D>(ldws_sm, idx);
+    // SIZE other_offset_v = get_idx<D>(ldvs_sm, idx);
+    // SIZE other_offset_w = get_idx<D>(ldws_sm, idx);
 
     // dv1 = dv1 + other_offset_v;
     // dv2 = dv2 + other_offset_v;
@@ -1394,7 +1394,7 @@ private:
 
   // thread local variables
 
-  LENGTH threadId;
+  SIZE threadId;
 
   T *v_sm;
   SIZE ldsm1, ldsm2;

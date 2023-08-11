@@ -29,8 +29,8 @@ public:
       SubArray<D, QUANTIZED_INT, DeviceType> quantized_v,
       SubArray<1, QUANTIZED_INT, DeviceType> *quantized_linearized_v,
       bool prep_huffman, bool calc_vol, bool level_linearize, SIZE dict_size,
-      SubArray<1, LENGTH, DeviceType> outlier_count,
-      SubArray<1, LENGTH, DeviceType> outlier_indexes,
+      SubArray<1, ATOMIC_IDX, DeviceType> outlier_count,
+      SubArray<1, ATOMIC_IDX, DeviceType> outlier_indexes,
       SubArray<1, QUANTIZED_INT, DeviceType> outliers)
       : level_ranges(level_ranges), level_marks(level_marks),
         l_target(l_target), quantizers(quantizers),
@@ -210,14 +210,14 @@ public:
           if (quantized_data >= 0 && quantized_data < dict_size) {
             // do nothing
           } else {
-            LENGTH outlier_write_offset =
-                Atomic<LENGTH, AtomicGlobalMemory, AtomicDeviceScope,
-                       DeviceType>::Add(outlier_count((IDX)0), (LENGTH)1);
+            ATOMIC_IDX outlier_write_offset =
+                Atomic<ATOMIC_IDX, AtomicGlobalMemory, AtomicDeviceScope,
+                       DeviceType>::Add(outlier_count((IDX)0), (ATOMIC_IDX)1);
 
-            LENGTH outlier_idx = 0;
+            ATOMIC_IDX outlier_idx = 0;
             if (!level_linearize) {
               // calculate the outlier index in the non-level linearized order
-              LENGTH curr_stride = 1;
+              ATOMIC_IDX curr_stride = 1;
               for (int d = D - 1; d >= 0; d--) {
                 outlier_idx += idx[d] * curr_stride;
                 curr_stride *= v.shape(d);
@@ -285,8 +285,8 @@ private:
   bool level_linearize;
   SIZE dict_size;
   SubArray<1, SIZE, DeviceType> shape;
-  SubArray<1, LENGTH, DeviceType> outlier_count;
-  SubArray<1, LENGTH, DeviceType> outlier_indexes;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_count;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_indexes;
   SubArray<1, QUANTIZED_INT, DeviceType> outliers;
 
   T *volumes_0;
@@ -306,8 +306,8 @@ public:
   MGARDX_CONT OutlierRestoreFunctor() {}
   MGARDX_CONT
   OutlierRestoreFunctor(SubArray<D, QUANTIZED_INT, DeviceType> quantized_v,
-                        LENGTH outlier_count,
-                        SubArray<1, LENGTH, DeviceType> outlier_indexes,
+                        ATOMIC_IDX outlier_count,
+                        SubArray<1, ATOMIC_IDX, DeviceType> outlier_indexes,
                         SubArray<1, QUANTIZED_INT, DeviceType> outliers)
       : quantized_v(quantized_v), outlier_count(outlier_count),
         outlier_indexes(outlier_indexes), outliers(outliers) {
@@ -333,7 +333,7 @@ public:
                threadId;
 
     if (gloablId < outlier_count) {
-      LENGTH linerized_idx = *outlier_indexes(gloablId);
+      ATOMIC_IDX linerized_idx = *outlier_indexes(gloablId);
       QUANTIZED_INT outliter = *outliers(gloablId);
       *quantized_v(linerized_idx) = outliter;
     }
@@ -344,8 +344,8 @@ public:
 private:
   IDX threadId, blockId, gloablId;
   SubArray<D, QUANTIZED_INT, DeviceType> quantized_v;
-  LENGTH outlier_count;
-  SubArray<1, LENGTH, DeviceType> outlier_indexes;
+  ATOMIC_IDX outlier_count;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_indexes;
   SubArray<1, QUANTIZED_INT, DeviceType> outliers;
 };
 
@@ -365,8 +365,8 @@ public:
       SubArray<D, QUANTIZED_INT, DeviceType> quantized_v, bool prep_huffman,
       bool level_linearize,
       SubArray<1, QUANTIZED_INT, DeviceType> *quantized_linearized_v,
-      SubArray<1, LENGTH, DeviceType> outlier_count,
-      SubArray<1, LENGTH, DeviceType> outlier_indexes,
+      SubArray<1, ATOMIC_IDX, DeviceType> outlier_count,
+      SubArray<1, ATOMIC_IDX, DeviceType> outlier_indexes,
       SubArray<1, QUANTIZED_INT, DeviceType> outliers)
       : level_ranges(level_ranges), level_marks(level_marks),
         l_target(l_target), quantizers(quantizers),
@@ -427,8 +427,8 @@ private:
   SubArray<1, QUANTIZED_INT, DeviceType> *quantized_linearized_v;
   SIZE dict_size;
   SubArray<1, SIZE, DeviceType> shape;
-  SubArray<1, LENGTH, DeviceType> outlier_count;
-  SubArray<1, LENGTH, DeviceType> outlier_indexes;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_count;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_indexes;
   SubArray<1, QUANTIZED_INT, DeviceType> outliers;
 };
 
@@ -442,8 +442,8 @@ public:
   constexpr static bool EnableAutoTuning() { return false; }
   MGARDX_CONT
   OutlierRestoreKernel(SubArray<D, QUANTIZED_INT, DeviceType> quantized_v,
-                       LENGTH outlier_count,
-                       SubArray<1, LENGTH, DeviceType> outlier_indexes,
+                       ATOMIC_IDX outlier_count,
+                       SubArray<1, ATOMIC_IDX, DeviceType> outlier_indexes,
                        SubArray<1, QUANTIZED_INT, DeviceType> outliers)
       : quantized_v(quantized_v), outlier_count(outlier_count),
         outlier_indexes(outlier_indexes), outliers(outliers) {}
@@ -469,8 +469,8 @@ public:
 
 private:
   SubArray<D, QUANTIZED_INT, DeviceType> quantized_v;
-  LENGTH outlier_count;
-  SubArray<1, LENGTH, DeviceType> outlier_indexes;
+  ATOMIC_IDX outlier_count;
+  SubArray<1, ATOMIC_IDX, DeviceType> outlier_indexes;
   SubArray<1, QUANTIZED_INT, DeviceType> outliers;
 };
 
@@ -580,7 +580,7 @@ public:
                    hierarchy->l_target(), config.decomposition, true);
     MemoryManager<DeviceType>::Copy1D(quantizers_subarray.data(), quantizers,
                                       hierarchy->l_target() + 1, queue_idx);
-    LENGTH zero = 0;
+    ATOMIC_IDX zero = 0;
     MemoryManager<DeviceType>::Copy1D(
         lossless.huffman.workspace.outlier_count_subarray.data(), &zero, 1,
         queue_idx);
@@ -663,7 +663,7 @@ public:
         log::info("Not enough workspace for outliers. Re-allocating to " +
                   std::to_string(lossless.huffman.workspace.outlier_count));
         lossless.huffman.workspace.outlier_idx_array =
-            Array<1, LENGTH, DeviceType>(
+            Array<1, ATOMIC_IDX, DeviceType>(
                 {(SIZE)lossless.huffman.workspace.outlier_count});
         lossless.huffman.workspace.outlier_array =
             Array<1, QUANTIZED_INT, DeviceType>(
