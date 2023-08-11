@@ -41,6 +41,7 @@ option(MGARD_ENABLE_LEGACY_CUDA "Enable legacy CUDA support" OFF)
 option(MGARD_ENABLE_COORDINATE_NORMALIZATION "Enable coordinate normalication for uniform grid" ON)
 option(MGARD_ENABLE_AUTO_TUNING "Enable auto tuning" OFF)
 option(MGARD_ENABLE_MDR "Enable MDR" OFF)
+option(MGARD_ENABLE_POSTPROCESSING "Enable Postprocessing" OFF)
 
 option(MGARD_ENABLE_CLI "Build executable." OFF)
 
@@ -138,6 +139,10 @@ if (MGARD_ENABLE_SERIAL OR
                                               $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
     install(TARGETS mdr-x)
   endif()
+endif()
+
+if(MGARD_ENABLE_POSTPROCESSING)
+  add_subdirectory("src/postprocessing")
 endif()
 
 #Adding library here so we can set compile definitions for it.
@@ -363,6 +368,15 @@ if(MGARD_ENABLE_OPENMP)
     )
 endif()
 
+if(MGARD_ENABLE_POSTPROCESSING)
+  enable_language(C)
+  find_package (MPI REQUIRED COMPONENTS C CXX)
+  find_package (ADIOS2 REQUIRED)
+  target_link_libraries(mgard-library PUBLIC MPI::MPI_CXX adios2::adios2)
+  target_link_libraries(mgard-x MPI::MPI_CXX adios2::adios2)
+  target_link_libraries(mgard-x-autotuner MPI::MPI_CXX adios2::adios2)
+endif()
+
 if(MGARD_ENABLE_TIMING)
 	target_compile_definitions(mgard-library PRIVATE MGARD_TIMING)
 endif()
@@ -489,6 +503,7 @@ if (MGARD_ENABLE_LEGACY_CUDA)
 endif()
 message(STATUS "auto tuning:   ${MGARD_ENABLE_AUTO_TUNING}")
 message(STATUS "MDR:           ${MGARD_ENABLE_MDR}")
+message(STATUS "POSTPROCESSING:${MGARD_ENABLE_POSTPROCESSING}")
 message(STATUS "timing:        ${MGARD_ENABLE_TIMING}")
 message(STATUS "ASan:          ${MGARD_ENABLE_ASAN}")
 message(STATUS "UBSan:         ${MGARD_ENABLE_UBSAN}")
