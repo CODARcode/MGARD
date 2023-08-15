@@ -6,8 +6,8 @@
 #include "BitplaneEncoderInterface.hpp"
 #include <string.h>
 
-// #define BINARY_TYPE BINARY
-#define BINARY_TYPE NEGABINARY
+#define BINARY_TYPE BINARY
+// #define BINARY_TYPE NEGABINARY
 
 // #define DATA_ENCODING_ALGORITHM Bit_Transpose_Serial_All
 #define DATA_ENCODING_ALGORITHM Bit_Transpose_Parallel_B_Serial_b
@@ -468,7 +468,7 @@ public:
                                         local_data_idx);
         }
       } else {
-        if (local_data_idx < num_elems_per_TB) {
+        if (local_data_idx < num_elems_per_TB && global_data_idx < n) {
           sm_signs[local_data_idx] = *signs(global_data_idx);
         }
       }
@@ -545,12 +545,16 @@ public:
       T_fp fp_data = sm_fix_point[local_data_idx];
       if (BinaryType == BINARY) {
         T cur_data = ldexp((T)fp_data, -ending_bitplane + exp);
-        *v(global_data_idx) = sm_signs[local_data_idx] ? -cur_data : cur_data;
-        *signs(global_data_idx) = sm_signs[local_data_idx];
+        if (global_data_idx < n) {
+          *v(global_data_idx) = sm_signs[local_data_idx] ? -cur_data : cur_data;
+          *signs(global_data_idx) = sm_signs[local_data_idx];
+        }
       } else if (BinaryType == NEGABINARY) {
         T cur_data = ldexp((T)Math<DeviceType>::negabinary2binary(fp_data),
                            -ending_bitplane + exp);
-        *v(global_data_idx) = ending_bitplane % 2 != 0 ? -cur_data : cur_data;
+        if (global_data_idx < n) {
+          *v(global_data_idx) = ending_bitplane % 2 != 0 ? -cur_data : cur_data;
+        }
       }
     }
   }
