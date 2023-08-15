@@ -442,6 +442,7 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
     config.domain_decomposition = mgard_x::domain_decomposition_type::MaxDim;
   } else {
     config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
+    // config.block_size = 64;
   }
   config.dev_type = dev_type;
   config.prefetch = prefetch;
