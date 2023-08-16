@@ -140,6 +140,7 @@ public:
                 "squared error directly");
       SNormErrorEstimator<T_data> estimator(D, hierarchy.l_target(),
                                             mdr_metadata.requested_s);
+      // InorderSizeInterpreter interpreter(estimator);
       SignExcludeGreedyBasedSizeInterpreter interpreter(estimator);
       // NegaBinaryGreedyBasedSizeInterpreter interpreter(estimator);
       retrieve_sizes = interpreter.interpret_retrieve_size(

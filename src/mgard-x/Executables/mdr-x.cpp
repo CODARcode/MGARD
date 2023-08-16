@@ -376,8 +376,8 @@ void read_mdr_metadata(mgard_x::MDR::RefactoredMetadata &refactored_metadata,
 }
 
 void read_mdr(mgard_x::MDR::RefactoredMetadata &refactored_metadata,
-              mgard_x::MDR::RefactoredData &refactored_data,
-              std::string input) {
+              mgard_x::MDR::RefactoredData &refactored_data, std::string input,
+              bool initialize_signs) {
 
   int num_subdomains = refactored_metadata.metadata.size();
   for (int subdomain_id = 0; subdomain_id < num_subdomains; subdomain_id++) {
@@ -391,8 +391,6 @@ void read_mdr(mgard_x::MDR::RefactoredMetadata &refactored_metadata,
           metadata.requested_level_num_bitplanes[level_idx];
       for (int bitplane_idx = loaded_bitplanes;
            bitplane_idx < reqested_bitplanes; bitplane_idx++) {
-        // for (int bitplane_idx = 0; bitplane_idx < num_bitplanes;
-        // bitplane_idx++) {
         std::string filename = "component_" + std::to_string(subdomain_id) +
                                "_" + std::to_string(level_idx) + "_" +
                                std::to_string(bitplane_idx);
@@ -405,11 +403,13 @@ void read_mdr(mgard_x::MDR::RefactoredMetadata &refactored_metadata,
           exit(-1);
         }
       }
-      // level sign
-      refactored_data.level_signs[subdomain_id][level_idx] =
-          (bool *)malloc(sizeof(bool) * metadata.level_num_elems[level_idx]);
-      memset(refactored_data.level_signs[subdomain_id][level_idx], 0,
-             sizeof(bool) * metadata.level_num_elems[level_idx]);
+      if (initialize_signs) {
+        // level sign
+        refactored_data.level_signs[subdomain_id][level_idx] =
+            (bool *)malloc(sizeof(bool) * metadata.level_num_elems[level_idx]);
+        memset(refactored_data.level_signs[subdomain_id][level_idx], 0,
+               sizeof(bool) * metadata.level_num_elems[level_idx]);
+      }
     }
   }
 }
@@ -436,6 +436,7 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     bool prefetch, mgard_x::SIZE max_memory_footprint) {
 
   mgard_x::Config config;
+  config.normalize_coordinates = false;
   config.log_level = verbose_to_log_level(verbose);
   config.decomposition = mgard_x::decomposition_type::MultiDim;
   if (domain_decomposition == 0) {
@@ -523,6 +524,7 @@ int launch_reconstruct(std::string input_file, std::string output_file,
                        bool prefetch) {
 
   mgard_x::Config config;
+  config.normalize_coordinates = false;
   config.log_level = verbose_to_log_level(verbose);
   config.dev_type = dev_type;
   config.prefetch = prefetch;
@@ -561,6 +563,7 @@ int launch_reconstruct(std::string input_file, std::string output_file,
   mgard_x::MDR::RefactoredData refactored_data;
   mgard_x::MDR::ReconstructedData reconstructed_data;
   read_mdr_metadata(refactored_metadata, refactored_data, input_file);
+  bool first_reconstruction = true;
   for (double tol : tols) {
     for (auto &metadata : refactored_metadata.metadata) {
       metadata.requested_tol = tol;
@@ -570,11 +573,15 @@ int launch_reconstruct(std::string input_file, std::string output_file,
     for (auto &metadata : refactored_metadata.metadata) {
       metadata.PrintStatus();
     }
-    read_mdr(refactored_metadata, refactored_data, input_file);
+    read_mdr(refactored_metadata, refactored_data, input_file,
+             first_reconstruction);
 
     mgard_x::MDR::MDReconstruct(refactored_metadata, refactored_data,
                                 reconstructed_data, config, false,
                                 original_data);
+
+    first_reconstruction = false;
+
     int subdomain_id = 0;
 
     for (int subdomain_id = 0; subdomain_id < reconstructed_data.data.size();
@@ -760,8 +767,10 @@ bool try_reconstruction(int argc, char *argv[]) {
   enum mgard_x::error_bound_type mode; // REL or ABS
   std::string em = get_arg(argc, argv, "-m");
   if (em.compare("rel") == 0) {
-    mode = mgard_x::error_bound_type::REL;
-    std::cout << mgard_x::log::log_info << "error bound mode: Relative\n";
+    // mode = mgard_x::error_bound_type::REL;
+    // std::cout << mgard_x::log::log_info << "error bound mode: Relative\n";
+    std::cout << mgard_x::log::log_err << "Relative EB not implemented yet.\n";
+    exit(-1);
   } else if (em.compare("abs") == 0) {
     mode = mgard_x::error_bound_type::ABS;
     std::cout << mgard_x::log::log_info << "error bound mode: Absolute\n";
