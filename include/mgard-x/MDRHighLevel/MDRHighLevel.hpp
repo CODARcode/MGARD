@@ -292,6 +292,9 @@ void reconstruct_subdomain_series_w_prefetch(
   int current_queue = current_buffer;
   mdr_data[current_buffer].CopyFromRefactoredData(
       refactored_metadata.metadata[0], refactored_data.data[0], current_queue);
+  mdr_data[current_buffer].CopyFromRefactoredSigns(
+      refactored_metadata.metadata[0], refactored_data.level_signs[0],
+      current_queue);
 
   for (SIZE curr_subdomain_id = 0;
        curr_subdomain_id < domain_decomposer.num_subdomains();
@@ -340,6 +343,7 @@ void reconstruct_subdomain_series_w_prefetch(
     mdr_data[current_buffer].CopyToRefactoredSigns(
         refactored_metadata.metadata[curr_subdomain_id],
         refactored_data.level_signs[curr_subdomain_id], current_queue);
+
     // Update reconstructed data
     domain_decomposer.copy_subdomain(
         device_subdomain_buffer[current_buffer], curr_subdomain_id,
