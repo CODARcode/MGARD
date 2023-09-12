@@ -44,6 +44,10 @@ template <typename DeviceType>
 void MDRequest(RefactoredMetadata &refactored_metadata);
 
 template <typename DeviceType>
+SIZE MDRMaxOutputDataSize(DIM D, data_type dtype, std::vector<SIZE> shape,
+                          Config config);
+
+template <typename DeviceType>
 void MDReconstruct(RefactoredMetadata &refactored_metadata,
                    RefactoredData &refactored_data,
                    ReconstructedData &reconstructed_data, Config config,

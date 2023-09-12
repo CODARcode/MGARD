@@ -333,6 +333,7 @@ void create_dir(std::string name) {
 void write_mdr(mgard_x::MDR::RefactoredMetadata &refactored_metadata,
                mgard_x::MDR::RefactoredData &refactored_data,
                std::string output) {
+  size_t size_written = 0;
   create_dir(output);
   std::vector<mgard_x::Byte> serialized_metadata =
       refactored_metadata.Serialize();
@@ -358,9 +359,12 @@ void write_mdr(mgard_x::MDR::RefactoredMetadata &refactored_metadata,
                   refactored_data.data[subdomain_id][level_idx][bitplane_idx],
                   refactored_metadata.metadata[subdomain_id]
                       .level_sizes[level_idx][bitplane_idx]);
+        size_written += refactored_metadata.metadata[subdomain_id]
+                            .level_sizes[level_idx][bitplane_idx];
       }
     }
   }
+  std::cout << mgard_x::log::log_info << size_written << " bytes written\n";
 }
 
 void read_mdr_metadata(mgard_x::MDR::RefactoredMetadata &refactored_metadata,
@@ -484,6 +488,10 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
     std::cout << mgard_x::log::log_warn << "input file size mismatch "
               << in_size << " vs. " << original_size * sizeof(T) << "!\n";
   }
+
+  std::cout << mgard_x::log::log_info << "Max output data size: "
+            << mgard_x::MDR::MDRMaxOutputDataSize(D, dtype, shape, config)
+            << " bytes\n";
 
   mgard_x::MDR::RefactoredMetadata refactored_metadata;
   mgard_x::MDR::RefactoredData refactored_data;

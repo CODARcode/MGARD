@@ -26,6 +26,23 @@ namespace mgard_x {
 namespace MDR {
 
 template <DIM D, typename T, typename DeviceType>
+SIZE get_max_output_data_size(
+    DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>
+        &domain_decomposer,
+    Config &config) {
+
+  SIZE size = 0;
+  for (SIZE subdomain_id = 0; subdomain_id < domain_decomposer.num_subdomains();
+       subdomain_id++) {
+    Hierarchy<D, T, DeviceType> hierarchy =
+        domain_decomposer.subdomain_hierarchy(subdomain_id);
+    size += ComposedRefactor<D, T, DeviceType>::MaxOutputDataSize(
+        hierarchy.level_shape(hierarchy.l_target()), config);
+  }
+  return size;
+}
+
+template <DIM D, typename T, typename DeviceType>
 void generate_request(DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>,
                                        DeviceType> &domain_decomposer,
                       Config config, RefactoredMetadata &refactored_metadata) {
@@ -400,6 +417,19 @@ void load(Config &config, Metadata<DeviceType> &metadata) {
   config.huff_block_size = metadata.huff_block_size;
   config.reorder = metadata.reorder;
   config.total_num_bitplanes = metadata.number_bitplanes;
+}
+
+template <DIM D, typename T, typename DeviceType>
+SIZE MDRMaxOutputDataSize(std::vector<SIZE> shape, Config config) {
+  DeviceRuntime<DeviceType>::Initialize();
+  DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>
+      domain_decomposer;
+  domain_decomposer =
+      DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
+          shape, config);
+  SIZE size = get_max_output_data_size(domain_decomposer, config);
+  DeviceRuntime<DeviceType>::Finalize();
+  return size;
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -898,6 +928,45 @@ void MDRequest(RefactoredMetadata &refactored_metadata) {
       MDRequest<4, double, DeviceType>(shape, refactored_metadata);
     } else if (shape.size() == 5) {
       MDRequest<5, double, DeviceType>(shape, refactored_metadata);
+    } else {
+      log::err("do not support higher than five dimentions");
+      exit(-1);
+    }
+  } else {
+    log::err("do not support types other than double and float!");
+    exit(-1);
+  }
+}
+
+template <typename DeviceType>
+SIZE MDRMaxOutputDataSize(DIM D, data_type dtype, std::vector<SIZE> shape,
+                          Config config) {
+  if (dtype == data_type::Float) {
+    if (shape.size() == 1) {
+      return MDRMaxOutputDataSize<1, float, DeviceType>(shape, config);
+    } else if (shape.size() == 2) {
+      return MDRMaxOutputDataSize<2, float, DeviceType>(shape, config);
+    } else if (shape.size() == 3) {
+      return MDRMaxOutputDataSize<3, float, DeviceType>(shape, config);
+    } else if (shape.size() == 4) {
+      return MDRMaxOutputDataSize<4, float, DeviceType>(shape, config);
+    } else if (shape.size() == 5) {
+      return MDRMaxOutputDataSize<5, float, DeviceType>(shape, config);
+    } else {
+      log::err("do not support higher than five dimentions");
+      exit(-1);
+    }
+  } else if (dtype == data_type::Double) {
+    if (shape.size() == 1) {
+      return MDRMaxOutputDataSize<1, double, DeviceType>(shape, config);
+    } else if (shape.size() == 2) {
+      return MDRMaxOutputDataSize<2, double, DeviceType>(shape, config);
+    } else if (shape.size() == 3) {
+      return MDRMaxOutputDataSize<3, double, DeviceType>(shape, config);
+    } else if (shape.size() == 4) {
+      return MDRMaxOutputDataSize<4, double, DeviceType>(shape, config);
+    } else if (shape.size() == 5) {
+      return MDRMaxOutputDataSize<5, double, DeviceType>(shape, config);
     } else {
       log::err("do not support higher than five dimentions");
       exit(-1);
