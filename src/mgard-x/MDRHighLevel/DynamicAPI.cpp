@@ -213,6 +213,54 @@ void MDRequest(RefactoredMetadata &refactored_metadata, Config config) {
   }
 }
 
+SIZE MDRMaxOutputDataSize(DIM D, data_type dtype, std::vector<SIZE> shape,
+                          Config config) {
+
+  enum device_type dev_type = config.dev_type;
+  if (dev_type == device_type::AUTO) {
+    dev_type = auto_detect_device();
+  }
+
+  if (dev_type == device_type::SERIAL) {
+#if MGARD_ENABLE_SERIAL
+    return MDRMaxOutputDataSize<SERIAL>(D, dtype, shape, config);
+#else
+    log::err("MDR-X was not built with SERIAL backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    return MDRMaxOutputDataSize<OPENMP>(D, dtype, shape, config);
+#else
+    log::err("MDR-X was not built with OPENMP backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::CUDA) {
+#if MGARD_ENABLE_CUDA
+    return MDRMaxOutputDataSize<CUDA>(D, dtype, shape, config);
+#else
+    log::err("MDR-X was not built with CUDA backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::HIP) {
+#if MGARD_ENABLE_HIP
+    return MDRMaxOutputDataSize<HIP>(D, dtype, shape, config);
+#else
+    log::err("MDR-X was not built with HIP backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::SYCL) {
+#if MGARD_ENABLE_SYCL
+    return MDRMaxOutputDataSize<SYCL>(D, dtype, shape, config);
+#else
+    log::err("MDR-X was not built with SYCL backend.");
+    exit(-1);
+#endif
+  } else {
+    log::err("Unsupported backend.");
+  }
+}
+
 void MDReconstruct(RefactoredMetadata &refactored_metadata,
                    RefactoredData &refactored_data,
                    ReconstructedData &reconstructed_data, Config config,

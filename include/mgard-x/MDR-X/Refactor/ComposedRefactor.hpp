@@ -26,8 +26,8 @@ public:
   using Decomposer = MGARDOrthoganalDecomposer<D, T_data, DeviceType>;
   using Interleaver = DirectInterleaver<D, T_data, DeviceType>;
   using Encoder = GroupedBPEncoder<D, T_data, T_bitplane, T_error, DeviceType>;
-  // using Compressor = DefaultLevelCompressor<T_bitplane, DeviceType>;
-  using Compressor = NullLevelCompressor<T_bitplane, DeviceType>;
+  using Compressor = DefaultLevelCompressor<T_bitplane, DeviceType>;
+  // using Compressor = NullLevelCompressor<T_bitplane, DeviceType>;
   using ErrorCollector = MaxErrorCollector<T_data>;
   using Writer = ConcatLevelFileWriter;
 
@@ -60,6 +60,18 @@ public:
     }
     level_errors_array =
         Array<1, T_error, DeviceType>({(SIZE)total_num_bitplanes + 1});
+  }
+
+  static SIZE MaxOutputDataSize(std::vector<SIZE> shape, Config config) {
+    Hierarchy<D, T_data, DeviceType> hierarchy;
+    hierarchy.EstimateMemoryFootprint(shape);
+    SIZE size = 0;
+    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
+      size += config.total_num_bitplanes *
+              Encoder::buffer_size(hierarchy.level_num_elems(level_idx)) *
+              sizeof(T_bitplane);
+    }
+    return size;
   }
 
   ~ComposedRefactor() {
