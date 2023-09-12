@@ -33,11 +33,12 @@ public:
     static_assert(!std::is_floating_point<T>::value,
                   "ComposedLosslessCompressor: Type of T must be integer.");
     if (config.lossless == lossless_type::Huffman_LZ4) {
-      lz4 = LZ4<DeviceType>(n * sizeof(H), config.lz4_block_size);
+      lz4.Resize(n * sizeof(H), config.lz4_block_size, 0);
     }
     if (config.lossless == lossless_type::Huffman_Zstd) {
-      zstd = Zstd<DeviceType>(n * sizeof(H), config.zstd_compress_level);
+      zstd.Resize(n * sizeof(H), config.zstd_compress_level, 0);
     }
+    DeviceRuntime<DeviceType>::SyncQueue(0);
   }
 
   void Adapt(SIZE n, Config config, int queue_idx) {
