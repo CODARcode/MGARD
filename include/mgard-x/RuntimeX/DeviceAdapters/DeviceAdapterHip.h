@@ -46,8 +46,8 @@ static __device__ __inline__ uint32_t __mylaneid() {
 namespace mgard_x {
 
 template <typename TaskType>
-inline void ErrorAsyncCheck(hipError_t code, TaskType &task,
-                            bool abort = true) {
+inline void ErrorAsyncCheckTask(hipError_t code, TaskType &task,
+                                bool abort = true) {
   if (code != hipSuccess) {
     log::err(std::string(hipGetErrorString(code)) + " while executing " +
              task.GetFunctorName().c_str() + " with HIP (Async-check)");
@@ -57,10 +57,31 @@ inline void ErrorAsyncCheck(hipError_t code, TaskType &task,
 }
 
 template <typename TaskType>
-inline void ErrorSyncCheck(hipError_t code, TaskType &task, bool abort = true) {
+inline void ErrorSyncCheckTask(hipError_t code, TaskType &task,
+                               bool abort = true) {
   if (code != hipSuccess) {
     log::err(std::string(hipGetErrorString(code)) + " while executing " +
              task.GetFunctorName().c_str() + " with HIP (Sync-check)");
+    if (abort)
+      exit(code);
+  }
+}
+
+inline void ErrorAsyncCheck(hipError_t code, std::string task,
+                            bool abort = true) {
+  if (code != hipSuccess) {
+    log::err(std::string(hipGetErrorString(code)) + " while executing " +
+             task.c_str() + " with HIP (Async-check)");
+    if (abort)
+      exit(code);
+  }
+}
+
+inline void ErrorSyncCheck(hipError_t code, std::string task,
+                           bool abort = true) {
+  if (code != hipSuccess) {
+    log::err(std::string(hipGetErrorString(code)) + " while executing " +
+             task.c_str() + " with HIP (Sync-check)");
     if (abort)
       exit(code);
   }
@@ -2058,10 +2079,10 @@ public:
         HipHuffmanCWCustomizedNoCGKernel(task);
       }
     }
-    ErrorAsyncCheck(hipGetLastError(), task);
+    ErrorAsyncCheckTask(hipGetLastError(), task);
     gpuErrchk(hipGetLastError());
     if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
-      ErrorSyncCheck(hipDeviceSynchronize(), task);
+      ErrorSyncCheckTask(hipDeviceSynchronize(), task);
     }
 
     if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
@@ -2167,10 +2188,10 @@ public:
         HipHuffmanCWCustomizedNoCGKernel(task);
       }
     }
-    ErrorAsyncCheck(hipGetLastError(), task);
+    ErrorAsyncCheckTask(hipGetLastError(), task);
     gpuErrchk(hipGetLastError());
     if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
-      ErrorSyncCheck(hipDeviceSynchronize(), task);
+      ErrorSyncCheckTask(hipDeviceSynchronize(), task);
     }
 
     if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
@@ -2288,9 +2309,12 @@ public:
     Byte *d_temp_storage = workspace_allocated ? workspace.data() : nullptr;
     size_t temp_storage_bytes = workspace_allocated ? workspace.shape(0) : 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
-    bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(),
-                              result.data(), n, stream, debug);
+                              result.data(), n, stream);
+    ErrorAsyncCheck(hipGetLastError(), "DeviceCollective<HIP>::Sum");
+    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(hipDeviceSynchronize(), "DeviceCollective<HIP>::Sum");
+    }
     if (!workspace_allocated) {
       workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
@@ -2306,9 +2330,12 @@ public:
     size_t temp_storage_bytes = workspace_allocated ? workspace.shape(0) : 0;
     AbsMaxOp absMaxOp;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
-    bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(),
-                                 result.data(), n, absMaxOp, 0, stream, debug);
+                                 result.data(), n, absMaxOp, 0, stream);
+    ErrorAsyncCheck(hipGetLastError(), "DeviceCollective<HIP>::AbsMax");
+    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(hipDeviceSynchronize(), "DeviceCollective<HIP>::AbsMax");
+    }
     if (!workspace_allocated) {
       workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
@@ -2326,10 +2353,13 @@ public:
     Byte *d_temp_storage = workspace_allocated ? workspace.data() : nullptr;
     size_t temp_storage_bytes = workspace_allocated ? workspace.shape(0) : 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
-    bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes,
-                              transformed_input_iter, result.data(), n, stream,
-                              debug);
+                              transformed_input_iter, result.data(), n, stream);
+    ErrorAsyncCheck(hipGetLastError(), "DeviceCollective<HIP>::SquareSum");
+    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(hipDeviceSynchronize(),
+                     "DeviceCollective<HIP>::SquareSum");
+    }
     if (!workspace_allocated) {
       workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
@@ -2344,9 +2374,14 @@ public:
     Byte *d_temp_storage = workspace_allocated ? workspace.data() : nullptr;
     size_t temp_storage_bytes = workspace_allocated ? workspace.shape(0) : 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
-    bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes,
-                                     v.data(), result.data(), n, stream, debug);
+                                     v.data(), result.data(), n, stream);
+    ErrorAsyncCheck(hipGetLastError(),
+                    "DeviceCollective<HIP>::ScanSumInclusive");
+    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(hipDeviceSynchronize(),
+                     "DeviceCollective<HIP>::ScanSumInclusive");
+    }
     if (!workspace_allocated) {
       workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
@@ -2361,9 +2396,14 @@ public:
     Byte *d_temp_storage = workspace_allocated ? workspace.data() : nullptr;
     size_t temp_storage_bytes = workspace_allocated ? workspace.shape(0) : 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
-    bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes,
-                                     v.data(), result.data(), n, stream, debug);
+                                     v.data(), result.data(), n, stream);
+    ErrorAsyncCheck(hipGetLastError(),
+                    "DeviceCollective<HIP>::ScanSumExclusive");
+    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(hipDeviceSynchronize(),
+                     "DeviceCollective<HIP>::ScanSumExclusive");
+    }
     if (!workspace_allocated) {
       workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
@@ -2378,10 +2418,14 @@ public:
     Byte *d_temp_storage = workspace_allocated ? workspace.data() : nullptr;
     size_t temp_storage_bytes = workspace_allocated ? workspace.shape(0) : 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
-    bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
     hipcub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes,
-                                     v.data(), result.data() + 1, n, stream,
-                                     debug);
+                                     v.data(), result.data() + 1, n, stream);
+    ErrorAsyncCheck(hipGetLastError(),
+                    "DeviceCollective<HIP>::ScanSumExtended");
+    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(hipDeviceSynchronize(),
+                     "DeviceCollective<HIP>::ScanSumExtended");
+    }
     if (workspace_allocated) {
       T zero = 0;
       MemoryManager<HIP>().Copy1D(result.data(), &zero, 1, queue_idx);
@@ -2401,11 +2445,14 @@ public:
     Byte *d_temp_storage = workspace_allocated ? workspace.data() : nullptr;
     size_t temp_storage_bytes = workspace_allocated ? workspace.shape(0) : 0;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
-    bool debug = DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors;
-    hipcub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
-                                       in_keys.data(), out_keys.data(),
-                                       in_values.data(), out_values.data(), n,
-                                       0, sizeof(KeyT) * 8, stream, debug);
+    hipcub::DeviceRadixSort::SortPairs(
+        d_temp_storage, temp_storage_bytes, in_keys.data(), out_keys.data(),
+        in_values.data(), out_values.data(), n, 0, sizeof(KeyT) * 8, stream);
+    ErrorAsyncCheck(hipGetLastError(), "DeviceCollective<HIP>::SortByKey");
+    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(hipDeviceSynchronize(),
+                     "DeviceCollective<HIP>::SortByKey");
+    }
     if (!workspace_allocated) {
       workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
