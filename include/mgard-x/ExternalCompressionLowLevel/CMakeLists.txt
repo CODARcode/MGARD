@@ -1,0 +1,2 @@
+add_subdirectory(ZFP)
+set(MGARD_X_HEADER ${MGARD_X_HEADER} PARENT_SCOPE)

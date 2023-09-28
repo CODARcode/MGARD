@@ -41,6 +41,7 @@ option(MGARD_ENABLE_LEGACY_CUDA "Enable legacy CUDA support" OFF)
 option(MGARD_ENABLE_COORDINATE_NORMALIZATION "Enable coordinate normalication for uniform grid" ON)
 option(MGARD_ENABLE_AUTO_TUNING "Enable auto tuning" OFF)
 option(MGARD_ENABLE_MDR "Enable MDR" OFF)
+option(MGARD_ENABLE_EXTERNAL_COMPRESSOR "Enable external compressor" OFF)
 
 option(MGARD_ENABLE_CLI "Build executable." OFF)
 
