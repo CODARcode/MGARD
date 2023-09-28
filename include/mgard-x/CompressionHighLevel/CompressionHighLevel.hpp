@@ -18,6 +18,10 @@
 
 #include "../CompressionLowLevel/Compressor.h"
 
+#if MGARD_ENABLE_EXTERNAL_COMPRESSOR
+#include "../ExternalCompressionLowLevel/ZFP/Compressor.h"
+#endif
+
 #include "../CompressionLowLevel/CompressorCache.hpp"
 #include "../CompressionLowLevel/HybridHierarchyCompressor.h"
 #include "../CompressionLowLevel/NormCalculator.hpp"
@@ -217,99 +221,7 @@ bool is_same(Hierarchy<D, T, DeviceType> &hierarchy1,
 }
 
 template <DIM D, typename T, typename DeviceType, typename CompressorType>
-enum compress_status_type compress_subdomain_series(
-    DomainDecomposer<D, T, CompressorType, DeviceType> &domain_decomposer,
-    T local_tol, T s, T &norm, enum error_bound_type local_ebtype,
-    Config &config, Byte *compressed_subdomain_data,
-    SIZE &compressed_subdomain_size) {
-  Timer timer_series;
-  if (log::level & log::TIME)
-    timer_series.start();
-  Array<D, T, DeviceType> device_subdomain_buffer;
-  Array<1, Byte, DeviceType> device_compressed_buffer;
-  // For serialization
-  SIZE byte_offset = 0;
-
-  for (SIZE subdomain_id = 0; subdomain_id < domain_decomposer.num_subdomains();
-       subdomain_id++) {
-    // Copy data
-    domain_decomposer.copy_subdomain(
-        device_subdomain_buffer, subdomain_id,
-        subdomain_copy_direction::OriginalToSubdomain, 0);
-    DeviceRuntime<DeviceType>::SyncQueue(0);
-    // Trigger the copy constructor to copy hierarchy to the current device
-    Hierarchy<D, T, DeviceType> hierarchy =
-        domain_decomposer.subdomain_hierarchy(subdomain_id);
-    Compressor compressor(hierarchy, config);
-    std::stringstream ss;
-    for (DIM d = 0; d < D; d++) {
-      ss << hierarchy.level_shape(hierarchy.l_target(), d) << " ";
-    }
-    log::info("Compressing subdomain " + std::to_string(subdomain_id) +
-              " with shape: " + ss.str());
-    compressor.Compress(device_subdomain_buffer, local_ebtype, local_tol, s,
-                        norm, device_compressed_buffer, 0);
-    SIZE compressed_size = device_compressed_buffer.shape(0);
-    double CR = (double)compressor.hierarchy->total_num_elems() * sizeof(T) /
-                compressed_size;
-    log::info("Subdomain CR: " + std::to_string(CR));
-    if (CR < 1.0) {
-      log::info("Using uncompressed data instead");
-      domain_decomposer.copy_subdomain(
-          device_subdomain_buffer, subdomain_id,
-          subdomain_copy_direction::OriginalToSubdomain, 0);
-      SIZE linearized_width = 1;
-      for (DIM d = 0; d < D - 1; d++)
-        linearized_width *= device_subdomain_buffer.shape(d);
-      MemoryManager<DeviceType>::CopyND(
-          device_compressed_buffer.data(),
-          device_subdomain_buffer.shape(D - 1) * sizeof(T),
-          (Byte *)device_subdomain_buffer.data(),
-          device_subdomain_buffer.ld(D - 1) * sizeof(T),
-          device_subdomain_buffer.shape(D - 1) * sizeof(T), linearized_width,
-          0);
-      compressed_size = compressor.hierarchy->total_num_elems() * sizeof(T);
-    }
-    // Check if we have enough space
-    if (compressed_size >
-        compressed_subdomain_size - byte_offset - sizeof(SIZE)) {
-      log::err("Output too large (original size: " +
-               std::to_string((double)compressor.hierarchy->total_num_elems() *
-                              sizeof(T) / 1e9) +
-               " GB, compressed size: " +
-               std::to_string((double)compressed_size / 1e9) +
-               " GB, leftover buffer space: " +
-               std::to_string((double)(compressed_subdomain_size - byte_offset -
-                                       sizeof(SIZE)) /
-                              1e9) +
-               " GB)");
-      return compress_status_type::OutputTooLargeFailure;
-    }
-    Serialize<SIZE, DeviceType>(compressed_subdomain_data, &compressed_size, 1,
-                                byte_offset, 0);
-    Serialize<Byte, DeviceType>(compressed_subdomain_data,
-                                device_compressed_buffer.data(),
-                                compressed_size, byte_offset, 0);
-    if (config.compress_with_dryrun) {
-      domain_decomposer.copy_subdomain(
-          device_subdomain_buffer, subdomain_id,
-          subdomain_copy_direction::SubdomainToOriginal, 0);
-    }
-    DeviceRuntime<DeviceType>::SyncQueue(0);
-  }
-  compressed_subdomain_size = byte_offset;
-  if (log::level & log::TIME) {
-    timer_series.end();
-    timer_series.print("Compress subdomains series");
-    timer_series.clear();
-  }
-
-  DeviceRuntime<DeviceType>::SyncDevice();
-  return compress_status_type::Success;
-}
-
-template <DIM D, typename T, typename DeviceType, typename CompressorType>
-enum compress_status_type compress_subdomain_series_w_prefetch(
+enum compress_status_type compress_pipeline(
     DomainDecomposer<D, T, CompressorType, DeviceType> &domain_decomposer,
     T local_tol, T s, T &norm, enum error_bound_type local_ebtype,
     Config &config, Byte *compressed_subdomain_data,
@@ -464,85 +376,7 @@ enum compress_status_type compress_subdomain_series_w_prefetch(
 }
 
 template <DIM D, typename T, typename DeviceType, typename CompressorType>
-enum compress_status_type decompress_subdomain_series(
-    DomainDecomposer<D, T, CompressorType, DeviceType> &domain_decomposer,
-    T local_tol, T s, T norm, enum error_bound_type local_ebtype,
-    Config &config, Byte *compressed_subdomain_data) {
-  Timer timer_series;
-  if (log::level & log::TIME)
-    timer_series.start();
-  Array<D, T, DeviceType> device_subdomain_buffer;
-  Array<1, Byte, DeviceType> device_compressed_buffer;
-  // For deserialization
-  SIZE byte_offset = 0;
-
-  for (SIZE subdomain_id = 0; subdomain_id < domain_decomposer.num_subdomains();
-       subdomain_id++) {
-    // Deserialize and copy data
-    SIZE compressed_size;
-    SIZE *compressed_size_ptr = &compressed_size;
-    Byte *compressed_data;
-
-    Deserialize<SIZE, DeviceType>(compressed_subdomain_data,
-                                  compressed_size_ptr, 1, byte_offset, false,
-                                  0);
-    DeviceRuntime<DeviceType>::SyncQueue(0);
-    Deserialize<Byte, DeviceType>(compressed_subdomain_data, compressed_data,
-                                  compressed_size, byte_offset, true, 0);
-
-    device_compressed_buffer.resize({compressed_size});
-
-    MemoryManager<DeviceType>::Copy1D(device_compressed_buffer.data(),
-                                      compressed_data, compressed_size, 0);
-    DeviceRuntime<DeviceType>::SyncQueue(0);
-
-    // Trigger the copy constructor to copy hierarchy to the current device
-    Hierarchy<D, T, DeviceType> hierarchy =
-        domain_decomposer.subdomain_hierarchy(subdomain_id);
-    Compressor compressor(hierarchy, config);
-
-    double CR = (double)compressor.hierarchy->total_num_elems() * sizeof(T) /
-                compressed_size;
-    log::info("Subdomain CR: " + std::to_string(CR));
-    if (CR > 1.0) {
-      std::stringstream ss;
-      for (DIM d = 0; d < D; d++) {
-        ss << hierarchy.level_shape(hierarchy.l_target(), d) << " ";
-      }
-      log::info("Decompressing subdomain " + std::to_string(subdomain_id) +
-                " with shape: " + ss.str());
-      compressor.Decompress(device_compressed_buffer, local_ebtype, local_tol,
-                            s, norm, device_subdomain_buffer, 0);
-    } else {
-      log::info("Skipping decompression as original data was saved instead");
-      device_subdomain_buffer.resize({compressor.hierarchy->level_shape(
-          compressor.hierarchy->l_target())});
-      SIZE linearized_width = 1;
-      for (DIM d = 0; d < D - 1; d++)
-        linearized_width *= device_subdomain_buffer.shape(d);
-      MemoryManager<DeviceType>::CopyND(
-          device_subdomain_buffer.data(), device_subdomain_buffer.ld(D - 1),
-          (T *)device_compressed_buffer.data(),
-          device_subdomain_buffer.shape(D - 1),
-          device_subdomain_buffer.shape(D - 1), linearized_width, 0);
-    }
-
-    domain_decomposer.copy_subdomain(
-        device_subdomain_buffer, subdomain_id,
-        subdomain_copy_direction::SubdomainToOriginal, 0);
-    DeviceRuntime<DeviceType>::SyncQueue(0);
-  }
-  DeviceRuntime<DeviceType>::SyncDevice();
-  if (log::level & log::TIME) {
-    timer_series.end();
-    timer_series.print("Decompress subdomains series");
-    timer_series.clear();
-  }
-  return compress_status_type::Success;
-}
-
-template <DIM D, typename T, typename DeviceType, typename CompressorType>
-enum compress_status_type decompress_subdomain_series_w_prefetch(
+enum compress_status_type decompress_pipeline(
     DomainDecomposer<D, T, CompressorType, DeviceType> &domain_decomposer,
     T local_tol, T s, T norm, enum error_bound_type local_ebtype,
     Config &config, Byte *compressed_subdomain_data) {
@@ -965,15 +799,18 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
   if (log::level & log::TIME)
     timer_each.start();
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
+  bool old_sync_set = DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors;
   if (!config.prefetch) {
-    compress_status = compress_subdomain_series(
-        domain_decomposer, local_tol, s, norm, local_ebtype, config,
-        compressed_subdomain_data, compressed_subdomain_size);
+    DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = true;
   } else {
-    compress_status = compress_subdomain_series_w_prefetch(
-        domain_decomposer, local_tol, s, norm, local_ebtype, config,
-        compressed_subdomain_data, compressed_subdomain_size);
+    DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = false;
   }
+  compress_status = compress_pipeline(
+      domain_decomposer, local_tol, s, norm, local_ebtype, config,
+      compressed_subdomain_data, compressed_subdomain_size);
+
+  DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = old_sync_set;
+
   if (log::level & log::TIME) {
     timer_each.end();
     timer_each.print("Aggregated low-level compression");
@@ -1054,15 +891,29 @@ enum compress_status_type
 compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type ebtype,
          const void *original_data, void *&compressed_data,
          size_t &compressed_size, Config config, bool output_pre_allocated) {
-  if (config.decomposition != decomposition_type::Hybrid) {
-    return general_compress<D, T, DeviceType, Compressor<D, T, DeviceType>>(
-        shape, tol, s, ebtype, original_data, compressed_data, compressed_size,
-        config, true, std::vector<T *>(0), output_pre_allocated);
-  } else {
+  if (config.compressor == compressor_type::MGARD) {
+    if (config.decomposition != decomposition_type::Hybrid) {
+      return general_compress<D, T, DeviceType, Compressor<D, T, DeviceType>>(
+          shape, tol, s, ebtype, original_data, compressed_data,
+          compressed_size, config, true, std::vector<T *>(0),
+          output_pre_allocated);
+    } else {
+      return general_compress<D, T, DeviceType,
+                              HybridHierarchyCompressor<D, T, DeviceType>>(
+          shape, tol, s, ebtype, original_data, compressed_data,
+          compressed_size, config, true, std::vector<T *>(0),
+          output_pre_allocated);
+    }
+  } else if (config.compressor == compressor_type::ZFP) {
+#if MGARD_ENABLE_EXTERNAL_COMPRESSOR
     return general_compress<D, T, DeviceType,
-                            HybridHierarchyCompressor<D, T, DeviceType>>(
+                            zfp::Compressor<D, T, DeviceType>>(
         shape, tol, s, ebtype, original_data, compressed_data, compressed_size,
         config, true, std::vector<T *>(0), output_pre_allocated);
+#else
+    log::err("MGARD not built with external compressor ZFP");
+    return compress_status_type::Failure;
+#endif
   }
 }
 
@@ -1072,15 +923,27 @@ compress(std::vector<SIZE> shape, T tol, T s, enum error_bound_type ebtype,
          const void *original_data, void *&compressed_data,
          size_t &compressed_size, Config config, std::vector<T *> coords,
          bool output_pre_allocated) {
-  if (config.decomposition != decomposition_type::Hybrid) {
-    return general_compress<D, T, DeviceType, Compressor<D, T, DeviceType>>(
-        shape, tol, s, ebtype, original_data, compressed_data, compressed_size,
-        config, false, coords, output_pre_allocated);
-  } else {
+  if (config.compressor == compressor_type::MGARD) {
+    if (config.decomposition != decomposition_type::Hybrid) {
+      return general_compress<D, T, DeviceType, Compressor<D, T, DeviceType>>(
+          shape, tol, s, ebtype, original_data, compressed_data,
+          compressed_size, config, false, coords, output_pre_allocated);
+    } else {
+      return general_compress<D, T, DeviceType,
+                              HybridHierarchyCompressor<D, T, DeviceType>>(
+          shape, tol, s, ebtype, original_data, compressed_data,
+          compressed_size, config, false, coords, output_pre_allocated);
+    }
+  } else if (config.compressor == compressor_type::ZFP) {
+#if MGARD_ENABLE_EXTERNAL_COMPRESSOR
     return general_compress<D, T, DeviceType,
-                            HybridHierarchyCompressor<D, T, DeviceType>>(
+                            zfp::Compressor<D, T, DeviceType>>(
         shape, tol, s, ebtype, original_data, compressed_data, compressed_size,
         config, false, coords, output_pre_allocated);
+#else
+    log::err("MGARD not built with external compressor ZFP");
+    return compress_status_type::Failure;
+#endif
   }
 }
 
@@ -1229,15 +1092,16 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
   if (log::level & log::TIME)
     timer_each.start();
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
+  bool old_sync_set = DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors;
   if (!config.prefetch) {
-    decompress_status = decompress_subdomain_series(
-        domain_decomposer, local_tol, (T)m.s, (T)m.norm, local_ebtype, config,
-        compressed_subdomain_data);
+    DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = true;
   } else {
-    decompress_status = decompress_subdomain_series_w_prefetch(
-        domain_decomposer, local_tol, (T)m.s, (T)m.norm, local_ebtype, config,
-        compressed_subdomain_data);
+    DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = false;
   }
+  decompress_status =
+      decompress_pipeline(domain_decomposer, local_tol, (T)m.s, (T)m.norm,
+                          local_ebtype, config, compressed_subdomain_data);
+  DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = old_sync_set;
   if (log::level & log::TIME) {
     timer_each.end();
     timer_each.print("Aggregated low-level decompression");
@@ -1290,15 +1154,27 @@ enum compress_status_type
 decompress(std::vector<SIZE> shape, const void *compressed_data,
            size_t compressed_size, void *&decompressed_data, Config config,
            bool output_pre_allocated) {
-  if (config.decomposition != decomposition_type::Hybrid) {
-    return general_decompress<D, T, DeviceType, Compressor<D, T, DeviceType>>(
-        shape, compressed_data, compressed_size, decompressed_data, config,
-        output_pre_allocated);
-  } else {
+  if (config.compressor == compressor_type::MGARD) {
+    if (config.decomposition != decomposition_type::Hybrid) {
+      return general_decompress<D, T, DeviceType, Compressor<D, T, DeviceType>>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
+    } else {
+      return general_decompress<D, T, DeviceType,
+                                HybridHierarchyCompressor<D, T, DeviceType>>(
+          shape, compressed_data, compressed_size, decompressed_data, config,
+          output_pre_allocated);
+    }
+  } else if (config.compressor == compressor_type::ZFP) {
+#if MGARD_ENABLE_EXTERNAL_COMPRESSOR
     return general_decompress<D, T, DeviceType,
-                              HybridHierarchyCompressor<D, T, DeviceType>>(
+                              zfp::Compressor<D, T, DeviceType>>(
         shape, compressed_data, compressed_size, decompressed_data, config,
         output_pre_allocated);
+#else
+    log::err("MGARD not built with external compressor ZFP");
+    return compress_status_type::Failure;
+#endif
   }
 }
 
@@ -1608,69 +1484,31 @@ decompress(const void *compressed_data, size_t compressed_size,
                                 output_pre_allocated);
 }
 
+template <DIM D, typename T, typename DeviceType> void release_cache() {
+  using Cache1 =
+      CompressorCache<D, T, DeviceType, Compressor<D, T, DeviceType>>;
+  Cache1::cache.SafeRelease();
+  using Cache2 = CompressorCache<D, T, DeviceType,
+                                 HybridHierarchyCompressor<D, T, DeviceType>>;
+  Cache2::cache.SafeRelease();
+#if MGARD_ENABLE_EXTERNAL_COMPRESSOR
+  using Cache3 =
+      CompressorCache<D, T, DeviceType, zfp::Compressor<D, T, DeviceType>>;
+  Cache3::cache.SafeRelease();
+#endif
+}
+
+template <typename T, typename DeviceType> void release_cache() {
+  release_cache<1, T, DeviceType>();
+  release_cache<2, T, DeviceType>();
+  release_cache<3, T, DeviceType>();
+  release_cache<4, T, DeviceType>();
+  release_cache<5, T, DeviceType>();
+}
+
 template <typename DeviceType> enum compress_status_type release_cache() {
-  for (DIM D = 0; D < 5; D++) {
-    using CompressorType1 = Compressor<1, float, DeviceType>;
-    using Cache1 = CompressorCache<1, float, DeviceType, CompressorType1>;
-    using CompressorType2 = Compressor<1, double, DeviceType>;
-    using Cache2 = CompressorCache<1, double, DeviceType, CompressorType2>;
-    using CompressorType3 = HybridHierarchyCompressor<1, float, DeviceType>;
-    using Cache3 = CompressorCache<1, float, DeviceType, CompressorType3>;
-    using CompressorType4 = HybridHierarchyCompressor<1, double, DeviceType>;
-    using Cache4 = CompressorCache<1, double, DeviceType, CompressorType4>;
-    Cache1::cache.SafeRelease();
-    Cache2::cache.SafeRelease();
-    Cache3::cache.SafeRelease();
-    Cache4::cache.SafeRelease();
-    using CompressorType5 = Compressor<2, float, DeviceType>;
-    using Cache5 = CompressorCache<2, float, DeviceType, CompressorType5>;
-    using CompressorType6 = Compressor<2, double, DeviceType>;
-    using Cache6 = CompressorCache<1, double, DeviceType, CompressorType6>;
-    using CompressorType7 = HybridHierarchyCompressor<2, float, DeviceType>;
-    using Cache7 = CompressorCache<2, float, DeviceType, CompressorType7>;
-    using CompressorType8 = HybridHierarchyCompressor<2, double, DeviceType>;
-    using Cache8 = CompressorCache<2, double, DeviceType, CompressorType8>;
-    Cache5::cache.SafeRelease();
-    Cache6::cache.SafeRelease();
-    Cache7::cache.SafeRelease();
-    Cache8::cache.SafeRelease();
-    using CompressorType9 = Compressor<3, float, DeviceType>;
-    using Cache9 = CompressorCache<3, float, DeviceType, CompressorType9>;
-    using CompressorType10 = Compressor<3, double, DeviceType>;
-    using Cache10 = CompressorCache<3, double, DeviceType, CompressorType10>;
-    using CompressorType11 = HybridHierarchyCompressor<3, float, DeviceType>;
-    using Cache11 = CompressorCache<3, float, DeviceType, CompressorType11>;
-    using CompressorType12 = HybridHierarchyCompressor<3, double, DeviceType>;
-    using Cache12 = CompressorCache<3, double, DeviceType, CompressorType12>;
-    Cache9::cache.SafeRelease();
-    Cache10::cache.SafeRelease();
-    Cache11::cache.SafeRelease();
-    Cache12::cache.SafeRelease();
-    using CompressorType13 = Compressor<4, float, DeviceType>;
-    using Cache13 = CompressorCache<4, float, DeviceType, CompressorType13>;
-    using CompressorType14 = Compressor<4, double, DeviceType>;
-    using Cache14 = CompressorCache<4, double, DeviceType, CompressorType14>;
-    using CompressorType15 = HybridHierarchyCompressor<4, float, DeviceType>;
-    using Cache15 = CompressorCache<4, float, DeviceType, CompressorType15>;
-    using CompressorType16 = HybridHierarchyCompressor<4, double, DeviceType>;
-    using Cache16 = CompressorCache<4, double, DeviceType, CompressorType16>;
-    Cache13::cache.SafeRelease();
-    Cache14::cache.SafeRelease();
-    Cache15::cache.SafeRelease();
-    Cache16::cache.SafeRelease();
-    using CompressorType17 = Compressor<5, float, DeviceType>;
-    using Cache17 = CompressorCache<5, float, DeviceType, CompressorType17>;
-    using CompressorType18 = Compressor<5, double, DeviceType>;
-    using Cache18 = CompressorCache<5, double, DeviceType, CompressorType18>;
-    using CompressorType19 = HybridHierarchyCompressor<5, float, DeviceType>;
-    using Cache19 = CompressorCache<5, float, DeviceType, CompressorType19>;
-    using CompressorType20 = HybridHierarchyCompressor<5, double, DeviceType>;
-    using Cache20 = CompressorCache<5, double, DeviceType, CompressorType20>;
-    Cache17::cache.SafeRelease();
-    Cache18::cache.SafeRelease();
-    Cache19::cache.SafeRelease();
-    Cache20::cache.SafeRelease();
-  }
+  release_cache<float, DeviceType>();
+  release_cache<double, DeviceType>();
   return compress_status_type::Success;
 }
 

@@ -112,8 +112,8 @@ MGARDX_EXEC static double atomicAdd(double *address, double val) {
 namespace mgard_x {
 
 template <typename TaskType>
-inline void ErrorAsyncCheck(cudaError_t code, TaskType &task,
-                            bool abort = true) {
+inline void ErrorAsyncCheckTask(cudaError_t code, TaskType &task,
+                                bool abort = true) {
   if (code != cudaSuccess) {
     log::err(std::string(cudaGetErrorString(code)) + " while executing " +
              task.GetFunctorName().c_str() + " with CUDA (Async-check)");
@@ -123,11 +123,31 @@ inline void ErrorAsyncCheck(cudaError_t code, TaskType &task,
 }
 
 template <typename TaskType>
-inline void ErrorSyncCheck(cudaError_t code, TaskType &task,
-                           bool abort = true) {
+inline void ErrorSyncCheckTask(cudaError_t code, TaskType &task,
+                               bool abort = true) {
   if (code != cudaSuccess) {
     log::err(std::string(cudaGetErrorString(code)) + " while executing " +
              task.GetFunctorName().c_str() + " with CUDA (Sync-check)");
+    if (abort)
+      exit(code);
+  }
+}
+
+inline void ErrorAsyncCheck(cudaError_t code, std::string task,
+                            bool abort = true) {
+  if (code != cudaSuccess) {
+    log::err(std::string(cudaGetErrorString(code)) + " while executing " +
+             task.c_str() + " with CUDA (Async-check)");
+    if (abort)
+      exit(code);
+  }
+}
+
+inline void ErrorSyncCheck(cudaError_t code, std::string task,
+                           bool abort = true) {
+  if (code != cudaSuccess) {
+    log::err(std::string(cudaGetErrorString(code)) + " while executing " +
+             task.c_str() + " with CUDA (Sync-check)");
     if (abort)
       exit(code);
   }
@@ -1965,65 +1985,65 @@ template <typename Task> void CudaHuffmanCLCustomizedNoCGKernel(Task task) {
   // std::cout << "calling Single_Operation1_Kernel\n";
   Single_Operation1_Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
       task);
-  ErrorSyncCheck(cudaDeviceSynchronize(), task);
+  ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
   // std::cout << "calling LoopCondition1\n";
   while (task.GetFunctor().LoopCondition1()) {
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
     // std::cout << "calling Single_Operation2_Kernel\n";
     Single_Operation2_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                stream>>>(task);
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
     // std::cout << "calling Single_Operation3_Kernel\n";
     Single_Operation3_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                stream>>>(task);
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
     Single_Operation4_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                stream>>>(task);
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
     // std::cout << "calling Single_Operation4_Kernel\n";
     Single_Operation5_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                stream>>>(task);
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
     // std::cout << "calling BranchCondition1\n";
     if (task.GetFunctor().BranchCondition1()) {
-      ErrorSyncCheck(cudaDeviceSynchronize(), task);
+      ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
       // std::cout << "calling CudaParallelMergeKernel\n";
       CudaParallelMergeKernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                 stream>>>(task);
-      ErrorSyncCheck(cudaDeviceSynchronize(), task);
+      ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
       // std::cout << "calling Single_Operation10_Kernel\n";
       Single_Operation11_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                   stream>>>(task);
-      ErrorSyncCheck(cudaDeviceSynchronize(), task);
+      ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
     }
 
     // std::cout << "calling Single_Operation11_Kernel\n";
     Single_Operation12_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                 stream>>>(task);
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
     // std::cout << "calling Single_Operation12_Kernel\n";
     Single_Operation13_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                 stream>>>(task);
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
     // std::cout << "calling Single_Operation13_Kernel\n";
     Single_Operation14_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                 stream>>>(task);
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
     // std::cout << "calling Single_Operation14_Kernel\n";
     Single_Operation15_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                 stream>>>(task);
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
   }
 }
 
@@ -2038,55 +2058,55 @@ template <typename Task> void CudaHuffmanCWCustomizedNoCGKernel(Task task) {
   // std::cout << "calling Single_Operation1_Kernel\n";
   Single_Operation1_Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
       task);
-  ErrorSyncCheck(cudaDeviceSynchronize(), task);
+  ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
   // std::cout << "calling Single_Operation2_Kernel\n";
   Single_Operation2_Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
       task);
-  ErrorSyncCheck(cudaDeviceSynchronize(), task);
+  ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
   // std::cout << "calling Single_Operation3_Kernel\n";
   Single_Operation3_Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
       task);
-  ErrorSyncCheck(cudaDeviceSynchronize(), task);
+  ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
   // std::cout << "calling LoopCondition1\n";
   while (task.GetFunctor().LoopCondition1()) {
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
     // std::cout << "calling Single_Operation4_Kernel\n";
     Single_Operation4_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                stream>>>(task);
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
     // std::cout << "calling Single_Operation5_Kernel\n";
     Single_Operation5_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                stream>>>(task);
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
     // std::cout << "calling Single_Operation6_Kernel\n";
     Single_Operation6_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                stream>>>(task);
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
     // std::cout << "calling Single_Operation7_Kernel\n";
     Single_Operation7_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                stream>>>(task);
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
     // std::cout << "calling Single_Operation8_Kernel\n";
     Single_Operation8_Kernel<<<blockPerGrid, threadsPerBlock, sm_size,
                                stream>>>(task);
-    ErrorSyncCheck(cudaDeviceSynchronize(), task);
+    ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
   }
 
   // std::cout << "calling Single_Operation9_Kernel\n";
   Single_Operation9_Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
       task);
-  ErrorSyncCheck(cudaDeviceSynchronize(), task);
+  ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 
   // std::cout << "calling Single_Operation10_Kernel\n";
   Single_Operation10_Kernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(
       task);
-  ErrorSyncCheck(cudaDeviceSynchronize(), task);
+  ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
 }
 
 #define MGARD_CUDA_MAX_GRID_X 2147483647
@@ -2201,10 +2221,10 @@ public:
         CudaHuffmanCWCustomizedNoCGKernel(task);
       }
     }
-    ErrorAsyncCheck(cudaGetLastError(), task);
+    ErrorAsyncCheckTask(cudaGetLastError(), task);
     gpuErrchk(cudaGetLastError());
     if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
-      ErrorSyncCheck(cudaDeviceSynchronize(), task);
+      ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
     }
 
     if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
@@ -2330,10 +2350,9 @@ public:
         CudaHuffmanCWCustomizedNoCGKernel(task);
       }
     }
-    ErrorAsyncCheck(cudaGetLastError(), task);
-    gpuErrchk(cudaGetLastError());
+    ErrorAsyncCheckTask(cudaGetLastError(), task);
     if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
-      ErrorSyncCheck(cudaDeviceSynchronize(), task);
+      ErrorSyncCheckTask(cudaDeviceSynchronize(), task);
     }
 
     if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
@@ -2452,9 +2471,12 @@ public:
     Byte *d_temp_storage = workspace_allocated ? workspace.data() : nullptr;
     size_t temp_storage_bytes = workspace_allocated ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
-    bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, v.data(),
-                           result.data(), n, stream, debug);
+                           result.data(), n, stream);
+    ErrorAsyncCheck(cudaGetLastError(), "DeviceCollective<CUDA>::Sum");
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(cudaDeviceSynchronize(), "DeviceCollective<CUDA>::Sum");
+    }
     if (!workspace_allocated) {
       workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
@@ -2470,10 +2492,13 @@ public:
     size_t temp_storage_bytes = workspace_allocated ? workspace.shape(0) : 0;
     AbsMaxOp absMaxOp;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
-    bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(),
                               result.data(), n, absMaxOp, static_cast<T>(0),
-                              stream, debug);
+                              stream);
+    ErrorAsyncCheck(cudaGetLastError(), "DeviceCollective<CUDA>::AbsMax");
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(cudaDeviceSynchronize(), "DeviceCollective<CUDA>::AbsMax");
+    }
     if (!workspace_allocated) {
       workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
@@ -2491,10 +2516,13 @@ public:
     Byte *d_temp_storage = workspace_allocated ? workspace.data() : nullptr;
     size_t temp_storage_bytes = workspace_allocated ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
-    bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes,
-                           transformed_input_iter, result.data(), n, stream,
-                           debug);
+                           transformed_input_iter, result.data(), n, stream);
+    ErrorAsyncCheck(cudaGetLastError(), "DeviceCollective<CUDA>::SquareSum");
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(cudaDeviceSynchronize(),
+                     "DeviceCollective<CUDA>::SquareSum");
+    }
     if (!workspace_allocated) {
       workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
@@ -2509,9 +2537,14 @@ public:
     Byte *d_temp_storage = workspace_allocated ? workspace.data() : nullptr;
     size_t temp_storage_bytes = workspace_allocated ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
-    bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
-                                  result.data(), n, stream, debug);
+                                  result.data(), n, stream);
+    ErrorAsyncCheck(cudaGetLastError(),
+                    "DeviceCollective<CUDA>::ScanSumInclusive");
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(cudaDeviceSynchronize(),
+                     "DeviceCollective<CUDA>::ScanSumInclusive");
+    }
     if (!workspace_allocated) {
       workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
@@ -2526,9 +2559,14 @@ public:
     Byte *d_temp_storage = workspace_allocated ? workspace.data() : nullptr;
     size_t temp_storage_bytes = workspace_allocated ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
-    bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
-                                  result.data(), n, stream, debug);
+                                  result.data(), n, stream);
+    ErrorAsyncCheck(cudaGetLastError(),
+                    "DeviceCollective<CUDA>::ScanSumExclusive");
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(cudaDeviceSynchronize(),
+                     "DeviceCollective<CUDA>::ScanSumExclusive");
+    }
     if (!workspace_allocated) {
       workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
@@ -2543,9 +2581,14 @@ public:
     Byte *d_temp_storage = workspace_allocated ? workspace.data() : nullptr;
     size_t temp_storage_bytes = workspace_allocated ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
-    bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
     cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, v.data(),
-                                  result.data() + 1, n, stream, debug);
+                                  result.data() + 1, n, stream);
+    ErrorAsyncCheck(cudaGetLastError(),
+                    "DeviceCollective<CUDA>::ScanSumExtended");
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(cudaDeviceSynchronize(),
+                     "DeviceCollective<CUDA>::ScanSumExtended");
+    }
     if (workspace_allocated) {
       T zero = 0;
       MemoryManager<CUDA>().Copy1D(result.data(), &zero, 1, queue_idx);
@@ -2565,11 +2608,14 @@ public:
     Byte *d_temp_storage = workspace_allocated ? workspace.data() : nullptr;
     size_t temp_storage_bytes = workspace_allocated ? workspace.shape(0) : 0;
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
-    bool debug = DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors;
-    cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes,
-                                    in_keys.data(), out_keys.data(),
-                                    in_values.data(), out_values.data(), n, 0,
-                                    sizeof(KeyT) * 8, stream, debug);
+    cub::DeviceRadixSort::SortPairs(
+        d_temp_storage, temp_storage_bytes, in_keys.data(), out_keys.data(),
+        in_values.data(), out_values.data(), n, 0, sizeof(KeyT) * 8, stream);
+    ErrorAsyncCheck(cudaGetLastError(), "DeviceCollective<CUDA>::SortByKey");
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(cudaDeviceSynchronize(),
+                     "DeviceCollective<CUDA>::SortByKey");
+    }
     if (!workspace_allocated) {
       workspace.resize({(SIZE)temp_storage_bytes}, queue_idx);
     }
@@ -2599,6 +2645,12 @@ public:
         thrust::device_ptr<KeyT>(key.data() + key.shape(0)),
         thrust::device_ptr<ValueT>(v.data()),
         thrust::device_ptr<ValueT>(result.data()), binary_pred, binary_op);
+    ErrorAsyncCheck(cudaGetLastError(),
+                    "DeviceCollective<CUDA>::ScanOpInclusiveByKey");
+    if (DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors) {
+      ErrorSyncCheck(cudaDeviceSynchronize(),
+                     "DeviceCollective<CUDA>::ScanOpInclusiveByKey");
+    }
   }
 };
 

@@ -61,6 +61,9 @@ enum class compress_status_type : uint8_t {
   NotSupportDataTypeFailure,
   BackendNotAvailableFailure
 };
+
+enum class compressor_type : uint8_t { MGARD, ZFP };
+
 } // namespace mgard_x
 
 #include <iostream>
