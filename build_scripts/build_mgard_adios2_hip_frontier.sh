@@ -9,7 +9,7 @@
 set -e
 set -x
 
-module load rocm/5.1.0
+module load rocm/5.5.1
 module load cmake
 
 ######## User Configurations ########
