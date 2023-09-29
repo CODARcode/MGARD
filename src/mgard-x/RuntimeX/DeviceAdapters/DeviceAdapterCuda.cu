@@ -15,8 +15,8 @@ DeviceSpecification<CUDA> DeviceRuntime<CUDA>::DeviceSpecs;
 
 bool DeviceRuntime<CUDA>::SyncAllKernelsAndCheckErrors = false;
 bool MemoryManager<CUDA>::ReduceMemoryFootprint = false;
-bool DeviceRuntime<CUDA>::TimingAllKernels = false;
-bool DeviceRuntime<CUDA>::PrintKernelConfig = false;
+bool DeviceRuntime<CUDA>::TimingAllKernels = true;
+bool DeviceRuntime<CUDA>::PrintKernelConfig = true;
 
 template <> bool deviceAvailable<CUDA>() {
   return DeviceRuntime<CUDA>::GetDeviceCount() > 0;
