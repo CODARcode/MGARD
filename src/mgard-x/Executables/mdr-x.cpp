@@ -593,14 +593,16 @@ int launch_reconstruct(std::string input_file, std::string output_file,
     int subdomain_id = 0;
 
     std::ofstream cells_file, scalars_file;
-    cells_file.open ("mgard.cells", std::ios::out | std::ios::app | std::ios::binary);
-    scalars_file.open ("mgard.scalars", std::ios::out | std::ios::app | std::ios::binary);
-
+    cells_file.open("mgard.cells",
+                    std::ios::out | std::ios::app | std::ios::binary);
+    scalars_file.open("mgard.scalars",
+                      std::ios::out | std::ios::app | std::ios::binary);
 
     for (int subdomain_id = 0; subdomain_id < reconstructed_data.data.size();
          subdomain_id++) {
 
-      std::string output = output_file + "_subdomain_" + std::to_string(subdomain_id) + "_start_";
+      std::string output = output_file + "_subdomain_" +
+                           std::to_string(subdomain_id) + "_start_";
       std::cout << "reconstructed_data " << subdomain_id << " : offset(";
       for (auto n : reconstructed_data.offset[subdomain_id]) {
         std::cout << n << " ";
@@ -618,7 +620,7 @@ int launch_reconstruct(std::string input_file, std::string output_file,
       std::cout << ")\n";
 
       output += ".dat";
-      
+
       if (dtype == mgard_x::data_type::Float) {
         size *= sizeof(float);
       } else if (dtype == mgard_x::data_type::Double) {
@@ -628,31 +630,36 @@ int launch_reconstruct(std::string input_file, std::string output_file,
       writefile(output, reconstructed_data.data[subdomain_id], size);
 
       // const char* data = reconstructed_data.data[subdomain_id];
-      scalars_file.write((char*)reconstructed_data.data[subdomain_id], size);
+      scalars_file.write((char *)reconstructed_data.data[subdomain_id], size);
 
       std::vector<int> cell_vec;
 
       for (int z = 0; z < reconstructed_data.shape[subdomain_id][0]; z++) {
         for (int y = 0; y < reconstructed_data.shape[subdomain_id][1]; y++) {
           for (int x = 0; x < reconstructed_data.shape[subdomain_id][2]; x++) {
-            
+
             if (z != 2 && y != 2 && x != 2) {
-              cell_vec.push_back(x+reconstructed_data.offset[subdomain_id][2]);
-              cell_vec.push_back(y+reconstructed_data.offset[subdomain_id][1]);
-              cell_vec.push_back(z+reconstructed_data.offset[subdomain_id][0]);
+              cell_vec.push_back(x +
+                                 reconstructed_data.offset[subdomain_id][2]);
+              cell_vec.push_back(y +
+                                 reconstructed_data.offset[subdomain_id][1]);
+              cell_vec.push_back(z +
+                                 reconstructed_data.offset[subdomain_id][0]);
               cell_vec.push_back(0); // level
             } else {
-              cell_vec.push_back(x+reconstructed_data.offset[subdomain_id][2]/64);
-              cell_vec.push_back(y+reconstructed_data.offset[subdomain_id][1]/64);
-              cell_vec.push_back(z+reconstructed_data.offset[subdomain_id][0]/64);
+              cell_vec.push_back(
+                  x + reconstructed_data.offset[subdomain_id][2] / 64);
+              cell_vec.push_back(
+                  y + reconstructed_data.offset[subdomain_id][1] / 64);
+              cell_vec.push_back(
+                  z + reconstructed_data.offset[subdomain_id][0] / 64);
               cell_vec.push_back(5); // level
             }
           }
         }
       }
 
-      cells_file.write((char*)cell_vec.data(), cell_vec.size()*sizeof(int));
-
+      cells_file.write((char *)cell_vec.data(), cell_vec.size() * sizeof(int));
     }
 
     scalars_file.close();
