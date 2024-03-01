@@ -103,6 +103,7 @@ void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape,
 #endif
   } else {
     log::err("Unsupported backend.");
+    exit(-1);
   }
 }
 
@@ -163,6 +164,7 @@ void MDRefactor(DIM D, data_type dtype, std::vector<SIZE> shape,
 #endif
   } else {
     log::err("Unsupported backend.");
+    exit(-1);
   }
 }
 
@@ -210,6 +212,7 @@ void MDRequest(RefactoredMetadata &refactored_metadata, Config config) {
 #endif
   } else {
     log::err("Unsupported backend.");
+    exit(-1);
   }
 }
 
@@ -258,6 +261,7 @@ SIZE MDRMaxOutputDataSize(DIM D, data_type dtype, std::vector<SIZE> shape,
 #endif
   } else {
     log::err("Unsupported backend.");
+    exit(-1);
   }
 }
 
@@ -317,6 +321,55 @@ void MDReconstruct(RefactoredMetadata &refactored_metadata,
 #endif
   } else {
     log::err("Unsupported backend.");
+    exit(-1);
+  }
+}
+
+void release_cache(Config config) {
+
+  enum device_type dev_type = config.dev_type;
+  if (dev_type == device_type::AUTO) {
+    dev_type = auto_detect_device();
+  }
+
+  if (dev_type == device_type::SERIAL) {
+#if MGARD_ENABLE_SERIAL
+    release_cache<SERIAL>();
+#else
+    log::err("MDR-X was not built with SERIAL backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::OPENMP) {
+#if MGARD_ENABLE_OPENMP
+    release_cache<OPENMP>();
+#else
+    log::err("MDR-X was not built with OPENMP backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::CUDA) {
+#if MGARD_ENABLE_CUDA
+    release_cache<CUDA>();
+#else
+    log::err("MDR-X was not built with CUDA backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::HIP) {
+#if MGARD_ENABLE_HIP
+    release_cache<HIP>();
+#else
+    log::err("MDR-X was not built with HIP backend.");
+    exit(-1);
+#endif
+  } else if (dev_type == device_type::SYCL) {
+#if MGARD_ENABLE_SYCL
+    elease_cache<SYCL>();
+#else
+    log::err("MDR-X was not built with SYCL backend.");
+    exit(-1);
+#endif
+  } else {
+    log::err("Unsupported backend.");
+    exit(-1);
   }
 }
 

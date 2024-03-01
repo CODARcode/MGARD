@@ -28,38 +28,12 @@ public:
   using Encoder = GroupedBPEncoder<D, T_data, T_bitplane, T_error, DeviceType>;
   using Compressor = DefaultLevelCompressor<T_bitplane, DeviceType>;
   // using Compressor = NullLevelCompressor<T_bitplane, DeviceType>;
-  using ErrorCollector = MaxErrorCollector<T_data>;
-  using Writer = ConcatLevelFileWriter;
 
-  ComposedRefactor(Hierarchy<D, T_data, DeviceType> hierarchy, Config config)
-      : hierarchy(hierarchy), decomposer(this->hierarchy),
-        interleaver(this->hierarchy), encoder(this->hierarchy),
-        compressor(Encoder::buffer_size(
-                       hierarchy.level_num_elems(hierarchy.l_target())),
-                   config),
-        collector(), total_num_bitplanes(config.total_num_bitplanes),
-        writer(std::string(""), std::vector<std::string>()) {
-    levels_array = new Array<1, T_data, DeviceType>[hierarchy.l_target() + 1];
-    levels_data = new SubArray<1, T_data, DeviceType>[hierarchy.l_target() + 1];
-    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
-      levels_array[level_idx] =
-          Array<1, T_data, DeviceType>({hierarchy.level_num_elems(level_idx)});
-      levels_data[level_idx] =
-          SubArray<1, T_data, DeviceType>(levels_array[level_idx]);
-    }
-    abs_max_result_array = Array<1, T_data, DeviceType>({1});
-    DeviceCollective<DeviceType>::AbsMax(
-        hierarchy.level_num_elems(hierarchy.l_target()),
-        SubArray<1, T_data, DeviceType>(), SubArray<1, T_data, DeviceType>(),
-        abs_max_workspace, false, 0);
-    encoded_bitplanes_array.resize(hierarchy.l_target() + 1);
-    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
-      encoded_bitplanes_array[level_idx] = Array<2, T_bitplane, DeviceType>(
-          {(SIZE)total_num_bitplanes,
-           encoder.buffer_size(hierarchy.level_num_elems(level_idx))});
-    }
-    level_errors_array =
-        Array<1, T_error, DeviceType>({(SIZE)total_num_bitplanes + 1});
+  ComposedRefactor() : initialized(false) {}
+
+  ComposedRefactor(Hierarchy<D, T_data, DeviceType> &hierarchy, Config config) {
+    Adapt(hierarchy, config, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
   }
 
   static SIZE MaxOutputDataSize(std::vector<SIZE> shape, Config config) {
@@ -77,6 +51,43 @@ public:
   ~ComposedRefactor() {
     delete[] levels_array;
     delete[] levels_data;
+  }
+
+  void Adapt(Hierarchy<D, T_data, DeviceType> &hierarchy, Config config,
+             int queue_idx) {
+    this->initialized = true;
+    this->hierarchy = &hierarchy;
+    decomposer.Adapt(hierarchy, config, queue_idx);
+    interleaver.Adapt(hierarchy, queue_idx);
+    encoder.Adapt(hierarchy, queue_idx);
+    compressor.Adapt(
+        Encoder::buffer_size(hierarchy.level_num_elems(hierarchy.l_target())),
+        config, queue_idx);
+    total_num_bitplanes = config.total_num_bitplanes;
+
+    delete[] levels_array;
+    delete[] levels_data;
+    levels_array = new Array<1, T_data, DeviceType>[hierarchy.l_target() + 1];
+    levels_data = new SubArray<1, T_data, DeviceType>[hierarchy.l_target() + 1];
+    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
+      levels_array[level_idx].resize({hierarchy.level_num_elems(level_idx)},
+                                     queue_idx);
+      levels_data[level_idx] =
+          SubArray<1, T_data, DeviceType>(levels_array[level_idx]);
+    }
+    abs_max_result_array.resize({1}, queue_idx);
+    DeviceCollective<DeviceType>::AbsMax(
+        hierarchy.level_num_elems(hierarchy.l_target()),
+        SubArray<1, T_data, DeviceType>(), SubArray<1, T_data, DeviceType>(),
+        abs_max_workspace, false, 0);
+    encoded_bitplanes_array.resize(hierarchy.l_target() + 1);
+    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
+      encoded_bitplanes_array[level_idx].resize(
+          {(SIZE)total_num_bitplanes,
+           encoder.buffer_size(hierarchy.level_num_elems(level_idx))},
+          queue_idx);
+    }
+    level_errors_array.resize({(SIZE)total_num_bitplanes + 1}, queue_idx);
   }
 
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape,
@@ -114,26 +125,27 @@ public:
   void Refactor(Array<D, T_data, DeviceType> &data_array,
                 MDRMetadata &mdr_metadata, MDRData<DeviceType> &mdr_data,
                 int queue_idx) {
-    SIZE target_level = hierarchy.l_target();
-    mdr_metadata.Initialize(hierarchy.l_target() + 1, total_num_bitplanes);
-    mdr_data.Resize(hierarchy.l_target() + 1, total_num_bitplanes);
+    SIZE target_level = hierarchy->l_target();
+    mdr_metadata.Initialize(hierarchy->l_target() + 1, total_num_bitplanes);
+    mdr_data.Resize(hierarchy->l_target() + 1, total_num_bitplanes);
 
     SubArray<D, T_data, DeviceType> data(data_array);
 
     Timer timer;
     timer.start();
-    decomposer.decompose(data_array, hierarchy.l_target(), 0, queue_idx);
+    decomposer.decompose(data_array, hierarchy->l_target(), 0, queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Decompose");
 
     timer.start();
-    interleaver.interleave(data, levels_data, hierarchy.l_target(), queue_idx);
+    interleaver.interleave(data, levels_data, hierarchy->l_target(), queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
     timer.end();
     timer.print("Interleave");
 
-    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
+    for (int level_idx = 0; level_idx < hierarchy->l_target() + 1;
+         level_idx++) {
       timer.start();
       SubArray<1, T_data, DeviceType> result(abs_max_result_array);
       DeviceCollective<DeviceType>::AbsMax(levels_data[level_idx].shape(0),
@@ -149,7 +161,7 @@ public:
       // level_max_error, level_exp);
       mdr_metadata.level_error_bounds[level_idx] = level_max_error;
       mdr_metadata.level_num_elems[level_idx] =
-          hierarchy.level_num_elems(level_idx);
+          hierarchy->level_num_elems(level_idx);
       timer.end();
       timer.print("level_max_error");
 
@@ -158,7 +170,7 @@ public:
           encoded_bitplanes_array[level_idx]);
       SubArray<1, T_error, DeviceType> level_errors(level_errors_array);
       std::vector<SIZE> bitplane_sizes(total_num_bitplanes);
-      encoder.encode(hierarchy.level_num_elems(level_idx), total_num_bitplanes,
+      encoder.encode(hierarchy->level_num_elems(level_idx), total_num_bitplanes,
                      level_exp, levels_data[level_idx], encoded_bitplanes,
                      level_errors, bitplane_sizes, queue_idx);
       std::vector<T_error> squared_error(total_num_bitplanes + 1);
@@ -192,14 +204,14 @@ public:
     encoder.print();
   }
 
+  bool initialized = false;
+
 private:
-  Hierarchy<D, T_data, DeviceType> hierarchy;
+  Hierarchy<D, T_data, DeviceType> *hierarchy;
   Decomposer decomposer;
   Interleaver interleaver;
   Encoder encoder;
   Compressor compressor;
-  ErrorCollector collector;
-  Writer writer;
 
   Array<1, T_data, DeviceType> *levels_array = nullptr;
   SubArray<1, T_data, DeviceType> *levels_data = nullptr;

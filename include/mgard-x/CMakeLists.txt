@@ -9,7 +9,6 @@ add_subdirectory(Lossless)
 add_subdirectory(MDRHighLevel)
 add_subdirectory(Quantization)
 add_subdirectory(RuntimeX)
-add_subdirectory(UncertaintyCollector)
 
 if (MGARD_ENABLE_EXTERNAL_COMPRESSOR)
 	add_subdirectory(ExternalCompressionLowLevel)

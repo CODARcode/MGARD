@@ -42,7 +42,7 @@ Config::Config() {
   adjust_shape = false;
   compress_with_dryrun = false;
   num_local_refactoring_level = 1;
-  cache_compressor = false;
+  auto_cache_release = false;
 }
 
 void Config::apply() { log::level = log_level; }

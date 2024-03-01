@@ -447,7 +447,7 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
     config.domain_decomposition = mgard_x::domain_decomposition_type::MaxDim;
   } else {
     config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
-    // config.block_size = 64;
+    config.block_size = 64;
   }
   config.dev_type = dev_type;
   config.prefetch = prefetch;
@@ -592,18 +592,71 @@ int launch_reconstruct(std::string input_file, std::string output_file,
 
     int subdomain_id = 0;
 
+    std::ofstream cells_file, scalars_file;
+    cells_file.open ("mgard.cells", std::ios::out | std::ios::app | std::ios::binary);
+    scalars_file.open ("mgard.scalars", std::ios::out | std::ios::app | std::ios::binary);
+
+
     for (int subdomain_id = 0; subdomain_id < reconstructed_data.data.size();
          subdomain_id++) {
+
+      std::string output = output_file + "_subdomain_" + std::to_string(subdomain_id) + "_start_";
       std::cout << "reconstructed_data " << subdomain_id << " : offset(";
       for (auto n : reconstructed_data.offset[subdomain_id]) {
         std::cout << n << " ";
+        output += std::to_string(n) + "_";
       }
+
+      size_t size = 1;
+      output += "shape_";
       std::cout << ") shape(";
       for (auto n : reconstructed_data.shape[subdomain_id]) {
         std::cout << n << " ";
+        output += std::to_string(n) + "_";
+        size *= n;
       }
       std::cout << ")\n";
+
+      output += ".dat";
+      
+      if (dtype == mgard_x::data_type::Float) {
+        size *= sizeof(float);
+      } else if (dtype == mgard_x::data_type::Double) {
+        size *= sizeof(double);
+      }
+
+      writefile(output, reconstructed_data.data[subdomain_id], size);
+
+      // const char* data = reconstructed_data.data[subdomain_id];
+      scalars_file.write((char*)reconstructed_data.data[subdomain_id], size);
+
+      std::vector<int> cell_vec;
+
+      for (int z = 0; z < reconstructed_data.shape[subdomain_id][0]; z++) {
+        for (int y = 0; y < reconstructed_data.shape[subdomain_id][1]; y++) {
+          for (int x = 0; x < reconstructed_data.shape[subdomain_id][2]; x++) {
+            
+            if (z != 2 && y != 2 && x != 2) {
+              cell_vec.push_back(x+reconstructed_data.offset[subdomain_id][2]);
+              cell_vec.push_back(y+reconstructed_data.offset[subdomain_id][1]);
+              cell_vec.push_back(z+reconstructed_data.offset[subdomain_id][0]);
+              cell_vec.push_back(0); // level
+            } else {
+              cell_vec.push_back(x+reconstructed_data.offset[subdomain_id][2]/64);
+              cell_vec.push_back(y+reconstructed_data.offset[subdomain_id][1]/64);
+              cell_vec.push_back(z+reconstructed_data.offset[subdomain_id][0]/64);
+              cell_vec.push_back(5); // level
+            }
+          }
+        }
+      }
+
+      cells_file.write((char*)cell_vec.data(), cell_vec.size()*sizeof(int));
+
     }
+
+    scalars_file.close();
+    cells_file.close();
 
     if (input_file.compare("none") != 0 && !config.mdr_adaptive_resolution) {
       if (dtype == mgard_x::data_type::Float) {
