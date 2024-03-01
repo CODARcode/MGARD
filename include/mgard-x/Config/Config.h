@@ -34,7 +34,7 @@ struct Config {
   bool adjust_shape;
   bool compress_with_dryrun;
   int num_local_refactoring_level;
-  bool cache_compressor;
+  bool auto_cache_release;
 
   Config();
   void apply();

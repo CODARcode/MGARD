@@ -32,41 +32,54 @@ public:
   using Encoder = GroupedBPEncoder<D, T_data, T_bitplane, T_error, DeviceType>;
   using Compressor = DefaultLevelCompressor<T_bitplane, DeviceType>;
   // using Compressor = NullLevelCompressor<T_bitplane, DeviceType>;
-  using Retriever = ConcatLevelFileRetriever;
 
-  ComposedReconstructor(Hierarchy<D, T_data, DeviceType> hierarchy,
-                        Config config)
-      : hierarchy(hierarchy), decomposer(this->hierarchy),
-        interleaver(this->hierarchy), encoder(this->hierarchy),
-        compressor(Encoder::buffer_size(
-                       hierarchy.level_num_elems(hierarchy.l_target())),
-                   config),
-        total_num_bitplanes(config.total_num_bitplanes),
-        retriever(std::string(""), std::vector<std::string>()) {
-    prev_reconstructed = false;
-    partial_reconsctructed_data = Array<D, T_data, DeviceType>(
-        hierarchy.level_shape(hierarchy.l_target()));
-    interpolation_workspace = Array<D, T_data, DeviceType>(
-        hierarchy.level_shape(hierarchy.l_target()));
-    levels_array = new Array<1, T_data, DeviceType>[hierarchy.l_target() + 1];
-    levels_data = new SubArray<1, T_data, DeviceType>[hierarchy.l_target() + 1];
-    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
-      levels_array[level_idx] =
-          Array<1, T_data, DeviceType>({hierarchy.level_num_elems(level_idx)});
-      levels_data[level_idx] =
-          SubArray<1, T_data, DeviceType>(levels_array[level_idx]);
-    }
-    encoded_bitplanes_array.resize(hierarchy.l_target() + 1);
-    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
-      encoded_bitplanes_array[level_idx] = Array<2, T_bitplane, DeviceType>(
-          {(SIZE)total_num_bitplanes,
-           encoder.buffer_size(hierarchy.level_num_elems(level_idx))});
-    }
+  ComposedReconstructor() : initialized(false) {}
+  ComposedReconstructor(Hierarchy<D, T_data, DeviceType> &hierarchy,
+                        Config config) {
+    Adapt(hierarchy, config, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
   }
 
   ~ComposedReconstructor() {
     delete[] levels_array;
     delete[] levels_data;
+  }
+
+  void Adapt(Hierarchy<D, T_data, DeviceType> &hierarchy, Config config,
+             int queue_idx) {
+    this->initialized = true;
+    this->hierarchy = &hierarchy;
+    decomposer.Adapt(hierarchy, config, queue_idx);
+    interleaver.Adapt(hierarchy, queue_idx);
+    encoder.Adapt(hierarchy, queue_idx);
+    compressor.Adapt(
+        Encoder::buffer_size(hierarchy.level_num_elems(hierarchy.l_target())),
+        config, queue_idx);
+    total_num_bitplanes = config.total_num_bitplanes;
+
+    prev_reconstructed = false;
+    partial_reconsctructed_data.resize(
+        hierarchy.level_shape(hierarchy.l_target()), queue_idx);
+    interpolation_workspace.resize(hierarchy.level_shape(hierarchy.l_target()),
+                                   queue_idx);
+
+    delete[] levels_array;
+    delete[] levels_data;
+    levels_array = new Array<1, T_data, DeviceType>[hierarchy.l_target() + 1];
+    levels_data = new SubArray<1, T_data, DeviceType>[hierarchy.l_target() + 1];
+    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
+      levels_array[level_idx].resize({hierarchy.level_num_elems(level_idx)},
+                                     queue_idx);
+      levels_data[level_idx] =
+          SubArray<1, T_data, DeviceType>(levels_array[level_idx]);
+    }
+    encoded_bitplanes_array.resize(hierarchy.l_target() + 1);
+    for (int level_idx = 0; level_idx < hierarchy.l_target() + 1; level_idx++) {
+      encoded_bitplanes_array[level_idx].resize(
+          {(SIZE)total_num_bitplanes,
+           encoder.buffer_size(hierarchy.level_num_elems(level_idx))},
+          queue_idx);
+    }
   }
 
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape,
@@ -138,7 +151,7 @@ public:
     } else {
       log::info("ErrorEstimator is base of SquaredErrorEstimator, using level "
                 "squared error directly");
-      SNormErrorEstimator<T_data> estimator(D, hierarchy.l_target(),
+      SNormErrorEstimator<T_data> estimator(D, hierarchy->l_target(),
                                             mdr_metadata.requested_s);
       // InorderSizeInterpreter interpreter(estimator);
       SignExcludeGreedyBasedSizeInterpreter interpreter(estimator);
@@ -161,7 +174,7 @@ public:
     data_refactoring::multi_dimension::CopyND(SubArray(reconstructed_data),
                                               SubArray(interpolation_workspace),
                                               queue_idx);
-    reconstructed_data.resize(hierarchy.level_shape(curr_level));
+    reconstructed_data.resize(hierarchy->level_shape(curr_level));
     reconstructed_data.memset(0, queue_idx);
     data_refactoring::multi_dimension::CopyND(SubArray(interpolation_workspace),
                                               SubArray(reconstructed_data),
@@ -188,7 +201,7 @@ public:
     log::info("Curr Final level: " + std::to_string(curr_final_level));
 
     if (!adaptive_resolution) {
-      curr_final_level = hierarchy.l_target();
+      curr_final_level = hierarchy->l_target();
     }
 
     for (int level_idx = 0; level_idx <= curr_final_level; level_idx++) {
@@ -213,7 +226,7 @@ public:
       int level_exp = 0;
       frexp(mdr_metadata.level_error_bounds[level_idx], &level_exp);
       encoder.progressive_decode(
-          hierarchy.level_num_elems(level_idx),
+          hierarchy->level_num_elems(level_idx),
           mdr_metadata.prev_used_level_num_bitplanes[level_idx], num_bitplanes,
           level_exp,
           SubArray<2, T_bitplane, DeviceType>(
@@ -229,7 +242,8 @@ public:
       timer.print("Decoding");
     }
 
-    partial_reconsctructed_data.resize(hierarchy.level_shape(curr_final_level));
+    partial_reconsctructed_data.resize(
+        hierarchy->level_shape(curr_final_level));
 
     timer.start();
     // Put decoded coefficients back to reordered layout
@@ -271,17 +285,16 @@ public:
     interleaver.print();
     std::cout << "Encoder: ";
     encoder.print();
-    std::cout << "Retriever: ";
-    retriever.print();
   }
 
+  bool initialized;
+
 private:
-  Hierarchy<D, T_data, DeviceType> hierarchy;
+  Hierarchy<D, T_data, DeviceType> *hierarchy;
   Decomposer decomposer;
   Interleaver interleaver;
   Encoder encoder;
   Compressor compressor;
-  Retriever retriever;
 
   Array<D, T_data, DeviceType> partial_reconsctructed_data;
   Array<D, T_data, DeviceType> interpolation_workspace;

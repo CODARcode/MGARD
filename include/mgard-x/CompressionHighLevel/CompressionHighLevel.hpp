@@ -858,7 +858,7 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
     MemoryManager<DeviceType>::HostUnregister((void *)compressed_data);
   }
 
-  if (!config.cache_compressor)
+  if (config.auto_cache_release)
     Cache::cache.SafeRelease();
   DeviceRuntime<DeviceType>::Finalize();
 
@@ -1124,7 +1124,7 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
       delete[] coords[d];
   }
 
-  if (!config.cache_compressor)
+  if (config.auto_cache_release)
     Cache::cache.SafeRelease();
   DeviceRuntime<DeviceType>::Finalize();
 

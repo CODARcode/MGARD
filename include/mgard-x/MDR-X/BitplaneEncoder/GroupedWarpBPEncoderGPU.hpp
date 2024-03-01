@@ -802,8 +802,7 @@ class GroupedWarpBPEncoder
     : public concepts::BitplaneEncoderInterface<D, T_data, T_bitplane, T_error,
                                                 DeviceType> {
 public:
-  GroupedWarpBPEncoder(Hierarchy<D, T_data, DeviceType> hierarchy)
-      : hierarchy(hierarchy) {
+  GroupedWarpBPEncoder() : initialized(false) {
     static_assert(std::is_floating_point<T_data>::value,
                   "GeneralBPEncoder: input data must be floating points.");
     static_assert(!std::is_same<T_data, long double>::value,
@@ -812,14 +811,30 @@ public:
                   "GroupedBPBlockEncoder: streams must be unsigned integers.");
     static_assert(std::is_integral<T_bitplane>::value,
                   "GroupedBPBlockEncoder: streams must be unsigned integers.");
+  }
+  GroupedWarpBPEncoder(Hierarchy<D, T_data, DeviceType> &hierarchy) {
+    static_assert(std::is_floating_point<T_data>::value,
+                  "GeneralBPEncoder: input data must be floating points.");
+    static_assert(!std::is_same<T_data, long double>::value,
+                  "GeneralBPEncoder: long double is not supported.");
+    static_assert(std::is_unsigned<T_bitplane>::value,
+                  "GroupedBPBlockEncoder: streams must be unsigned integers.");
+    static_assert(std::is_integral<T_bitplane>::value,
+                  "GroupedBPBlockEncoder: streams must be unsigned integers.");
+    Adapt(hierarchy, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+  }
 
+  void Adapt(Hierarchy<D, T_data, DeviceType> &hierarchy, int queue_idx) {
+    this->initialized = true;
+    this->hierarchy = &hierarchy;
     SIZE max_bitplane = 64;
-    level_errors_work_array =
-        Array<2, T_error, DeviceType>({max_bitplane + 1, MGARDX_NUM_SMs});
-    DeviceCollective<DeviceType>::Sum(MGARDX_NUM_SMs,
-                                      SubArray<1, T_error, DeviceType>(),
-                                      SubArray<1, T_error, DeviceType>(),
-                                      level_error_sum_work_array, false, 0);
+    level_errors_work_array.resize({max_bitplane + 1, MGARDX_NUM_SMs},
+                                   queue_idx);
+    DeviceCollective<DeviceType>::Sum(
+        MGARDX_NUM_SMs, SubArray<1, T_error, DeviceType>(),
+        SubArray<1, T_error, DeviceType>(), level_error_sum_work_array, false,
+        queue_idx);
   }
 
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape) {
@@ -1044,7 +1059,8 @@ public:
   void print() const { std::cout << "Grouped bitplane encoder" << std::endl; }
 
 private:
-  Hierarchy<D, T_data, DeviceType> hierarchy;
+  bool initialized;
+  Hierarchy<D, T_data, DeviceType> *hierarchy;
   Array<2, T_error, DeviceType> level_errors_work_array;
   Array<1, Byte, DeviceType> level_error_sum_work_array;
   std::vector<std::vector<uint8_t>> level_recording_bitplanes;
