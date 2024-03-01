@@ -35,5 +35,8 @@ void MDReconstruct(RefactoredMetadata &refactored_metadata,
                    ReconstructedData &reconstructed_data, Config config,
                    bool output_pre_allocated,
                    const void *original_data = nullptr);
+
+void release_cache(Config config);
+
 } // namespace MDR
 } // namespace mgard_x

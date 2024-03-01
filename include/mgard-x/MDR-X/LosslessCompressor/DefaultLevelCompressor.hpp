@@ -15,15 +15,20 @@ template <typename T, typename DeviceType>
 class DefaultLevelCompressor
     : public concepts::LevelCompressorInterface<T, DeviceType> {
 public:
-  DefaultLevelCompressor(SIZE max_n, Config config)
-      : huffman(max_n, config.huff_dict_size, config.huff_block_size,
-                config.estimate_outlier_ratio),
-        config(config) {
-    zstd.Resize(max_n * sizeof(T), config.zstd_compress_level, 0);
+  DefaultLevelCompressor() : initialized(false) {}
+  DefaultLevelCompressor(SIZE max_n, Config config) {
+    Adapt(max_n, config, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
   }
   ~DefaultLevelCompressor(){};
 
+  void Adapt(SIZE max_n, Config config, int queue_idx) {
+    this->initialized = true;
+    this->config = config;
+    huffman.Resize(max_n, config.huff_dict_size, config.huff_block_size,
+                   config.estimate_outlier_ratio, queue_idx);
+    zstd.Resize(max_n * sizeof(T), config.zstd_compress_level, queue_idx);
+  }
   static size_t EstimateMemoryFootprint(SIZE max_n, Config config) {
     size_t size = 0;
     size += Huffman<T, T, HUFFMAN_CODE, DeviceType>::EstimateMemoryFootprint(
@@ -42,7 +47,7 @@ public:
     SubArray<2, T, DeviceType> encoded_bitplanes_subarray(encoded_bitplanes);
     for (SIZE bitplane_idx = 0;
          bitplane_idx < encoded_bitplanes_subarray.shape(0); bitplane_idx++) {
-      T *bitplane = encoded_bitplanes_subarray(bitplane_idx, queue_idx);
+      T *bitplane = encoded_bitplanes_subarray(bitplane_idx, 0);
       // MDR::Zstd
       // T *bitplane_host = new T[bitplane_sizes[bitplane_idx]];
 
@@ -136,7 +141,7 @@ public:
   void decompress_release() {}
 
   void print() const {}
-
+  bool initialized;
   Huffman<T, T, HUFFMAN_CODE, DeviceType> huffman;
   Zstd<DeviceType> zstd;
   Config config;

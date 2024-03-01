@@ -28,11 +28,17 @@ template <typename T, typename DeviceType>
 class NullLevelCompressor
     : public concepts::LevelCompressorInterface<T, DeviceType> {
 public:
-  NullLevelCompressor(SIZE max_n, Config config)
-      : huffman(max_n, config.huff_dict_size, config.huff_block_size,
-                config.estimate_outlier_ratio),
-        config(config) {}
+  NullLevelCompressor() : initialized(false) {}
+  NullLevelCompressor(SIZE max_n, Config config) {
+    Adapt(max_n, config, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+  }
   ~NullLevelCompressor(){};
+
+  void Adapt(SIZE max_n, Config config, int queue_idx) {
+    this->initialized = true;
+    this->config = config;
+  }
 
   static size_t EstimateMemoryFootprint(SIZE max_n, Config config) {
     size_t size = 0;
@@ -117,7 +123,7 @@ public:
 
   void print() const {}
 
-  Huffman<T, T, HUFFMAN_CODE, DeviceType> huffman;
+  bool initialized;
   Config config;
 };
 

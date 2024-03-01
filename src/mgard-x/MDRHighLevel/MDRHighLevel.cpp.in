@@ -29,6 +29,7 @@ template void MDReconstruct<@DEVICE_TYPE@>(RefactoredMetadata &refactored_metada
                   ReconstructedData &reconstructed_data, Config config,
                   bool output_pre_allocated, const void *original_data);
 
+template void release_cache<@DEVICE_TYPE@>();
 }
 } // namespace mgard_x
 // clang-format on

@@ -61,19 +61,33 @@ template <DIM D, typename T, typename DeviceType>
 class DirectInterleaver
     : public concepts::InterleaverInterface<D, T, DeviceType> {
 public:
-  DirectInterleaver(Hierarchy<D, T, DeviceType> hierarchy)
-      : hierarchy(hierarchy) {
+  DirectInterleaver() : initialized(false) {}
+  DirectInterleaver(Hierarchy<D, T, DeviceType> &hierarchy) {
+    Adapt(hierarchy, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+  }
+
+  void Adapt(Hierarchy<D, T, DeviceType> &hierarchy, int queue_idx) {
+    this->initialized = true;
+    this->hierarchy = &hierarchy;
+    if (initialized) {
+      MemoryManager<DeviceType>::Free(levels_decomposed_data_device, queue_idx);
+    }
     MemoryManager<DeviceType>::Malloc1D(levels_decomposed_data_device,
-                                        hierarchy.l_target() + 1);
+                                        hierarchy.l_target() + 1, queue_idx);
   }
   ~DirectInterleaver() {
-    MemoryManager<DeviceType>::Free(levels_decomposed_data_device);
+    if (initialized) {
+      MemoryManager<DeviceType>::Free(levels_decomposed_data_device);
+    }
   }
 
   DirectInterleaver(const DirectInterleaver &direct_interleaver) {
-    hierarchy = direct_interleaver.hierarchy;
-    MemoryManager<DeviceType>::Malloc1D(levels_decomposed_data_device,
-                                        hierarchy.l_target() + 1);
+    if (initialized) {
+      hierarchy = direct_interleaver.hierarchy;
+      MemoryManager<DeviceType>::Malloc1D(levels_decomposed_data_device,
+                                          hierarchy->l_target() + 1);
+    }
   }
 
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape) {
@@ -92,8 +106,8 @@ public:
                                       queue_idx);
     DeviceLauncher<DeviceType>::Execute(
         DirectInterleaverKernel<D, T, Interleave, DeviceType>(
-            SubArray(hierarchy.level_ranges()),
-            SubArray(hierarchy.level_marks()), target_level, decomposed_data,
+            SubArray(hierarchy->level_ranges()),
+            SubArray(hierarchy->level_marks()), target_level, decomposed_data,
             levels_decomposed_data_device),
         queue_idx);
   }
@@ -105,15 +119,16 @@ public:
                                       queue_idx);
     DeviceLauncher<DeviceType>::Execute(
         DirectInterleaverKernel<D, T, Reposition, DeviceType>(
-            SubArray(hierarchy.level_ranges()),
-            SubArray(hierarchy.level_marks()), target_level, decomposed_data,
+            SubArray(hierarchy->level_ranges()),
+            SubArray(hierarchy->level_marks()), target_level, decomposed_data,
             levels_decomposed_data_device),
         queue_idx);
   }
   void print() const { std::cout << "Direct interleaver" << std::endl; }
 
 private:
-  Hierarchy<D, T, DeviceType> hierarchy;
+  bool initialized;
+  Hierarchy<D, T, DeviceType> *hierarchy;
   SubArray<1, T, DeviceType> *levels_decomposed_data_device = nullptr;
 };
 
