@@ -8,8 +8,7 @@ if(@ZLIB_FOUND@)
 endif()
 
 if(@zstd_FOUND@)
-  find_dependency(PkgConfig REQUIRED)
-  pkg_search_module(zstd IMPORTED_TARGET GLOBAL libzstd)
+  find_dependency(zstd)
 	list(APPEND REQUIRED_VARS zstd_FOUND)
 endif()
 
