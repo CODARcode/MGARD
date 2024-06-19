@@ -57,6 +57,10 @@ public:
   void LosslessCompress(Array<1, Byte, DeviceType> &compressed_data,
                         int queue_idx);
 
+  void Serialize(Array<1, Byte, DeviceType> &compressed_data, int queue_idx);
+
+  void Deserialize(Array<1, Byte, DeviceType> &compressed_data, int queue_idx);
+
   void Recompose(Array<D, T, DeviceType> &decompressed_data, int queue_idx);
 
   void Dequantize(Array<D, T, DeviceType> &decompressed_data,

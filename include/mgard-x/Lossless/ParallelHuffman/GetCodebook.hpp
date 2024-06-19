@@ -98,10 +98,12 @@ void GetCodebook(int dict_size,
   if (log::level & log::INFO) {
     // PrintSubarray("GenerateCL::CL_subarray", workspace.CL_subarray);
     // std::cout << "GenerateCL: max_CL: " << max_CL << std::endl;
-    double LC = CalculateLC(workspace.huff_array.shape(0), nz_dict_size,
-                            _nz_d_freq_subarray, workspace.CL_subarray);
-    double entropy = CalculateEntropy(workspace.huff_array.shape(0),
-                                      nz_dict_size, _nz_d_freq_subarray);
+    double LC =
+        CalculateLC(workspace.huff_array.shape(0), nz_dict_size,
+                    _nz_d_freq_subarray, workspace.CL_subarray, queue_idx);
+    double entropy =
+        CalculateEntropy(workspace.huff_array.shape(0), nz_dict_size,
+                         _nz_d_freq_subarray, queue_idx);
     log::info("LC: " + std::to_string(LC));
     log::info("Entropy: " + std::to_string(entropy));
   }

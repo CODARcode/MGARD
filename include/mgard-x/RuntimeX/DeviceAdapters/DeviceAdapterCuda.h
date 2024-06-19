@@ -679,12 +679,17 @@ public:
   }
 
   MGARDX_CONT static void SyncQueue(SIZE queue_id) {
+    log::dbg("Calling DeviceRuntime<CUDA>::SyncQueue: " +
+             std::to_string(queue_id));
     queues.SyncQueue(cuda_dev_id, queue_id);
   }
 
   MGARDX_CONT static void SyncAllQueues() { queues.SyncAllQueues(cuda_dev_id); }
 
-  MGARDX_CONT static void SyncDevice() { gpuErrchk(cudaDeviceSynchronize()); }
+  MGARDX_CONT static void SyncDevice() {
+    log::dbg("Calling DeviceRuntime<CUDA>::SyncDevice: ");
+    gpuErrchk(cudaDeviceSynchronize());
+  }
 
   MGARDX_CONT static std::string GetDeviceName() {
     return DeviceSpecs.GetDeviceName(cuda_dev_id);
@@ -2133,7 +2138,6 @@ public:
 
   MGARDX_CONT
   ExecutionReturn Execute(TaskType &task) {
-
     dim3 threadsPerBlock(task.GetBlockDimX(), task.GetBlockDimY(),
                          task.GetBlockDimZ());
     dim3 blockPerGrid(std::min(task.GetGridDimX(), (IDX)MGARD_CUDA_MAX_GRID_X),

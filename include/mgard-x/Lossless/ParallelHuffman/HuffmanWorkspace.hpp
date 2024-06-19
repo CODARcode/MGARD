@@ -116,7 +116,7 @@ public:
         Array<1, size_t, DeviceType>({(SIZE)nchunk});
     // Codebook
     first_nonzero_index_array = Array<1, unsigned int, DeviceType>({1});
-    first_nonzero_index_array.hostCopy(); // Create host allocation
+    // first_nonzero_index_array.hostCopy(); // Create host allocation
     // Allocate workspace
     DeviceCollective<DeviceType>::SortByKey(
         dict_size, SubArray<1, unsigned int, DeviceType>(),
@@ -172,7 +172,7 @@ public:
     condense_actual_lengths_array.resize({(SIZE)nchunk}, queue_idx);
     // Codebook
     first_nonzero_index_array.resize({1}, queue_idx);
-    first_nonzero_index_array.hostCopy(); // Create host allocation
+    // first_nonzero_index_array.hostCopy(); // Create host allocation
     // // Allocate workspace
     DeviceCollective<DeviceType>::SortByKey(
         dict_size, SubArray<1, unsigned int, DeviceType>(),
@@ -222,7 +222,6 @@ public:
 
   bool pre_allocated;
 
-  ATOMIC_IDX outlier_count;
   Array<1, ATOMIC_IDX, DeviceType> outlier_count_array;
   Array<1, ATOMIC_IDX, DeviceType> outlier_idx_array;
   Array<1, S, DeviceType> outlier_array;

@@ -17,7 +17,6 @@
 #include <limits>
 #include <vector>
 
-
 namespace mgard_x {
 
 template <typename T> T L_inf_norm(size_t n, const T *data) {

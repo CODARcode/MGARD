@@ -99,7 +99,7 @@ void refactor_pipeline(
 
   // Prefetch the first subdomain to one buffer
   int current_buffer = 0;
-  int current_queue = current_buffer;
+  int current_queue = 0;
   domain_decomposer.copy_subdomain(
       device_subdomain_buffer[current_buffer], 0,
       subdomain_copy_direction::OriginalToSubdomain, current_queue);
@@ -109,9 +109,12 @@ void refactor_pipeline(
        curr_subdomain_id++) {
     SIZE next_subdomain_id;
     int next_buffer = (current_buffer + 1) % 2;
-    int next_queue = next_buffer;
+    int next_queue = (current_queue + 1) % 3;
     HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(
         domain_decomposer.subdomain_shape(curr_subdomain_id));
+    log::info("Adapt Refactor to hierarchy");
+    refactor.Adapt(hierarchy, config, current_queue);
+
     // Prefetch the next subdomain
     if (curr_subdomain_id + 1 < domain_decomposer.num_subdomains()) {
       next_subdomain_id = curr_subdomain_id + 1;
@@ -119,9 +122,6 @@ void refactor_pipeline(
           device_subdomain_buffer[next_buffer], next_subdomain_id,
           subdomain_copy_direction::OriginalToSubdomain, next_queue);
     }
-
-    log::info("Adapt Refactor to hierarchy");
-    refactor.Adapt(hierarchy, config, current_queue);
 
     std::stringstream ss;
     for (DIM d = 0; d < D; d++) {
@@ -183,7 +183,7 @@ void reconstruct_pipeline(
 
   log::info("Adjust device buffers");
   int current_buffer = 0;
-  int current_queue = current_buffer;
+  int current_queue = 0;
   // Prefetch the first subdomain
   mdr_data[current_buffer].Resize(refactored_metadata.metadata[0]);
   device_subdomain_buffer[current_buffer].resize(
@@ -199,9 +199,12 @@ void reconstruct_pipeline(
        curr_subdomain_id++) {
     SIZE next_subdomain_id;
     int next_buffer = (current_buffer + 1) % 2;
-    int next_queue = next_buffer;
+    int next_queue = (current_queue + 1) % 3;
     HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(
         domain_decomposer.subdomain_shape(curr_subdomain_id));
+    log::info("Adapt Refactor to hierarchy");
+    reconstructor.Adapt(hierarchy, config, current_queue);
+
     if (curr_subdomain_id + 1 < domain_decomposer.num_subdomains()) {
       // Prefetch the next subdomain
       next_subdomain_id = curr_subdomain_id + 1;
@@ -224,9 +227,6 @@ void reconstruct_pipeline(
     mdr_data[current_buffer].CopyFromRefactoredSigns(
         refactored_metadata.metadata[curr_subdomain_id],
         refactored_data.level_signs[curr_subdomain_id], current_queue);
-
-    log::info("Adapt Refactor to hierarchy");
-    reconstructor.Adapt(hierarchy, config, current_queue);
 
     std::stringstream ss;
     for (DIM d = 0; d < D; d++) {
