@@ -70,7 +70,7 @@ message DomainDecomposition {
     NOOP_METHOD = 0;
     MAX_DIMENSION = 1;
     BLOCK = 2;
-    TEMPORAL_DIMENSION = 3;
+    VARIABLE = 3;
   }
 
   Method method = 1;

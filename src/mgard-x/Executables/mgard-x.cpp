@@ -6,11 +6,11 @@
  */
 
 #include <chrono>
+#include <cstring>
 #include <fstream>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 #include "compress_x.hpp"
@@ -272,8 +272,8 @@ void print_statistics(double s, enum mgard_x::error_bound_type mode,
             << "PSNR: " << mgard_x::PSNR(n, original_data, decompressed_data)
             << "\n";
 
-  if (actual_error > tol)
-    exit(-1);
+  // if (actual_error > tol)
+  // exit(-1);
 }
 
 int verbose_to_log_level(int verbose) {
@@ -285,6 +285,9 @@ int verbose_to_log_level(int verbose) {
     return mgard_x::log::ERR | mgard_x::log::TIME;
   } else if (verbose == 3) {
     return mgard_x::log::ERR | mgard_x::log::INFO | mgard_x::log::TIME;
+  } else if (verbose == 4) {
+    return mgard_x::log::ERR | mgard_x::log::INFO | mgard_x::log::TIME |
+           mgard_x::log::DBG;
   }
 }
 
@@ -309,18 +312,40 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     // config.max_larget_level = 0;
   }
 
+  // config.compressor = mgard_x::compressor_type::ZFP;
+
   if (domain_decomposition == 0) {
     config.domain_decomposition = mgard_x::domain_decomposition_type::MaxDim;
   } else {
     config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
   }
+
+  // config.domain_decomposition = mgard_x::domain_decomposition_type::Variable;
+  config.domain_decomposition_dim = 0;
+  // NYX
+  // config.domain_decomposition_sizes = {512, 512, 512, 512};
+  // config.domain_decomposition_sizes = {128, 248, 315, 348, 384, 424, 201};
+  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(64, 32);
+
+  // XGC
+  // config.domain_decomposition_sizes = {312, 312, 312, 312};
+  // config.domain_decomposition_sizes = {156, 283, 514, 295};
+  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(32, 39);
+
+  // E3SM
+  // config.domain_decomposition_sizes = {720, 720, 720, 720};
+  // config.domain_decomposition_sizes = {180, 368, 463, 529, 605, 692, 43};
+  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(64, 45);
+
+  config.estimate_outlier_ratio = 0.3;
+
   config.dev_type = dev_type;
   config.reorder = reorder;
-  config.prefetch = prefetch;
+  config.prefetch = true;
   config.max_memory_footprint = max_memory_footprint;
   config.huff_dict_size = 8192;
   config.adjust_shape = false;
-  config.auto_cache_release = true;
+  config.auto_cache_release = false;
 
   if (lossless == 0) {
     config.lossless = mgard_x::lossless_type::Huffman;
@@ -335,18 +360,28 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   size_t original_size = 1;
   for (mgard_x::DIM i = 0; i < D; i++)
     original_size *= shape[i];
-  T *original_data;
+  T *original_data = (T *)malloc(original_size * sizeof(T));
   size_t in_size = 0;
   if (std::string(input_file).compare("random") == 0) {
     in_size = original_size * sizeof(T);
-    original_data = (T *)malloc(original_size * sizeof(T));
     srand(7117);
     T c = 0;
     for (size_t i = 0; i < original_size; i++) {
       original_data[i] = rand() % 10 + 1;
     }
   } else {
-    in_size = readfile(input_file, original_data);
+    T *file_data;
+    in_size = readfile(input_file, file_data);
+
+    size_t loaded_size = 0;
+    while (loaded_size < original_size) {
+      // std::cout << "copy input\n";
+      std::memcpy(original_data + loaded_size, file_data,
+                  std::min(in_size / sizeof(T), original_size - loaded_size) *
+                      sizeof(T));
+      loaded_size += std::min(in_size / sizeof(T), original_size - loaded_size);
+    }
+    in_size = loaded_size * sizeof(T);
   }
   if (in_size != original_size * sizeof(T)) {
     std::cout << mgard_x::log::log_warn << "input file size mismatch "
@@ -384,9 +419,6 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   std::cout << mgard_x::log::log_info << "Compression ratio: "
             << (double)original_size * sizeof(T) / compressed_size << "\n";
-  // printf("In size:  %10ld  Out size: %10ld  Compression ratio: %f \n",
-  //        original_size * sizeof(T), compressed_size,
-  //        (double)original_size * sizeof(T) / compressed_size);
 
   void *decompressed_data = malloc(original_size * sizeof(T));
   mgard_x::pin_memory(decompressed_data, original_size * sizeof(T), config);

@@ -592,12 +592,17 @@ public:
   }
 
   MGARDX_CONT static void SyncQueue(SIZE queue_id) {
+    log::dbg("Calling DeviceRuntime<HIP>::SyncQueue: " +
+             std::to_string(queue_id));
     queues.SyncQueue(hip_dev_id, queue_id);
   }
 
   MGARDX_CONT static void SyncAllQueues() { queues.SyncAllQueues(hip_dev_id); }
 
-  MGARDX_CONT static void SyncDevice() { gpuErrchk(hipDeviceSynchronize()); }
+  MGARDX_CONT static void SyncDevice() {
+    log::dbg("Calling DeviceRuntime<HIP>::SyncDevice: ");
+    gpuErrchk(hipDeviceSynchronize());
+  }
 
   MGARDX_CONT static std::string GetDeviceName() {
     return DeviceSpecs.GetDeviceName(hip_dev_id);

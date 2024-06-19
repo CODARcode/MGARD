@@ -76,11 +76,25 @@ public:
     huffman.CompressPrimary(original_data, compressed_data, queue_idx);
 
     if (config.lossless == lossless_type::Huffman_LZ4) {
+      huffman.Serialize(compressed_data, queue_idx);
       lz4.Compress(compressed_data, queue_idx);
     }
 
     if (config.lossless == lossless_type::Huffman_Zstd) {
+      huffman.Serialize(compressed_data, queue_idx);
       zstd.Compress(compressed_data, queue_idx);
+    }
+  }
+
+  void Serialize(Array<1, Byte, DeviceType> &compressed_data, int queue_idx) {
+    if (config.lossless == lossless_type::Huffman) {
+      huffman.Serialize(compressed_data, queue_idx);
+    }
+  }
+
+  void Deserialize(Array<1, Byte, DeviceType> &compressed_data, int queue_idx) {
+    if (config.lossless == lossless_type::Huffman) {
+      huffman.Deserialize(compressed_data, queue_idx);
     }
   }
 
@@ -88,10 +102,12 @@ public:
                   Array<1, T, DeviceType> &decompressed_data, int queue_idx) {
 
     if (config.lossless == lossless_type::Huffman_LZ4) {
+      huffman.Deserialize(compressed_data, queue_idx);
       lz4.Decompress(compressed_data, queue_idx);
     }
 
     if (config.lossless == lossless_type::Huffman_Zstd) {
+      huffman.Deserialize(compressed_data, queue_idx);
       zstd.Decompress(compressed_data, queue_idx);
     }
 

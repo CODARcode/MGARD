@@ -6,11 +6,11 @@
  */
 
 #include <chrono>
+#include <cstring>
 #include <fstream>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 #include <sys/stat.h>
@@ -28,7 +28,7 @@ void print_usage_message(std::string error) {
     std::cout << mgard_x::log::log_err << error << std::endl;
   }
   printf("Options\n\
-\t -z: compress data\n\
+\t -z: refactor data\n\
 \t\t -i <path to data file to be compressed>\n\
 \t\t -c <path to compressed file>\n\
 \t\t -t <s|d>: data type (s: single; d:double)\n\
@@ -45,7 +45,7 @@ void print_usage_message(std::string error) {
 \t\t -d <auto|serial|openmp|cuda|hip|sycl>: device type\n\
 \t\t -v enable verbose (show timing and statistics)\n\
 \n\
-\t -x: decompress data\n\
+\t -x: reconstruct data\n\
 \t\t -c <path to compressed file>\n\
 \t\t -o <path to decompressed file>\n\
 \t\t -d <auto|serial|cuda|hip>: device type\n\
@@ -471,18 +471,28 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
   size_t original_size = 1;
   for (mgard_x::DIM i = 0; i < D; i++)
     original_size *= shape[i];
-  T *original_data;
+  T *original_data = (T *)malloc(original_size * sizeof(T));
   size_t in_size = 0;
   if (std::string(input_file).compare("random") == 0) {
     in_size = original_size * sizeof(T);
-    original_data = new T[original_size];
     srand(7117);
     T c = 0;
     for (size_t i = 0; i < original_size; i++) {
       original_data[i] = rand() % 10 + 1;
     }
   } else {
-    in_size = readfile(input_file, original_data);
+    T *file_data;
+    in_size = readfile(input_file, file_data);
+
+    size_t loaded_size = 0;
+    while (loaded_size < original_size) {
+      // std::cout << "copy input\n";
+      std::memcpy(original_data + loaded_size, file_data,
+                  std::min(in_size / sizeof(T), original_size - loaded_size) *
+                      sizeof(T));
+      loaded_size += std::min(in_size / sizeof(T), original_size - loaded_size);
+    }
+    in_size = loaded_size * sizeof(T);
   }
   if (in_size != original_size * sizeof(T)) {
     std::cout << mgard_x::log::log_warn << "input file size mismatch "

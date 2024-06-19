@@ -37,6 +37,8 @@ Config::Config() {
   block_size = 256;
   temporal_dim = 0;
   temporal_dim_size = std::numeric_limits<SIZE>::max();
+  domain_decomposition_dim = 0;
+  domain_decomposition_sizes = std::vector<SIZE>();
   mdr_adaptive_resolution = false;
   collect_uncertainty = false;
   adjust_shape = false;

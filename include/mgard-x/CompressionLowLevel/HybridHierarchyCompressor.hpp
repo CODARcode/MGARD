@@ -189,6 +189,18 @@ void HybridHierarchyCompressor<D, T, DeviceType>::LosslessCompress(
 }
 
 template <DIM D, typename T, typename DeviceType>
+void HybridHierarchyCompressor<D, T, DeviceType>::Serialize(
+    Array<1, Byte, DeviceType> &compressed_data, int queue_idx) {
+  lossless_compressor.Serialize(compressed_data, queue_idx);
+}
+
+template <DIM D, typename T, typename DeviceType>
+void HybridHierarchyCompressor<D, T, DeviceType>::Deserialize(
+    Array<1, Byte, DeviceType> &compressed_data, int queue_idx) {
+  lossless_compressor.Deserialize(compressed_data, queue_idx);
+}
+
+template <DIM D, typename T, typename DeviceType>
 void HybridHierarchyCompressor<D, T, DeviceType>::Recompose(
     Array<D, T, DeviceType> &decompressed_data, int queue_idx) {
   refactor.Recompose(decompressed_data, queue_idx);

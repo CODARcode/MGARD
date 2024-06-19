@@ -33,7 +33,7 @@ template <DIM D, typename T, typename DeviceType>
 Compressor<D, T, DeviceType>::Compressor(Hierarchy<D, T, DeviceType> &hierarchy,
                                          Config config)
     : initialized(true), hierarchy(&hierarchy), config(config) {
-  zfp_stream = Array<1, ZFPWord, DeviceType>({hierarchy.total_num_elems()});
+  // zfp_stream = Array<1, ZFPWord, DeviceType>({hierarchy.total_num_elems()});
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -42,7 +42,7 @@ void Compressor<D, T, DeviceType>::Adapt(Hierarchy<D, T, DeviceType> &hierarchy,
   this->initialized = true;
   this->hierarchy = &hierarchy;
   this->config = config;
-  zfp_stream.resize({hierarchy.total_num_elems()});
+  // zfp_stream.resize({hierarchy.total_num_elems()});
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -59,52 +59,67 @@ Compressor<D, T, DeviceType>::EstimateMemoryFootprint(std::vector<SIZE> shape,
 template <DIM D, typename T, typename DeviceType>
 void Compressor<D, T, DeviceType>::Decompose(
     Array<D, T, DeviceType> &original_data, int queue_idx) {
-  // Do nothing
+  this->original_data = &original_data;
 }
 
 template <DIM D, typename T, typename DeviceType>
 void Compressor<D, T, DeviceType>::Quantize(
     Array<D, T, DeviceType> &original_data, enum error_bound_type ebtype, T tol,
     T s, T norm, int queue_idx) {
-  int rate = (int)tol;
-  uint n = 1u << (2 * D);
-  uint bits = (uint)floor(n * rate + 0.5);
-  encode(original_data, zfp_stream, bits, queue_idx);
+  this->tol = tol;
 }
 
 template <DIM D, typename T, typename DeviceType>
 void Compressor<D, T, DeviceType>::LosslessCompress(
     Array<1, Byte, DeviceType> &compressed_data, int queue_idx) {
-  compressed_data.resize({(SIZE)zfp_stream.shape(0) * sizeof(ZFPWord)});
-  MemoryManager<DeviceType>::Copy1D(
-      compressed_data.data(), (Byte *)zfp_stream.data(),
-      zfp_stream.shape(0) * sizeof(ZFPWord), queue_idx);
+  // compressed_data.resize({(SIZE)zfp_stream.shape(0) * sizeof(ZFPWord)});
+  // MemoryManager<DeviceType>::Copy1D(
+  //     compressed_data.data(), (Byte *)zfp_stream.data(),
+  //     zfp_stream.shape(0) * sizeof(ZFPWord), queue_idx);
+  int rate = (int)this->tol;
+  uint n = 1u << (2 * D);
+  uint bits = (uint)floor(n * rate + 0.5);
+  encode(*(this->original_data), compressed_data, bits, queue_idx);
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Compressor<D, T, DeviceType>::Serialize(
+    Array<1, Byte, DeviceType> &compressed_data, int queue_idx) {
+  // Do nothing
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Compressor<D, T, DeviceType>::Deserialize(
+    Array<1, Byte, DeviceType> &compressed_data, int queue_idx) {
+  // Do nothing
 }
 
 template <DIM D, typename T, typename DeviceType>
 void Compressor<D, T, DeviceType>::Recompose(
     Array<D, T, DeviceType> &decompressed_data, int queue_idx) {
-  // Do nothing
+  decompressed_data.resize(hierarchy->level_shape(hierarchy->l_target()));
+  int rate = (int)tol;
+  uint n = 1u << (2 * D);
+  uint bits = (uint)floor(n * rate + 0.5);
+  decode(*(this->compressed_data), decompressed_data, bits, queue_idx);
 }
 
 template <DIM D, typename T, typename DeviceType>
 void Compressor<D, T, DeviceType>::Dequantize(
     Array<D, T, DeviceType> &decompressed_data, enum error_bound_type ebtype,
     T tol, T s, T norm, int queue_idx) {
-  decompressed_data.resize(hierarchy->level_shape(hierarchy->l_target()));
-  int rate = (int)tol;
-  uint n = 1u << (2 * D);
-  uint bits = (uint)floor(n * rate + 0.5);
-  decode(zfp_stream, decompressed_data, bits, queue_idx);
+  // decompressed_data.resize(hierarchy->level_shape(hierarchy->l_target()));
+  this->tol = tol;
 }
 
 template <DIM D, typename T, typename DeviceType>
 void Compressor<D, T, DeviceType>::LosslessDecompress(
     Array<1, Byte, DeviceType> &compressed_data, int queue_idx) {
-  zfp_stream.resize({(SIZE)compressed_data.shape(0) / sizeof(ZFPWord)});
-  MemoryManager<DeviceType>::Copy1D((Byte *)zfp_stream.data(),
-                                    compressed_data.data(),
-                                    compressed_data.shape(0), queue_idx);
+  this->compressed_data = &compressed_data;
+  // zfp_stream.resize({(SIZE)compressed_data.shape(0) / sizeof(ZFPWord)});
+  // MemoryManager<DeviceType>::Copy1D((Byte *)zfp_stream.data(),
+  //                                   compressed_data.data(),
+  //                                   compressed_data.shape(0), queue_idx);
 }
 
 template <DIM D, typename T, typename DeviceType>

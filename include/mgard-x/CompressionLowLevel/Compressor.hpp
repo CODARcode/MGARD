@@ -38,16 +38,18 @@ Compressor<D, T, DeviceType>::Compressor(Hierarchy<D, T, DeviceType> &hierarchy,
       quantizer(hierarchy, config) {
 
   norm_array = Array<1, T, DeviceType>({1});
+  norm_tmp_array = Array<1, T, DeviceType>({hierarchy.total_num_elems()},
+                                           (T *)refactor.w_array.data());
   // Reuse workspace. Warning:
   if (sizeof(QUANTIZED_INT) <= sizeof(T)) {
     // Reuse workspace if possible
-    norm_tmp_array = Array<1, T, DeviceType>({hierarchy.total_num_elems()},
-                                             (T *)refactor.w_array.data());
+    // norm_tmp_array = Array<1, T, DeviceType>({hierarchy.total_num_elems()},
+    //                                          (T *)refactor.w_array.data());
     quantized_array = Array<D, QUANTIZED_INT, DeviceType>(
         hierarchy.level_shape(hierarchy.l_target()),
         (QUANTIZED_INT *)refactor.w_array.data());
   } else {
-    norm_tmp_array = Array<1, T, DeviceType>({hierarchy.total_num_elems()});
+    // norm_tmp_array = Array<1, T, DeviceType>({hierarchy.total_num_elems()});
     quantized_array = Array<D, QUANTIZED_INT, DeviceType>(
         hierarchy.level_shape(hierarchy.l_target()), false, false);
   }
@@ -60,19 +62,21 @@ void Compressor<D, T, DeviceType>::Adapt(Hierarchy<D, T, DeviceType> &hierarchy,
   this->hierarchy = &hierarchy;
   this->config = config;
   refactor.Adapt(hierarchy, config, queue_idx);
-  lossless_compressor.Adapt(hierarchy.total_num_elems(), config, queue_idx);
   quantizer.Adapt(hierarchy, config, queue_idx);
+  lossless_compressor.Adapt(hierarchy.total_num_elems(), config, queue_idx);
   norm_array.resize({1}, queue_idx);
-  // Reuse workspace. Warning:
+  // Reuse workspace.
+  norm_tmp_array = Array<1, T, DeviceType>({hierarchy.total_num_elems()},
+                                           (T *)refactor.w_array.data());
   if (sizeof(QUANTIZED_INT) <= sizeof(T)) {
     // Reuse workspace if possible
-    norm_tmp_array = Array<1, T, DeviceType>({hierarchy.total_num_elems()},
-                                             (T *)refactor.w_array.data());
+    // norm_tmp_array = Array<1, T, DeviceType>({hierarchy.total_num_elems()},
+    //                                          (T *)refactor.w_array.data());
     quantized_array = Array<D, QUANTIZED_INT, DeviceType>(
         hierarchy.level_shape(hierarchy.l_target()),
         (QUANTIZED_INT *)refactor.w_array.data());
   } else {
-    norm_tmp_array.resize({hierarchy.total_num_elems()}, queue_idx);
+    // norm_tmp_array.resize({hierarchy.total_num_elems()}, queue_idx);
     quantized_array.resize(hierarchy.level_shape(hierarchy.l_target()),
                            queue_idx);
   }
@@ -86,12 +90,28 @@ Compressor<D, T, DeviceType>::EstimateMemoryFootprint(std::vector<SIZE> shape,
   hierarchy.EstimateMemoryFootprint(shape);
   size_t size = 0;
   size += DataRefactorType::EstimateMemoryFootprint(shape);
+  log::info(
+      "Data refactor space: " +
+      std::to_string(
+          (double)(DataRefactorType::EstimateMemoryFootprint(shape)) / 1e9) +
+      " GB");
   size += LinearQuantizerType::EstimateMemoryFootprint(shape);
+  log::info(
+      "Quantizer space: " +
+      std::to_string(
+          (double)(LinearQuantizerType::EstimateMemoryFootprint(shape)) / 1e9) +
+      " GB");
   size += LosslessCompressorType::EstimateMemoryFootprint(
       hierarchy.total_num_elems(), config);
+  log::info(
+      "Lossless space: " +
+      std::to_string((double)(LosslessCompressorType::EstimateMemoryFootprint(
+                         hierarchy.total_num_elems(), config)) /
+                     1e9) +
+      " GB");
   size += sizeof(T);
   if (sizeof(QUANTIZED_INT) > sizeof(T)) {
-    size += sizeof(T) * hierarchy.total_num_elems();
+    // size += sizeof(T) * hierarchy.total_num_elems();
     size += sizeof(QUANTIZED_INT) * hierarchy.total_num_elems();
   }
   return size;
@@ -130,6 +150,18 @@ void Compressor<D, T, DeviceType>::LosslessCompress(
       (QUANTIZED_UNSIGNED_INT *)quantized_array.data());
   lossless_compressor.Compress(quantized_liearized_array, compressed_data,
                                queue_idx);
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Compressor<D, T, DeviceType>::Serialize(
+    Array<1, Byte, DeviceType> &compressed_data, int queue_idx) {
+  lossless_compressor.Serialize(compressed_data, queue_idx);
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Compressor<D, T, DeviceType>::Deserialize(
+    Array<1, Byte, DeviceType> &compressed_data, int queue_idx) {
+  lossless_compressor.Deserialize(compressed_data, queue_idx);
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -185,6 +217,7 @@ void Compressor<D, T, DeviceType>::Compress(
   Decompose(original_data, queue_idx);
   Quantize(original_data, ebtype, tol, s, norm, queue_idx);
   LosslessCompress(compressed_data, queue_idx);
+  Serialize(compressed_data, queue_idx);
   if (config.compress_with_dryrun) {
     Dequantize(original_data, ebtype, tol, s, norm, queue_idx);
     Recompose(original_data, queue_idx);
@@ -220,6 +253,7 @@ void Compressor<D, T, DeviceType>::Decompress(
   }
 
   decompressed_data.resize(hierarchy->level_shape(hierarchy->l_target()));
+  Deserialize(compressed_data, queue_idx);
   LosslessDecompress(compressed_data, queue_idx);
   Dequantize(decompressed_data, ebtype, tol, s, norm, queue_idx);
   Recompose(decompressed_data, queue_idx);

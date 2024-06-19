@@ -390,12 +390,17 @@ public:
   }
 
   MGARDX_CONT static void SyncQueue(SIZE queue_id) {
+    log::dbg("Calling DeviceRuntime<SYCL>::SyncQueue: " +
+             std::to_string(queue_id));
     queues.SyncQueue(sycl_dev_id, queue_id);
   }
 
   MGARDX_CONT static void SyncAllQueues() { queues.SyncAllQueues(sycl_dev_id); }
 
-  MGARDX_CONT static void SyncDevice() { queues.SyncAllQueues(sycl_dev_id); }
+  MGARDX_CONT static void SyncDevice() {
+    log::dbg("Calling DeviceRuntime<SYCL>::SyncDevice: ");
+    queues.SyncAllQueues(sycl_dev_id);
+  }
 
   MGARDX_CONT static std::string GetDeviceName() {
     return DeviceSpecs.GetDeviceName(sycl_dev_id);

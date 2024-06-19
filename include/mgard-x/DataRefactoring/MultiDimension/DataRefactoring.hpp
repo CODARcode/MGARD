@@ -81,8 +81,8 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
       if (multidim_refactoring_debug_print) {
         PrintSubarray("input v", v);
       }
-      if (log::level & log::TIME)
-        timer.start();
+      // if (log::level & log::TIME)
+      //   timer.start();
 
       v_fine.resize(hierarchy.level_shape(l));
       w_fine.resize(hierarchy.level_shape(l));
@@ -100,12 +100,12 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
       if (multidim_refactoring_debug_print) {
         PrintSubarray("after add", v);
       }
-      if (log::level & log::TIME) {
-        DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-        timer.end();
-        timer.print("Decomposition level " + std::to_string(l));
-        timer.clear();
-      }
+      // if (log::level & log::TIME) {
+      //   DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+      //   timer.end();
+      //   timer.print("Decomposition level " + std::to_string(l));
+      //   timer.clear();
+      // }
     } // end of loop
 
     if (multidim_refactoring_debug_print) {
@@ -139,8 +139,8 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
       if (multidim_refactoring_debug_print) { // debug
         PrintSubarray4D("before coeff", v);
       }
-      if (log::level & log::TIME)
-        timer.start();
+      // if (log::level & log::TIME)
+      //   timer.start();
       v_fine.resize(hierarchy.level_shape(l));
       w_fine.resize(hierarchy.level_shape(l));
       CopyND(v_fine, w_fine, queue_idx);
@@ -165,12 +165,12 @@ void decompose(Hierarchy<D, T, DeviceType> &hierarchy,
       if (multidim_refactoring_debug_print) { // debug
         PrintSubarray4D(format("after apply correction[%d]", l), v);
       } // debug
-      if (log::level & log::TIME) {
-        DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-        timer.end();
-        timer.print("Decomposition level " + std::to_string(l));
-        timer.clear();
-      }
+      // if (log::level & log::TIME) {
+      //   DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+      //   timer.end();
+      //   timer.print("Decomposition level " + std::to_string(l));
+      //   timer.clear();
+      // }
     }
   }
   // DeviceRuntime<DeviceType>::SyncDevice();
