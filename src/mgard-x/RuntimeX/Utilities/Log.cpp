@@ -32,9 +32,9 @@ void info(std::string msg) {
 }
 
 void time(std::string msg) {
-  if (level & TIME) {
-    std::cout << log_time << msg << std::endl;
-  }
+  // if (level & TIME) {
+  std::cout << log_time << msg << std::endl;
+  // }
 }
 
 void dbg(std::string msg) {

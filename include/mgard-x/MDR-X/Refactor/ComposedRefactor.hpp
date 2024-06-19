@@ -132,21 +132,37 @@ public:
     SubArray<D, T_data, DeviceType> data(data_array);
 
     Timer timer;
-    timer.start();
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+      timer.start();
+    }
     decomposer.decompose(data_array, hierarchy->l_target(), 0, queue_idx);
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    timer.end();
-    timer.print("Decompose");
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+      timer.end();
+      timer.print("Decompose");
+      timer.clear();
+    }
 
-    timer.start();
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+      timer.start();
+    }
     interleaver.interleave(data, levels_data, hierarchy->l_target(), queue_idx);
-    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-    timer.end();
-    timer.print("Interleave");
+    if (log::level & log::TIME) {
+      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+      timer.end();
+      timer.print("Interleave");
+      timer.clear();
+    }
 
     for (int level_idx = 0; level_idx < hierarchy->l_target() + 1;
          level_idx++) {
-      timer.start();
+
+      if (log::level & log::TIME) {
+        DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+        timer.start();
+      }
       SubArray<1, T_data, DeviceType> result(abs_max_result_array);
       DeviceCollective<DeviceType>::AbsMax(levels_data[level_idx].shape(0),
                                            levels_data[level_idx], result,
@@ -162,10 +178,14 @@ public:
       mdr_metadata.level_error_bounds[level_idx] = level_max_error;
       mdr_metadata.level_num_elems[level_idx] =
           hierarchy->level_num_elems(level_idx);
-      timer.end();
-      timer.print("level_max_error");
+      if (log::level & log::TIME) {
+        DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+        timer.end();
+        timer.print("Max Error");
+        timer.clear();
+        timer.start();
+      }
 
-      timer.start();
       SubArray<2, T_bitplane, DeviceType> encoded_bitplanes(
           encoded_bitplanes_array[level_idx]);
       SubArray<1, T_error, DeviceType> level_errors(level_errors_array);
@@ -179,17 +199,24 @@ public:
                                         total_num_bitplanes + 1, queue_idx);
       mdr_metadata.level_squared_errors[level_idx] = squared_error;
       // PrintSubarray("level_errors", level_errors);
-      timer.end();
-      timer.print("Encoding");
+      if (log::level & log::TIME) {
+        DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+        timer.end();
+        timer.print("Encoding");
+        timer.clear();
+        timer.start();
+      }
 
-      timer.start();
       compressor.compress_level(
           bitplane_sizes, encoded_bitplanes_array[level_idx],
           mdr_data.compressed_bitplanes[level_idx], queue_idx);
       mdr_metadata.level_sizes[level_idx] = bitplane_sizes;
-      DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-      timer.end();
-      timer.print("Lossless");
+      if (log::level & log::TIME) {
+        DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+        timer.end();
+        timer.print("Compress");
+        timer.clear();
+      }
     }
   }
 

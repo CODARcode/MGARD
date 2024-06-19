@@ -56,6 +56,10 @@ public:
   void LosslessCompress(Array<1, Byte, DeviceType> &compressed_data,
                         int queue_idx);
 
+  void Serialize(Array<1, Byte, DeviceType> &compressed_data, int queue_idx);
+
+  void Deserialize(Array<1, Byte, DeviceType> &compressed_data, int queue_idx);
+
   void Recompose(Array<D, T, DeviceType> &decompressed_data, int queue_idx);
 
   void Dequantize(Array<D, T, DeviceType> &decompressed_data,
@@ -75,7 +79,9 @@ public:
   bool initialized;
   Hierarchy<D, T, DeviceType> *hierarchy;
   Config config;
-  Array<1, ZFPWord, DeviceType> zfp_stream;
+  Array<D, T, DeviceType> *original_data;
+  Array<1, Byte, DeviceType> *compressed_data;
+  T tol;
 };
 
 } // namespace zfp

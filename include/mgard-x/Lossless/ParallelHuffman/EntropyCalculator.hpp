@@ -13,12 +13,12 @@ namespace mgard_x {
 template <typename DeviceType>
 double CalculateLC(SIZE total_num_elems, SIZE dict_size,
                    SubArray<1, unsigned int, DeviceType> freq,
-                   SubArray<1, unsigned int, DeviceType> CL) {
+                   SubArray<1, unsigned int, DeviceType> CL, int queue_idx) {
   unsigned int *_freq = new unsigned int[dict_size];
   unsigned int *_cl = new unsigned int[dict_size];
-  MemoryManager<DeviceType>::Copy1D(_freq, freq.data(), dict_size, 0);
-  MemoryManager<DeviceType>::Copy1D(_cl, CL.data(), dict_size, 0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
+  MemoryManager<DeviceType>::Copy1D(_freq, freq.data(), dict_size, queue_idx);
+  MemoryManager<DeviceType>::Copy1D(_cl, CL.data(), dict_size, queue_idx);
+  DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   double LC = 0;
   for (SIZE i = 0; i < dict_size; i++) {
     LC += (double)_freq[i] / total_num_elems * _cl[i];
@@ -30,10 +30,11 @@ double CalculateLC(SIZE total_num_elems, SIZE dict_size,
 
 template <typename DeviceType>
 double CalculateEntropy(SIZE total_num_elems, SIZE dict_size,
-                        SubArray<1, unsigned int, DeviceType> freq) {
+                        SubArray<1, unsigned int, DeviceType> freq,
+                        int queue_idx) {
   unsigned int *_freq = new unsigned int[dict_size];
-  MemoryManager<DeviceType>::Copy1D(_freq, freq.data(), dict_size, 0);
-  DeviceRuntime<DeviceType>::SyncQueue(0);
+  MemoryManager<DeviceType>::Copy1D(_freq, freq.data(), dict_size, queue_idx);
+  DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   double entropy = 0;
   // printf("dict size: %u\n", dict_size);
   for (SIZE i = 0; i < dict_size; i++) {

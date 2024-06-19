@@ -337,11 +337,11 @@ public:
           queue_idx);
 
       MemoryManager<DeviceType>::Copy1D(
-          &lossless.huffman.workspace.outlier_count,
+          &lossless.huffman.outlier_count,
           lossless.huffman.workspace.outlier_count_subarray.data(), 1,
           queue_idx);
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-      if (lossless.huffman.workspace.outlier_count <=
+      if (lossless.huffman.outlier_count <=
           lossless.huffman.workspace.outlier_subarray.shape(0)) {
         // outlier buffer has sufficient size
         done_quantization = true;
@@ -354,13 +354,12 @@ public:
                     " GB/s");
           timer.clear();
         }
-        log::info("Outlier ratio: " +
-                  std::to_string(lossless.huffman.workspace.outlier_count) +
-                  "/" + std::to_string(hierarchy->total_num_elems()) + " (" +
-                  std::to_string((double)100 *
-                                 lossless.huffman.workspace.outlier_count /
-                                 hierarchy->total_num_elems()) +
-                  "%)");
+        log::info(
+            "Outlier ratio: " + std::to_string(lossless.huffman.outlier_count) +
+            "/" + std::to_string(hierarchy->total_num_elems()) + " (" +
+            std::to_string((double)100 * lossless.huffman.outlier_count /
+                           hierarchy->total_num_elems()) +
+            "%)");
       } else {
         log::err("Not enough workspace for outliers.");
         exit(-1);
