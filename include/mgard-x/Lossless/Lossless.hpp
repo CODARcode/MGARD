@@ -102,13 +102,13 @@ public:
                   Array<1, T, DeviceType> &decompressed_data, int queue_idx) {
 
     if (config.lossless == lossless_type::Huffman_LZ4) {
-      huffman.Deserialize(compressed_data, queue_idx);
       lz4.Decompress(compressed_data, queue_idx);
+      huffman.Deserialize(compressed_data, queue_idx);
     }
 
     if (config.lossless == lossless_type::Huffman_Zstd) {
-      huffman.Deserialize(compressed_data, queue_idx);
       zstd.Decompress(compressed_data, queue_idx);
+      huffman.Deserialize(compressed_data, queue_idx);
     }
 
     huffman.DecompressPrimary(compressed_data, decompressed_data, queue_idx);

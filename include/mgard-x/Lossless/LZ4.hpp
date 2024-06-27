@@ -373,7 +373,7 @@ public:
       timer.clear();
     }
 #else
-    log::err("LZ4 for is only available on CUDA devices. Portable version is "
+    log::err("LZ4 is only available on CUDA devices. Portable version is "
              "in development.");
     exit(-1);
 #endif
@@ -410,7 +410,7 @@ public:
       timer.clear();
     }
 #else
-    log::err("LZ4 for is only available on CUDA devices. Portable version is "
+    log::err("LZ4 is only available on CUDA devices. Portable version is "
              "in development.");
     exit(-1);
 #endif
