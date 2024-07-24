@@ -281,7 +281,7 @@ enum compress_status_type compress_pipeline(
 
   Timer timer_profile;
   std::vector<float> h2d, d2h, comp, size;
-  bool profile = false;
+  bool profile = true;
   bool profile_e2e = false;
 
   // For serialization
@@ -547,9 +547,20 @@ enum compress_status_type decompress_pipeline(
     timer_series.start();
   }
 
+  Timer timer_profile;
+  std::vector<float> h2d, d2h, comp, size;
+  bool profile = true;
+  bool profile_e2e = false;
+
   // Pre-fetch the first subdomain on queue 0
   int current_buffer = 0;
-  int current_queue = current_buffer;
+  int current_queue = 0;
+
+  if (profile || profile_e2e) {
+    DeviceRuntime<DeviceType>::SyncDevice();
+    timer_profile.clear();
+    timer_profile.start();
+  }
 
   SIZE compressed_size;
   SIZE *compressed_size_ptr = &compressed_size;
@@ -568,6 +579,12 @@ enum compress_status_type decompress_pipeline(
       device_compressed_buffer[current_buffer].data(), compressed_data,
       compressed_size, current_queue);
 
+  if (profile) {
+    DeviceRuntime<DeviceType>::SyncDevice();
+    timer_profile.end();
+    h2d.push_back(timer_profile.get());
+  }
+
   for (SIZE curr_subdomain_id = 0;
        curr_subdomain_id < domain_decomposer.num_subdomains();
        curr_subdomain_id++) {
@@ -582,6 +599,12 @@ enum compress_status_type decompress_pipeline(
     if (curr_subdomain_id + 1 < domain_decomposer.num_subdomains()) {
       // Prefetch the next subdomain
       next_subdomain_id = curr_subdomain_id + 1;
+
+      if (profile) {
+        DeviceRuntime<DeviceType>::SyncDevice();
+        timer_profile.clear();
+        timer_profile.start();
+      }
 
       // Deserialize and copy next compressed data on queue 1
       SIZE compressed_size;
@@ -601,6 +624,12 @@ enum compress_status_type decompress_pipeline(
       MemoryManager<DeviceType>::Copy1D(
           device_compressed_buffer[next_buffer].data(), compressed_data,
           compressed_size, next_queue);
+      
+      if (profile) {
+        DeviceRuntime<DeviceType>::SyncDevice();
+        timer_profile.end();
+        h2d.push_back(timer_profile.get());
+      }
     }
 
     double CR = (double)compressor.hierarchy->total_num_elems() * sizeof(T) /
@@ -619,6 +648,12 @@ enum compress_status_type decompress_pipeline(
                              current_queue);
     }
 
+    if (profile) {
+      DeviceRuntime<DeviceType>::SyncDevice();
+      timer_profile.clear();
+      timer_profile.start();
+    }
+
     if (curr_subdomain_id > 0) {
       // We delay D2H since since it can delay the D2H in lossless decompession
       // and dequantization
@@ -630,6 +665,17 @@ enum compress_status_type decompress_pipeline(
           subdomain_copy_direction::SubdomainToOriginal, previous_queue);
     }
 
+    if (profile) {
+      DeviceRuntime<DeviceType>::SyncDevice();
+      timer_profile.end();
+      d2h.push_back(timer_profile.get());
+    }
+
+    if (profile) {
+      DeviceRuntime<DeviceType>::SyncDevice();
+      timer_profile.clear();
+      timer_profile.start();
+    }
     if (CR > 1.0) {
       compressor.LosslessDecompress(device_compressed_buffer[current_buffer],
                                     current_queue);
@@ -654,10 +700,27 @@ enum compress_status_type decompress_pipeline(
           linearized_width, current_queue);
     }
 
+    if (profile) {
+      DeviceRuntime<DeviceType>::SyncDevice();
+      timer_profile.end();
+      comp.push_back(timer_profile.get());
+    }
+
+    if (profile || profile_e2e) {
+      size.push_back(compressor.hierarchy->total_num_elems() * sizeof(T) /
+                     1.0e9);
+    }
+
     // Need to ensure decompession is complete without blocking other operations
     DeviceRuntime<DeviceType>::SyncQueue(current_queue);
     current_buffer = next_buffer;
     current_queue = next_queue;
+  }
+
+  if (profile) {
+    DeviceRuntime<DeviceType>::SyncDevice();
+    timer_profile.clear();
+    timer_profile.start();
   }
 
   // Copy the last subdomain
@@ -667,6 +730,62 @@ enum compress_status_type decompress_pipeline(
   domain_decomposer.copy_subdomain(
       device_subdomain_buffer[previous_buffer], prev_subdomain_id,
       subdomain_copy_direction::SubdomainToOriginal, previous_queue);
+
+  if (profile) {
+    DeviceRuntime<DeviceType>::SyncDevice();
+    timer_profile.end();
+    d2h.push_back(timer_profile.get());
+  }
+
+  if (profile_e2e) {
+    DeviceRuntime<DeviceType>::SyncDevice();
+    timer_profile.end();
+    timer_profile.print("end to end");
+    float s = 0;
+    for (float t : size)
+      s += t;
+    timer_profile.print_throughput("end to end", s * 1e9);
+  }
+
+  if (profile) {
+    // double total_size = domain_decomposer.shape[0] *
+    // domain_decomposer.shape[1] * domain_decomposer.shape[2] * sizeof(T) /
+    // 1e9; std::cout << "comp: " << comp / domain_decomposer.num_subdomains()
+    // << "(" << total_size / comp << " GB/s)"<< "\n"; std::cout << "h2d: " <<
+    // h2d / domain_decomposer.num_subdomains() << "(" << total_size / h2d << "
+    // GB/s)"<< "\n"; std::cout << "d2h: " << d2h /
+    // domain_decomposer.num_subdomains() << "(" << byte_offset/ 1e9 / d2h << "
+    // GB/s)"<< "\n";
+    std::cout << "comp: "
+              << "\n";
+    for (float t : comp)
+      std::cout << t << ", ";
+    std::cout << "\n";
+
+    std::cout << "h2d: "
+              << "\n";
+    for (float t : h2d)
+      std::cout << t << ", ";
+    std::cout << "\n";
+
+    std::cout << "d2h: "
+              << "\n";
+    for (float t : d2h)
+      std::cout << t << ", ";
+    std::cout << "\n";
+
+    std::cout << "size: "
+              << "\n";
+    for (float t : size)
+      std::cout << t << ", ";
+    std::cout << "\n";
+
+    std::cout << "comp_speed: "
+              << "\n";
+    for (int i = 0; i < comp.size(); i++)
+      std::cout << size[i] / comp[i] << ", ";
+    std::cout << "\n";
+  }
 
   DeviceRuntime<DeviceType>::SyncDevice();
   if (log::level & log::TIME) {
@@ -926,8 +1045,8 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
   }
 
   enum compress_status_type compress_status;
-  // if (log::level & log::TIME)
-  timer_each.start();
+  if (log::level & log::TIME)
+    timer_each.start();
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
   bool old_sync_set = DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors;
   if (!config.prefetch) {
@@ -941,15 +1060,15 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
 
   DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = old_sync_set;
 
-  // if (log::level & log::TIME) {
-  timer_each.end();
-  timer_each.print("Aggregated low-level compression");
-  log::time("Aggregated low-level compression throughput: " +
-            std::to_string((double)(total_num_elem * sizeof(T)) /
-                           timer_each.get() / 1e9) +
-            " GB/s");
-  timer_each.clear();
-  // }
+  if (log::level & log::TIME) {
+    timer_each.end();
+    timer_each.print("Aggregated low-level compression");
+    log::time("Aggregated low-level compression throughput: " +
+              std::to_string((double)(total_num_elem * sizeof(T)) /
+                            timer_each.get() / 1e9) +
+              " GB/s");
+    timer_each.clear();
+  }
 
   if (log::level & log::TIME)
     timer_each.start();
