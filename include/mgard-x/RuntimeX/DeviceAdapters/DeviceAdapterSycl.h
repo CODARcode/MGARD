@@ -1427,139 +1427,146 @@ template <typename Task> void SyclHuffmanCWCustomizedNoCGKernel(Task task) {
 
 // template <typename FunctorType
 
-template <typename TaskType> class DeviceAdapter<TaskType, SYCL> {
-public:
-  // inline constexpr bool sycl::is_device_copyable_v<TaskType> = true;
+// template <typename TaskType> class DeviceAdapter<TaskType, SYCL> {
+// public:
+//   // inline constexpr bool sycl::is_device_copyable_v<TaskType> = true;
 
-  MGARDX_CONT
-  DeviceAdapter(){};
+//   MGARDX_CONT
+//   DeviceAdapter(){};
 
-  MGARDX_CONT
-  int IsResourceEnough(TaskType &task) {
-    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() >
-        DeviceRuntime<SYCL>::GetMaxNumThreadsPerTB()) {
-      return THREADBLOCK_TOO_LARGE;
-    }
-    if (task.GetSharedMemorySize() >
-        DeviceRuntime<SYCL>::GetMaxSharedMemorySize()) {
-      return SHARED_MEMORY_TOO_LARGE;
-    }
-    return RESOURCE_ENOUGH;
-  }
+//   MGARDX_CONT
+//   int IsResourceEnough(TaskType &task) {
+//     if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() >
+//         DeviceRuntime<SYCL>::GetMaxNumThreadsPerTB()) {
+//       return THREADBLOCK_TOO_LARGE;
+//     }
+//     if (task.GetSharedMemorySize() >
+//         DeviceRuntime<SYCL>::GetMaxSharedMemorySize()) {
+//       return SHARED_MEMORY_TOO_LARGE;
+//     }
+//     return RESOURCE_ENOUGH;
+//   }
 
-  MGARDX_CONT
-  ExecutionReturn Execute(TaskType &task) {
-#if MGARD_X_SYCL_ND_RANGE_3D
-    sycl::range global_threads(task.GetBlockDimX() * task.GetGridDimX(),
-                               task.GetBlockDimY() * task.GetGridDimY(),
-                               task.GetBlockDimZ() * task.GetGridDimZ());
+//   MGARDX_CONT
+//   ExecutionReturn Execute(TaskType &task) {
+// #if MGARD_X_SYCL_ND_RANGE_3D
+//     sycl::range global_threads(task.GetBlockDimX() * task.GetGridDimX(),
+//                                task.GetBlockDimY() * task.GetGridDimY(),
+//                                task.GetBlockDimZ() * task.GetGridDimZ());
 
-    sycl::range local_threads(task.GetBlockDimX(), task.GetBlockDimY(),
-                              task.GetBlockDimZ());
-#endif
-#if MGARD_X_SYCL_ND_RANGE_1D
-    sycl::range global_threads(task.GetBlockDimX() * task.GetGridDimX() *
-                                   task.GetBlockDimY() * task.GetGridDimY() *
-                                   task.GetBlockDimZ() * task.GetGridDimZ(),
-                               1, 1);
+//     sycl::range local_threads(task.GetBlockDimX(), task.GetBlockDimY(),
+//                               task.GetBlockDimZ());
+// #endif
+// #if MGARD_X_SYCL_ND_RANGE_1D
+//     sycl::range global_threads(task.GetBlockDimX() * task.GetGridDimX() *
+//                                    task.GetBlockDimY() * task.GetGridDimY() *
+//                                    task.GetBlockDimZ() * task.GetGridDimZ(),
+//                                1, 1);
 
-    sycl::range local_threads(
-        task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ(), 1, 1);
-#endif
-    size_t sm_size = task.GetSharedMemorySize();
-    if (sm_size == 0)
-      sm_size = 1; // avoid -51 (CL_INVALID_ARG_SIZE) error
+//     sycl::range local_threads(
+//         task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ(), 1,
+//         1);
+// #endif
+//     size_t sm_size = task.GetSharedMemorySize();
+//     if (sm_size == 0)
+//       sm_size = 1; // avoid -51 (CL_INVALID_ARG_SIZE) error
 
-    sycl::queue q = DeviceRuntime<SYCL>::GetQueue(task.GetQueueIdx());
+//     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(task.GetQueueIdx());
 
-    if (DeviceRuntime<SYCL>::PrintKernelConfig) {
-#if MGARD_X_SYCL_ND_RANGE_3D
-      std::cout << log::log_info << task.GetFunctorName() << ": <"
-                << task.GetBlockDimX() << ", " << task.GetBlockDimY() << ", "
-                << task.GetBlockDimZ() << "> <" << task.GetGridDimX() << ", "
-                << task.GetGridDimY() << ", " << task.GetGridDimZ() << ">\n";
-#endif
-#if MGARD_X_SYCL_ND_RANGE_1D
-      std::cout << log::log_info << task.GetFunctorName() << ": <"
-                << task.GetBlockDimX() * task.GetBlockDimY() *
-                       task.GetBlockDimZ()
-                << ", " << 1 << ", " << 1 << "> <"
-                << task.GetGridDimX() * task.GetGridDimY() * task.GetGridDimZ()
-                << ", " << 1 << ", " << 1 << ">\n";
-#endif
-    }
+//     if (DeviceRuntime<SYCL>::PrintKernelConfig) {
+// #if MGARD_X_SYCL_ND_RANGE_3D
+//       std::cout << log::log_info << task.GetFunctorName() << ": <"
+//                 << task.GetBlockDimX() << ", " << task.GetBlockDimY() << ", "
+//                 << task.GetBlockDimZ() << "> <" << task.GetGridDimX() << ", "
+//                 << task.GetGridDimY() << ", " << task.GetGridDimZ() << ">\n";
+// #endif
+// #if MGARD_X_SYCL_ND_RANGE_1D
+//       std::cout << log::log_info << task.GetFunctorName() << ": <"
+//                 << task.GetBlockDimX() * task.GetBlockDimY() *
+//                        task.GetBlockDimZ()
+//                 << ", " << 1 << ", " << 1 << "> <"
+//                 << task.GetGridDimX() * task.GetGridDimY() *
+//                 task.GetGridDimZ()
+//                 << ", " << 1 << ", " << 1 << ">\n";
+// #endif
+//     }
 
-    ExecutionReturn ret;
-    if (IsResourceEnough(task) != RESOURCE_ENOUGH) {
-      if (DeviceRuntime<SYCL>::PrintKernelConfig) {
-        if (IsResourceEnough(task) == THREADBLOCK_TOO_LARGE) {
-          log::info("threadblock too large.");
-        }
-        if (IsResourceEnough(task) == SHARED_MEMORY_TOO_LARGE) {
-          log::info("shared memory too large.");
-        }
-      }
-      ret.success = false;
-      ret.execution_time = std::numeric_limits<double>::max();
-      return ret;
-    }
+//     ExecutionReturn ret;
+//     if (IsResourceEnough(task) != RESOURCE_ENOUGH) {
+//       if (DeviceRuntime<SYCL>::PrintKernelConfig) {
+//         if (IsResourceEnough(task) == THREADBLOCK_TOO_LARGE) {
+//           log::info("threadblock too large.");
+//         }
+//         if (IsResourceEnough(task) == SHARED_MEMORY_TOO_LARGE) {
+//           log::info("shared memory too large.");
+//         }
+//       }
+//       ret.success = false;
+//       ret.execution_time = std::numeric_limits<double>::max();
+//       return ret;
+//     }
 
-    Timer timer;
-    if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
-        DeviceRuntime<SYCL>::TimingAllKernels ||
-        AutoTuner<SYCL>::ProfileKernels) {
-      DeviceRuntime<SYCL>::SyncDevice();
-      timer.start();
-    }
+//     Timer timer;
+//     if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
+//         DeviceRuntime<SYCL>::TimingAllKernels ||
+//         AutoTuner<SYCL>::ProfileKernels) {
+//       DeviceRuntime<SYCL>::SyncDevice();
+//       timer.start();
+//     }
 
-    // if constexpr evaluate at compile time otherwise this does not compile
-    if constexpr (std::is_base_of<Functor<SYCL>,
-                                  typename TaskType::Functor>::value) {
-      q.submit([&](sycl::handler &h) {
-        LocalMemory localAccess{sm_size, h};
-        SyclKernel kernel(task.GetFunctor(), localAccess, task.GetGridDimZ(),
-                          task.GetGridDimY(), task.GetGridDimX(),
-                          task.GetBlockDimZ(), task.GetBlockDimY(),
-                          task.GetBlockDimX());
-        h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
-      });
-    } else if constexpr (std::is_base_of<IterFunctor<SYCL>,
-                                         typename TaskType::Functor>::value) {
-      q.submit([&](sycl::handler &h) {
-        LocalMemory localAccess{sm_size, h};
-        SyclIterKernel kernel(task.GetFunctor(), localAccess,
-                              task.GetGridDimZ(), task.GetGridDimY(),
-                              task.GetGridDimX(), task.GetBlockDimZ(),
-                              task.GetBlockDimY(), task.GetBlockDimX());
-        h.parallel_for(sycl::nd_range{global_threads, local_threads}, kernel);
-      });
-    } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<SYCL>,
-                                         typename TaskType::Functor>::value) {
-      SyclHuffmanCLCustomizedNoCGKernel(task);
-    } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<SYCL>,
-                                         typename TaskType::Functor>::value) {
-      SyclHuffmanCWCustomizedNoCGKernel(task);
-    }
-    if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
-      DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
-    }
+//     // if constexpr evaluate at compile time otherwise this does not compile
+//     if constexpr (std::is_base_of<Functor<SYCL>,
+//                                   typename TaskType::Functor>::value) {
+//       q.submit([&](sycl::handler &h) {
+//         LocalMemory localAccess{sm_size, h};
+//         SyclKernel kernel(task.GetFunctor(), localAccess, task.GetGridDimZ(),
+//                           task.GetGridDimY(), task.GetGridDimX(),
+//                           task.GetBlockDimZ(), task.GetBlockDimY(),
+//                           task.GetBlockDimX());
+//         h.parallel_for(sycl::nd_range{global_threads, local_threads},
+//         kernel);
+//       });
+//     } else if constexpr (std::is_base_of<IterFunctor<SYCL>,
+//                                          typename TaskType::Functor>::value)
+//                                          {
+//       q.submit([&](sycl::handler &h) {
+//         LocalMemory localAccess{sm_size, h};
+//         SyclIterKernel kernel(task.GetFunctor(), localAccess,
+//                               task.GetGridDimZ(), task.GetGridDimY(),
+//                               task.GetGridDimX(), task.GetBlockDimZ(),
+//                               task.GetBlockDimY(), task.GetBlockDimX());
+//         h.parallel_for(sycl::nd_range{global_threads, local_threads},
+//         kernel);
+//       });
+//     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<SYCL>,
+//                                          typename TaskType::Functor>::value)
+//                                          {
+//       SyclHuffmanCLCustomizedNoCGKernel(task);
+//     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<SYCL>,
+//                                          typename TaskType::Functor>::value)
+//                                          {
+//       SyclHuffmanCWCustomizedNoCGKernel(task);
+//     }
+//     if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
+//       DeviceRuntime<SYCL>::SyncQueue(task.GetQueueIdx());
+//     }
 
-    if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
-        DeviceRuntime<SYCL>::TimingAllKernels ||
-        AutoTuner<SYCL>::ProfileKernels) {
-      DeviceRuntime<SYCL>::SyncDevice();
-      timer.end();
-      if (DeviceRuntime<SYCL>::TimingAllKernels) {
-        timer.print(task.GetFunctorName());
-      }
-      if (AutoTuner<SYCL>::ProfileKernels) {
-        ret.success = true;
-        ret.execution_time = timer.get();
-      }
-    }
-    return ret;
-  }
-};
+//     if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
+//         DeviceRuntime<SYCL>::TimingAllKernels ||
+//         AutoTuner<SYCL>::ProfileKernels) {
+//       DeviceRuntime<SYCL>::SyncDevice();
+//       timer.end();
+//       if (DeviceRuntime<SYCL>::TimingAllKernels) {
+//         timer.print(task.GetFunctorName());
+//       }
+//       if (AutoTuner<SYCL>::ProfileKernels) {
+//         ret.success = true;
+//         ret.execution_time = timer.get();
+//       }
+//     }
+//     return ret;
+//   }
+// };
 
 template <> class DeviceLauncher<SYCL> {
 public:

@@ -37,6 +37,7 @@ struct Config {
   bool compress_with_dryrun;
   int num_local_refactoring_level;
   bool auto_cache_release;
+  int openmp_num_groups;
 
   Config();
   void apply();

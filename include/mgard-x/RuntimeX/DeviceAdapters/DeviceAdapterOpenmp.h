@@ -123,17 +123,11 @@ public:
     for (int d = 0; d < NumDevices; d++) {
       MaxSharedMemorySize[d] = 1e6;
       WarpSize[d] = MGARDX_WARP_SIZE;
-#pragma omp parallel
-      {
-#pragma omp single
-        { NumSMs[d] = omp_get_num_threads(); }
-      }
       MaxNumThreadsPerSM[d] = 1024;
       MaxNumThreadsPerTB[d] = 1024;
       ArchitectureGeneration[d] = 1;
       SupportCooperativeGroups[d] = true;
       AvailableMemory[d] = std::numeric_limits<size_t>::max(); // unlimited
-      DeviceNames[d] = "CPU (OpenMP) " + std::to_string(NumSMs[d]) + " core(s)";
     }
   }
 
@@ -145,7 +139,14 @@ public:
 
   MGARDX_CONT int GetWarpSize(int dev_id) { return WarpSize[dev_id]; }
 
-  MGARDX_CONT int GetNumSMs(int dev_id) { return NumSMs[dev_id]; }
+  MGARDX_CONT int GetNumSMs(int dev_id) {
+#pragma omp parallel
+    {
+#pragma omp single
+      { NumSMs[dev_id] = omp_get_num_threads(); }
+    }
+    return NumSMs[dev_id];
+  }
 
   MGARDX_CONT int GetArchitectureGeneration(int dev_id) {
     return ArchitectureGeneration[dev_id];
@@ -169,6 +170,8 @@ public:
   }
 
   MGARDX_CONT std::string GetDeviceName(int dev_id) {
+    DeviceNames[dev_id] =
+        "CPU (OpenMP) " + std::to_string(GetNumSMs(dev_id)) + " core(s)";
     return DeviceNames[dev_id];
   }
 
@@ -705,16 +708,16 @@ template <typename TaskType> MGARDX_KERL void OpenmpKernel(TaskType task) {
         COMPUTE_BLOCK(Operation8);
         COMPUTE_BLOCK(Operation9);
         COMPUTE_BLOCK(Operation10);
-        COMPUTE_BLOCK(Operation11);
-        COMPUTE_BLOCK(Operation12);
-        COMPUTE_BLOCK(Operation13);
-        COMPUTE_BLOCK(Operation14);
-        COMPUTE_BLOCK(Operation15);
-        COMPUTE_BLOCK(Operation16);
-        COMPUTE_BLOCK(Operation17);
-        COMPUTE_BLOCK(Operation18);
-        COMPUTE_BLOCK(Operation19);
-        COMPUTE_BLOCK(Operation20);
+        // COMPUTE_BLOCK(Operation11);
+        // COMPUTE_BLOCK(Operation12);
+        // COMPUTE_BLOCK(Operation13);
+        // COMPUTE_BLOCK(Operation14);
+        // COMPUTE_BLOCK(Operation15);
+        // COMPUTE_BLOCK(Operation16);
+        // COMPUTE_BLOCK(Operation17);
+        // COMPUTE_BLOCK(Operation18);
+        // COMPUTE_BLOCK(Operation19);
+        // COMPUTE_BLOCK(Operation20);
       }
     }
   }
@@ -1152,95 +1155,98 @@ MGARDX_KERL void OpenmpHuffmanCWCustomizedKernel(TaskType task) {
   DEALLOC_ACTIVE_GRID(loop1_active);
 }
 
-template <typename TaskType> class DeviceAdapter<TaskType, OPENMP> {
-public:
-  MGARDX_CONT
-  DeviceAdapter(){};
+// template <typename TaskType> class DeviceAdapter<TaskType, OPENMP> {
+// public:
+//   MGARDX_CONT
+//   DeviceAdapter(){};
 
-  MGARDX_CONT
-  int IsResourceEnough(TaskType &task) {
-    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() >
-        DeviceRuntime<OPENMP>::GetMaxNumThreadsPerTB()) {
-      return THREADBLOCK_TOO_LARGE;
-    }
-    if (task.GetSharedMemorySize() >
-        DeviceRuntime<OPENMP>::GetMaxSharedMemorySize()) {
-      return SHARED_MEMORY_TOO_LARGE;
-    }
-    return RESOURCE_ENOUGH;
-  }
+//   MGARDX_CONT
+//   int IsResourceEnough(TaskType &task) {
+//     if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() >
+//         DeviceRuntime<OPENMP>::GetMaxNumThreadsPerTB()) {
+//       return THREADBLOCK_TOO_LARGE;
+//     }
+//     if (task.GetSharedMemorySize() >
+//         DeviceRuntime<OPENMP>::GetMaxSharedMemorySize()) {
+//       return SHARED_MEMORY_TOO_LARGE;
+//     }
+//     return RESOURCE_ENOUGH;
+//   }
 
-  MGARDX_CONT
-  ExecutionReturn Execute(TaskType &task) {
+//   MGARDX_CONT
+//   ExecutionReturn Execute(TaskType &task) {
 
-    if (DeviceRuntime<OPENMP>::PrintKernelConfig) {
-      std::cout << log::log_info << task.GetFunctorName() << ": <"
-                << task.GetBlockDimX() << ", " << task.GetBlockDimY() << ", "
-                << task.GetBlockDimZ() << "> <" << task.GetGridDimX() << ", "
-                << task.GetGridDimY() << ", " << task.GetGridDimZ() << ">\n";
-    }
+//     if (DeviceRuntime<OPENMP>::PrintKernelConfig) {
+//       std::cout << log::log_info << task.GetFunctorName() << ": <"
+//                 << task.GetBlockDimX() << ", " << task.GetBlockDimY() << ", "
+//                 << task.GetBlockDimZ() << "> <" << task.GetGridDimX() << ", "
+//                 << task.GetGridDimY() << ", " << task.GetGridDimZ() << ">\n";
+//     }
 
-    ExecutionReturn ret;
-    if (IsResourceEnough(task) != RESOURCE_ENOUGH) {
-      if (DeviceRuntime<OPENMP>::PrintKernelConfig) {
-        if (IsResourceEnough(task) == THREADBLOCK_TOO_LARGE) {
-          log::info("threadblock too large.");
-        }
-        if (IsResourceEnough(task) == SHARED_MEMORY_TOO_LARGE) {
-          log::info("shared memory too large.");
-        }
-      }
-      ret.success = false;
-      ret.execution_time = std::numeric_limits<double>::max();
-      return ret;
-    }
+//     ExecutionReturn ret;
+//     if (IsResourceEnough(task) != RESOURCE_ENOUGH) {
+//       if (DeviceRuntime<OPENMP>::PrintKernelConfig) {
+//         if (IsResourceEnough(task) == THREADBLOCK_TOO_LARGE) {
+//           log::info("threadblock too large.");
+//         }
+//         if (IsResourceEnough(task) == SHARED_MEMORY_TOO_LARGE) {
+//           log::info("shared memory too large.");
+//         }
+//       }
+//       ret.success = false;
+//       ret.execution_time = std::numeric_limits<double>::max();
+//       return ret;
+//     }
 
-    Timer timer;
-    if (DeviceRuntime<OPENMP>::TimingAllKernels ||
-        AutoTuner<OPENMP>::ProfileKernels) {
-      DeviceRuntime<OPENMP>::SyncDevice();
-      timer.start();
-    }
-    // if constexpr evalute at compile time otherwise this does not compile
-    if constexpr (std::is_base_of<Functor<OPENMP>,
-                                  typename TaskType::Functor>::value) {
-      OpenmpKernel(task);
-    } else if constexpr (std::is_base_of<IterFunctor<OPENMP>,
-                                         typename TaskType::Functor>::value) {
-      OpenmpIterKernel(task);
-    } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<OPENMP>,
-                                         typename TaskType::Functor>::value) {
-      int prev_omp_thread = omp_get_max_threads();
-      // This kernel works better with 4 threads
-      omp_set_num_threads(4);
-      OpenmpHuffmanCLCustomizedKernel(task);
-      omp_set_num_threads(prev_omp_thread);
-    } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<OPENMP>,
-                                         typename TaskType::Functor>::value) {
-      int prev_omp_thread = omp_get_max_threads();
-      // This kernel works better with 4 threads
-      omp_set_num_threads(4);
-      OpenmpHuffmanCWCustomizedKernel(task);
-      omp_set_num_threads(prev_omp_thread);
-    }
-    // timer.end();
-    // timer.print(task.GetFunctorName());
-    // timer.clear();
-    if (DeviceRuntime<OPENMP>::TimingAllKernels ||
-        AutoTuner<OPENMP>::ProfileKernels) {
-      DeviceRuntime<OPENMP>::SyncDevice();
-      timer.end();
-      if (DeviceRuntime<OPENMP>::TimingAllKernels) {
-        timer.print(task.GetFunctorName());
-      }
-      if (AutoTuner<OPENMP>::ProfileKernels) {
-        ret.success = true;
-        ret.execution_time = timer.get();
-      }
-    }
-    return ret;
-  }
-};
+//     Timer timer;
+//     if (DeviceRuntime<OPENMP>::TimingAllKernels ||
+//         AutoTuner<OPENMP>::ProfileKernels) {
+//       DeviceRuntime<OPENMP>::SyncDevice();
+//       timer.start();
+//     }
+//     // if constexpr evalute at compile time otherwise this does not compile
+//     if constexpr (std::is_base_of<Functor<OPENMP>,
+//                                   typename TaskType::Functor>::value) {
+//       OpenmpKernel(task);
+//     } else if constexpr (std::is_base_of<IterFunctor<OPENMP>,
+//                                          typename TaskType::Functor>::value)
+//                                          {
+//       OpenmpIterKernel(task);
+//     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<OPENMP>,
+//                                          typename TaskType::Functor>::value)
+//                                          {
+//       // int prev_omp_thread = omp_get_max_threads();
+//       // This kernel works better with 4 threads
+//       // omp_set_num_threads(4);
+//       OpenmpHuffmanCLCustomizedKernel(task);
+//       // omp_set_num_threads(prev_omp_thread);
+//     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<OPENMP>,
+//                                          typename TaskType::Functor>::value)
+//                                          {
+//       // int prev_omp_thread = omp_get_max_threads();
+//       // This kernel works better with 4 threads
+//       // omp_set_num_threads(4);
+//       OpenmpHuffmanCWCustomizedKernel(task);
+//       // omp_set_num_threads(prev_omp_thread);
+//     }
+//     // timer.end();
+//     // timer.print(task.GetFunctorName());
+//     // timer.clear();
+//     if (DeviceRuntime<OPENMP>::TimingAllKernels ||
+//         AutoTuner<OPENMP>::ProfileKernels) {
+//       DeviceRuntime<OPENMP>::SyncDevice();
+//       timer.end();
+//       if (DeviceRuntime<OPENMP>::TimingAllKernels) {
+//         timer.print(task.GetFunctorName());
+//       }
+//       if (AutoTuner<OPENMP>::ProfileKernels) {
+//         ret.success = true;
+//         ret.execution_time = timer.get();
+//       }
+//     }
+//     return ret;
+//   }
+// };
 
 template <> class DeviceLauncher<OPENMP> {
 public:
@@ -1296,18 +1302,18 @@ public:
       OpenmpIterKernel(task);
     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<OPENMP>,
                                          typename TaskType::Functor>::value) {
-      int prev_omp_thread = omp_get_max_threads();
+      // int prev_omp_thread = omp_get_max_threads();
       // This kernel works better with 4 threads
-      omp_set_num_threads(4);
+      // omp_set_num_threads(4);
       OpenmpHuffmanCLCustomizedKernel(task);
-      omp_set_num_threads(prev_omp_thread);
+      // omp_set_num_threads(prev_omp_thread);
     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<OPENMP>,
                                          typename TaskType::Functor>::value) {
-      int prev_omp_thread = omp_get_max_threads();
+      // int prev_omp_thread = omp_get_max_threads();
       // This kernel works better with 4 threads
-      omp_set_num_threads(4);
+      // omp_set_num_threads(4);
       OpenmpHuffmanCWCustomizedKernel(task);
-      omp_set_num_threads(prev_omp_thread);
+      // omp_set_num_threads(prev_omp_thread);
     }
     // timer.end();
     // timer.print(task.GetFunctorName());
