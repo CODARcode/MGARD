@@ -219,6 +219,15 @@ public:
     // PrintSummary();
   }
 
+  void InitializeConfig(Config &config) {
+    config.domain_decomposition = ddtype;
+    config.decomposition = decomposition;
+    config.lossless = ltype;
+    config.huff_dict_size = huff_dict_size;
+    config.huff_block_size = huff_block_size;
+    config.reorder = reorder;
+  }
+
   void PrintSummary() {
     std::cout << "=======Metadata Summary=======\n";
     std::cout << "Signature: ";

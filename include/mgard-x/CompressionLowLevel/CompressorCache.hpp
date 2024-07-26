@@ -80,7 +80,7 @@ public:
   void Release() {
     log::info("Releasing compressor cache");
     delete hierarchy_cache;
-    delete compressor;
+    delete[] compressor;
     delete[] device_subdomain_buffer;
     delete[] device_compressed_buffer;
     initialized = false;
@@ -94,18 +94,18 @@ public:
     hierarchy_cache = new std::unordered_map<std::string, HierarchyType>();
   }
 
-  void Initialize() {
+  void Initialize(int num_buffers = 2, int num_compressors = 1) {
     log::info("Initializing compressor cache");
     hierarchy_cache = new std::unordered_map<std::string, HierarchyType>();
-    compressor = new CompressorType();
-    device_subdomain_buffer = new Array<D, T, DeviceType>[2];
-    device_compressed_buffer = new Array<1, Byte, DeviceType>[2];
+    compressor = new CompressorType[num_compressors];
+    device_subdomain_buffer = new Array<D, T, DeviceType>[num_buffers];
+    device_compressed_buffer = new Array<1, Byte, DeviceType>[num_buffers];
     initialized = true;
   }
 
-  void SafeInitialize() {
+  void SafeInitialize(int num_buffers = 2, int num_compressors = 1) {
     if (!initialized) {
-      Initialize();
+      Initialize(num_buffers, num_compressors);
     }
   }
 
