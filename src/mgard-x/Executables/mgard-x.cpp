@@ -323,9 +323,9 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   config.domain_decomposition = mgard_x::domain_decomposition_type::Variable;
   config.domain_decomposition_dim = 0;
   // NYX
-    // config.domain_decomposition_sizes = {512, 512};
+  // config.domain_decomposition_sizes = {512, 512};
 
-  // config.domain_decomposition_sizes = {512, 512, 512, 512};
+  config.domain_decomposition_sizes = {512, 512, 512, 512};
   // config.domain_decomposition_sizes = {128, 248, 315, 348, 384, 424, 201};
   // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(64, 32);
 
@@ -335,7 +335,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(32, 39);
 
   // E3SM
-  config.domain_decomposition_sizes = {720, 720, 720, 720};
+  // config.domain_decomposition_sizes = {720, 720, 720, 720};
   // config.domain_decomposition_sizes = {180, 368, 463, 529, 605, 692, 43};
   // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(64, 45);
 

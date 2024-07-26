@@ -1996,116 +1996,121 @@ template <typename Task> void HipHuffmanCWCustomizedNoCGKernel(Task task) {
   DeviceRuntime<HIP>::SyncQueue(task.GetQueueIdx());
 }
 
-template <typename TaskType> class DeviceAdapter<TaskType, HIP> {
-public:
-  MGARDX_CONT
-  DeviceAdapter(){};
+// template <typename TaskType> class DeviceAdapter<TaskType, HIP> {
+// public:
+//   MGARDX_CONT
+//   DeviceAdapter(){};
 
-  MGARDX_CONT
-  int IsResourceEnough(TaskType &task) {
-    if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() >
-        DeviceRuntime<HIP>::GetMaxNumThreadsPerTB()) {
-      return THREADBLOCK_TOO_LARGE;
-    }
-    if (task.GetSharedMemorySize() >
-        DeviceRuntime<HIP>::GetMaxSharedMemorySize()) {
-      return SHARED_MEMORY_TOO_LARGE;
-    }
-    return RESOURCE_ENOUGH;
-  }
+//   MGARDX_CONT
+//   int IsResourceEnough(TaskType &task) {
+//     if (task.GetBlockDimX() * task.GetBlockDimY() * task.GetBlockDimZ() >
+//         DeviceRuntime<HIP>::GetMaxNumThreadsPerTB()) {
+//       return THREADBLOCK_TOO_LARGE;
+//     }
+//     if (task.GetSharedMemorySize() >
+//         DeviceRuntime<HIP>::GetMaxSharedMemorySize()) {
+//       return SHARED_MEMORY_TOO_LARGE;
+//     }
+//     return RESOURCE_ENOUGH;
+//   }
 
-  MGARDX_CONT
-  ExecutionReturn Execute(TaskType &task) {
-    dim3 threadsPerBlock(task.GetBlockDimX(), task.GetBlockDimY(),
-                         task.GetBlockDimZ());
-    dim3 blockPerGrid(task.GetGridDimX(), task.GetGridDimY(),
-                      task.GetGridDimZ());
-    size_t sm_size = task.GetSharedMemorySize();
-    // printf("exec config (%d %d %d) (%d %d %d) sm_size: %llu\n",
-    // threadsPerBlock.x, threadsPerBlock.y, threadsPerBlock.z,
-    //                 blockPerGrid.x, blockPerGrid.y, blockPerGrid.z, sm_size);
-    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(task.GetQueueIdx());
+//   MGARDX_CONT
+//   ExecutionReturn Execute(TaskType &task) {
+//     dim3 threadsPerBlock(task.GetBlockDimX(), task.GetBlockDimY(),
+//                          task.GetBlockDimZ());
+//     dim3 blockPerGrid(task.GetGridDimX(), task.GetGridDimY(),
+//                       task.GetGridDimZ());
+//     size_t sm_size = task.GetSharedMemorySize();
+//     // printf("exec config (%d %d %d) (%d %d %d) sm_size: %llu\n",
+//     // threadsPerBlock.x, threadsPerBlock.y, threadsPerBlock.z,
+//     //                 blockPerGrid.x, blockPerGrid.y, blockPerGrid.z,
+//     sm_size); hipStream_t stream =
+//     DeviceRuntime<HIP>::GetQueue(task.GetQueueIdx());
 
-    if (DeviceRuntime<HIP>::PrintKernelConfig) {
-      std::cout << log::log_info << task.GetFunctorName() << ": <"
-                << task.GetBlockDimX() << ", " << task.GetBlockDimY() << ", "
-                << task.GetBlockDimZ() << "> <" << task.GetGridDimX() << ", "
-                << task.GetGridDimY() << ", " << task.GetGridDimZ() << ">\n";
-    }
+//     if (DeviceRuntime<HIP>::PrintKernelConfig) {
+//       std::cout << log::log_info << task.GetFunctorName() << ": <"
+//                 << task.GetBlockDimX() << ", " << task.GetBlockDimY() << ", "
+//                 << task.GetBlockDimZ() << "> <" << task.GetGridDimX() << ", "
+//                 << task.GetGridDimY() << ", " << task.GetGridDimZ() << ">\n";
+//     }
 
-    ExecutionReturn ret;
-    if (IsResourceEnough(task) != RESOURCE_ENOUGH) {
-      if (DeviceRuntime<HIP>::PrintKernelConfig) {
-        if (IsResourceEnough(task) == THREADBLOCK_TOO_LARGE) {
-          log::info("threadblock too large.");
-        }
-        if (IsResourceEnough(task) == SHARED_MEMORY_TOO_LARGE) {
-          log::info("shared memory too large.");
-        }
-      }
-      ret.success = false;
-      ret.execution_time = std::numeric_limits<double>::max();
-      return ret;
-    }
+//     ExecutionReturn ret;
+//     if (IsResourceEnough(task) != RESOURCE_ENOUGH) {
+//       if (DeviceRuntime<HIP>::PrintKernelConfig) {
+//         if (IsResourceEnough(task) == THREADBLOCK_TOO_LARGE) {
+//           log::info("threadblock too large.");
+//         }
+//         if (IsResourceEnough(task) == SHARED_MEMORY_TOO_LARGE) {
+//           log::info("shared memory too large.");
+//         }
+//       }
+//       ret.success = false;
+//       ret.execution_time = std::numeric_limits<double>::max();
+//       return ret;
+//     }
 
-    Timer timer;
-    if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
-        DeviceRuntime<HIP>::TimingAllKernels ||
-        AutoTuner<HIP>::ProfileKernels) {
-      DeviceRuntime<HIP>::SyncDevice();
-      timer.start();
-    }
+//     Timer timer;
+//     if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
+//         DeviceRuntime<HIP>::TimingAllKernels ||
+//         AutoTuner<HIP>::ProfileKernels) {
+//       DeviceRuntime<HIP>::SyncDevice();
+//       timer.start();
+//     }
 
-    // if constexpr evaluate at compile time otherwise this does not compile
-    if constexpr (std::is_base_of<Functor<HIP>,
-                                  typename TaskType::Functor>::value) {
-      HipKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
-    } else if constexpr (std::is_base_of<IterFunctor<HIP>,
-                                         typename TaskType::Functor>::value) {
-      HipIterKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
-    } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<HIP>,
-                                         typename TaskType::Functor>::value) {
-      if (task.GetFunctor().use_CG && DeviceRuntime<HIP>::SupportCG()) {
-        void *Args[] = {(void *)&task};
-        hipLaunchCooperativeKernel(
-            (void *)HipHuffmanCLCustomizedKernel<TaskType>, blockPerGrid,
-            threadsPerBlock, Args, sm_size, stream);
-      } else {
-        HipHuffmanCLCustomizedNoCGKernel(task);
-      }
-    } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<HIP>,
-                                         typename TaskType::Functor>::value) {
-      if (task.GetFunctor().use_CG && DeviceRuntime<HIP>::SupportCG()) {
-        void *Args[] = {(void *)&task};
-        hipLaunchCooperativeKernel(
-            (void *)HipHuffmanCWCustomizedKernel<TaskType>, blockPerGrid,
-            threadsPerBlock, Args, sm_size, stream);
-      } else {
-        HipHuffmanCWCustomizedNoCGKernel(task);
-      }
-    }
-    ErrorAsyncCheckTask(hipGetLastError(), task);
-    gpuErrchk(hipGetLastError());
-    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
-      ErrorSyncCheckTask(hipDeviceSynchronize(), task);
-    }
+//     // if constexpr evaluate at compile time otherwise this does not compile
+//     if constexpr (std::is_base_of<Functor<HIP>,
+//                                   typename TaskType::Functor>::value) {
+//       HipKernel<<<blockPerGrid, threadsPerBlock, sm_size, stream>>>(task);
+//     } else if constexpr (std::is_base_of<IterFunctor<HIP>,
+//                                          typename TaskType::Functor>::value)
+//                                          {
+//       HipIterKernel<<<blockPerGrid, threadsPerBlock, sm_size,
+//       stream>>>(task);
+//     } else if constexpr (std::is_base_of<HuffmanCLCustomizedFunctor<HIP>,
+//                                          typename TaskType::Functor>::value)
+//                                          {
+//       if (task.GetFunctor().use_CG && DeviceRuntime<HIP>::SupportCG()) {
+//         void *Args[] = {(void *)&task};
+//         hipLaunchCooperativeKernel(
+//             (void *)HipHuffmanCLCustomizedKernel<TaskType>, blockPerGrid,
+//             threadsPerBlock, Args, sm_size, stream);
+//       } else {
+//         HipHuffmanCLCustomizedNoCGKernel(task);
+//       }
+//     } else if constexpr (std::is_base_of<HuffmanCWCustomizedFunctor<HIP>,
+//                                          typename TaskType::Functor>::value)
+//                                          {
+//       if (task.GetFunctor().use_CG && DeviceRuntime<HIP>::SupportCG()) {
+//         void *Args[] = {(void *)&task};
+//         hipLaunchCooperativeKernel(
+//             (void *)HipHuffmanCWCustomizedKernel<TaskType>, blockPerGrid,
+//             threadsPerBlock, Args, sm_size, stream);
+//       } else {
+//         HipHuffmanCWCustomizedNoCGKernel(task);
+//       }
+//     }
+//     ErrorAsyncCheckTask(hipGetLastError(), task);
+//     gpuErrchk(hipGetLastError());
+//     if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+//       ErrorSyncCheckTask(hipDeviceSynchronize(), task);
+//     }
 
-    if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
-        DeviceRuntime<HIP>::TimingAllKernels ||
-        AutoTuner<HIP>::ProfileKernels) {
-      DeviceRuntime<HIP>::SyncDevice();
-      timer.end();
-      if (DeviceRuntime<HIP>::TimingAllKernels) {
-        timer.print(task.GetFunctorName());
-      }
-      if (AutoTuner<HIP>::ProfileKernels) {
-        ret.success = true;
-        ret.execution_time = timer.get();
-      }
-    }
-    return ret;
-  }
-};
+//     if (task.GetQueueIdx() == MGARDX_SYNCHRONIZED_QUEUE ||
+//         DeviceRuntime<HIP>::TimingAllKernels ||
+//         AutoTuner<HIP>::ProfileKernels) {
+//       DeviceRuntime<HIP>::SyncDevice();
+//       timer.end();
+//       if (DeviceRuntime<HIP>::TimingAllKernels) {
+//         timer.print(task.GetFunctorName());
+//       }
+//       if (AutoTuner<HIP>::ProfileKernels) {
+//         ret.success = true;
+//         ret.execution_time = timer.get();
+//       }
+//     }
+//     return ret;
+//   }
+// };
 
 template <> class DeviceLauncher<HIP> {
 public:

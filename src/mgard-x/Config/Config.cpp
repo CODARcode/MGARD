@@ -45,6 +45,7 @@ Config::Config() {
   compress_with_dryrun = false;
   num_local_refactoring_level = 1;
   auto_cache_release = false;
+  openmp_num_groups = 4;
 }
 
 void Config::apply() { log::level = log_level; }
