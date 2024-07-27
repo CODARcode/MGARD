@@ -113,6 +113,8 @@ enum class device_type : uint8_t {
   NONE
 };
 
+enum class cpu_parallelization_mode : uint8_t { INTRA_BLOCK, INTER_BLOCK };
+
 #if defined MGARDX_COMPILE_KOKKOS
 using KOKKOS = Kokkos::DefaultExecutionSpace;
 #else

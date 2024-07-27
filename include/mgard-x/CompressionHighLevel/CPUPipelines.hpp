@@ -9,25 +9,6 @@ enum compress_status_type compress_pipeline_cpu(
   Timer timer_series;
   if (log::level & log::TIME)
     timer_series.start();
-
-  // { // test openmp
-  //   omp_set_nested(1);
-  //   #pragma omp parallel for num_threads(2)
-  //   for (int i = 0; i < 2; i++) {
-
-  //     omp_set_num_threads(4);
-  //     #pragma omp parallel for
-  //     for (int i = 0; i < 4; i++) {
-  //       printf("thread: %d of %d\n", omp_get_thread_num(),
-  //       omp_get_num_threads());
-  //     }
-  //   }
-  //   // int n = omp_get_num_threads();
-
-  // }
-
-  // // exit(0);
-
   using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
   using HierarchyType = typename CompressorType::HierarchyType;
   CompressorType *compressor = Cache::cache.compressor;
@@ -80,99 +61,132 @@ enum compress_status_type compress_pipeline_cpu(
   // For serialization
   SIZE byte_offset = 0;
 
-  if (profile_e2e) {
+  if (profile) {
     DeviceRuntime<DeviceType>::SyncDevice();
     timer_profile.clear();
     timer_profile.start();
   }
 
+#pragma omp parallel for
   for (SIZE curr_subdomain_id = 0;
        curr_subdomain_id < domain_decomposer.num_subdomains();
        curr_subdomain_id++) {
-
-    if (profile || profile_e2e) {
-      DeviceRuntime<DeviceType>::SyncDevice();
-      timer_profile.clear();
-      timer_profile.start();
-    }
 
     domain_decomposer.copy_subdomain(
         device_subdomain_buffer[curr_subdomain_id], curr_subdomain_id,
         subdomain_copy_direction::OriginalToSubdomain, 0);
+  }
 
-    if (profile) {
-      DeviceRuntime<DeviceType>::SyncDevice();
-      timer_profile.end();
-      h2d.push_back(timer_profile.get());
+  if (profile) {
+    DeviceRuntime<DeviceType>::SyncDevice();
+    timer_profile.end();
+    h2d.push_back(timer_profile.get());
+    timer_profile.clear();
+    timer_profile.start();
+  }
+
+  if (config.cpu_mode == cpu_parallelization_mode::INTER_BLOCK) {
+    omp_set_nested(0);
+#pragma omp parallel for
+    for (SIZE curr_subdomain_id = 0;
+         curr_subdomain_id < domain_decomposer.num_subdomains();
+         curr_subdomain_id++) {
+
+      std::stringstream ss;
+      for (DIM d = 0; d < D; d++) {
+        ss << compressor[curr_subdomain_id].hierarchy->level_shape(
+                  compressor[curr_subdomain_id].hierarchy->l_target(), d)
+           << " ";
+      }
+      log::info("Compressing subdomain " + std::to_string(curr_subdomain_id) +
+                " with shape: " + ss.str());
+
+      compressor[curr_subdomain_id].Compress(
+          device_subdomain_buffer[curr_subdomain_id], local_ebtype, local_tol,
+          s, norm, device_compressed_buffer[curr_subdomain_id], 0);
+
+      compressed_size[curr_subdomain_id] =
+          device_compressed_buffer[curr_subdomain_id].shape(0);
+      double CR =
+          (double)(compressor[curr_subdomain_id].hierarchy->total_num_elems() *
+                   sizeof(T)) /
+          compressed_size[curr_subdomain_id];
+      log::info("Subdomain CR: " + std::to_string(CR));
+      if (CR < 1.0) {
+        log::info("Using uncompressed data instead");
+        domain_decomposer.copy_subdomain(
+            device_subdomain_buffer[curr_subdomain_id], curr_subdomain_id,
+            subdomain_copy_direction::OriginalToSubdomain, 0);
+        SIZE linearized_width = 1;
+        for (DIM d = 0; d < D - 1; d++)
+          linearized_width *=
+              device_subdomain_buffer[curr_subdomain_id].shape(d);
+        MemoryManager<DeviceType>::CopyND(
+            device_compressed_buffer[curr_subdomain_id].data(),
+            device_subdomain_buffer[curr_subdomain_id].shape(D - 1) * sizeof(T),
+            (Byte *)device_subdomain_buffer[curr_subdomain_id].data(),
+            device_subdomain_buffer[curr_subdomain_id].ld(D - 1) * sizeof(T),
+            device_subdomain_buffer[curr_subdomain_id].shape(D - 1) * sizeof(T),
+            linearized_width, 0);
+        compressed_size[curr_subdomain_id] =
+            compressor[curr_subdomain_id].hierarchy->total_num_elems() *
+            sizeof(T);
+      }
+    }
+  } else {
+    for (SIZE curr_subdomain_id = 0;
+         curr_subdomain_id < domain_decomposer.num_subdomains();
+         curr_subdomain_id++) {
+
+      std::stringstream ss;
+      for (DIM d = 0; d < D; d++) {
+        ss << compressor[curr_subdomain_id].hierarchy->level_shape(
+                  compressor[curr_subdomain_id].hierarchy->l_target(), d)
+           << " ";
+      }
+      log::info("Compressing subdomain " + std::to_string(curr_subdomain_id) +
+                " with shape: " + ss.str());
+
+      compressor[curr_subdomain_id].Compress(
+          device_subdomain_buffer[curr_subdomain_id], local_ebtype, local_tol,
+          s, norm, device_compressed_buffer[curr_subdomain_id], 0);
+
+      compressed_size[curr_subdomain_id] =
+          device_compressed_buffer[curr_subdomain_id].shape(0);
+      double CR =
+          (double)(compressor[curr_subdomain_id].hierarchy->total_num_elems() *
+                   sizeof(T)) /
+          compressed_size[curr_subdomain_id];
+      log::info("Subdomain CR: " + std::to_string(CR));
+      if (CR < 1.0) {
+        log::info("Using uncompressed data instead");
+        domain_decomposer.copy_subdomain(
+            device_subdomain_buffer[curr_subdomain_id], curr_subdomain_id,
+            subdomain_copy_direction::OriginalToSubdomain, 0);
+        SIZE linearized_width = 1;
+        for (DIM d = 0; d < D - 1; d++)
+          linearized_width *=
+              device_subdomain_buffer[curr_subdomain_id].shape(d);
+        MemoryManager<DeviceType>::CopyND(
+            device_compressed_buffer[curr_subdomain_id].data(),
+            device_subdomain_buffer[curr_subdomain_id].shape(D - 1) * sizeof(T),
+            (Byte *)device_subdomain_buffer[curr_subdomain_id].data(),
+            device_subdomain_buffer[curr_subdomain_id].ld(D - 1) * sizeof(T),
+            device_subdomain_buffer[curr_subdomain_id].shape(D - 1) * sizeof(T),
+            linearized_width, 0);
+        compressed_size[curr_subdomain_id] =
+            compressor[curr_subdomain_id].hierarchy->total_num_elems() *
+            sizeof(T);
+      }
     }
   }
 
-  omp_set_nested(1);
-  omp_set_dynamic(0);
-  int total_threads = DeviceRuntime<DeviceType>::GetNumSMs();
-#pragma omp parallel for num_threads(config.openmp_num_groups)
-  for (SIZE curr_subdomain_id = 0;
-       curr_subdomain_id < domain_decomposer.num_subdomains();
-       curr_subdomain_id++) {
-
-    omp_set_num_threads(total_threads / config.openmp_num_groups);
-
-    std::stringstream ss;
-    for (DIM d = 0; d < D; d++) {
-      ss << compressor[curr_subdomain_id].hierarchy->level_shape(
-                compressor[curr_subdomain_id].hierarchy->l_target(), d)
-         << " ";
-    }
-    log::info("Compressing subdomain " + std::to_string(curr_subdomain_id) +
-              " with shape: " + ss.str());
-    if (profile) {
-      DeviceRuntime<DeviceType>::SyncDevice();
-      timer_profile.clear();
-      timer_profile.start();
-    }
-
-    compressor[curr_subdomain_id].Compress(
-        device_subdomain_buffer[curr_subdomain_id], local_ebtype, local_tol, s,
-        norm, device_compressed_buffer[curr_subdomain_id], 0);
-
-    compressed_size[curr_subdomain_id] =
-        device_compressed_buffer[curr_subdomain_id].shape(0);
-    double CR =
-        (double)(compressor[curr_subdomain_id].hierarchy->total_num_elems() *
-                 sizeof(T)) /
-        compressed_size[curr_subdomain_id];
-    log::info("Subdomain CR: " + std::to_string(CR));
-    if (CR < 1.0) {
-      log::info("Using uncompressed data instead");
-      domain_decomposer.copy_subdomain(
-          device_subdomain_buffer[curr_subdomain_id], curr_subdomain_id,
-          subdomain_copy_direction::OriginalToSubdomain, 0);
-      SIZE linearized_width = 1;
-      for (DIM d = 0; d < D - 1; d++)
-        linearized_width *= device_subdomain_buffer[curr_subdomain_id].shape(d);
-      MemoryManager<DeviceType>::CopyND(
-          device_compressed_buffer[curr_subdomain_id].data(),
-          device_subdomain_buffer[curr_subdomain_id].shape(D - 1) * sizeof(T),
-          (Byte *)device_subdomain_buffer[curr_subdomain_id].data(),
-          device_subdomain_buffer[curr_subdomain_id].ld(D - 1) * sizeof(T),
-          device_subdomain_buffer[curr_subdomain_id].shape(D - 1) * sizeof(T),
-          linearized_width, 0);
-      compressed_size[curr_subdomain_id] =
-          compressor[curr_subdomain_id].hierarchy->total_num_elems() *
-          sizeof(T);
-    }
-
-    if (profile) {
-      DeviceRuntime<DeviceType>::SyncDevice();
-      timer_profile.end();
-      comp.push_back(timer_profile.get());
-    }
-
-    if (profile || profile_e2e) {
-      size.push_back(
-          compressor[curr_subdomain_id].hierarchy->total_num_elems() *
-          sizeof(T) / 1.0e9);
-    }
+  if (profile) {
+    DeviceRuntime<DeviceType>::SyncDevice();
+    timer_profile.end();
+    comp.push_back(timer_profile.get());
+    timer_profile.clear();
+    timer_profile.start();
   }
 
   for (SIZE curr_subdomain_id = 0;
@@ -196,11 +210,6 @@ enum compress_status_type compress_pipeline_cpu(
       return compress_status_type::OutputTooLargeFailure;
     }
 
-    if (profile) {
-      DeviceRuntime<DeviceType>::SyncDevice();
-      timer_profile.clear();
-      timer_profile.start();
-    }
     Serialize<SIZE, DeviceType>(compressed_subdomain_data,
                                 &compressed_size[curr_subdomain_id], 1,
                                 byte_offset, 0);
@@ -208,32 +217,21 @@ enum compress_status_type compress_pipeline_cpu(
         compressed_subdomain_data,
         device_compressed_buffer[curr_subdomain_id].data(),
         compressed_size[curr_subdomain_id], byte_offset, 0);
+
     if (profile) {
-      DeviceRuntime<DeviceType>::SyncDevice();
-      timer_profile.end();
-      d2h.push_back(timer_profile.get());
+      size.push_back(
+          compressor[curr_subdomain_id].hierarchy->total_num_elems() *
+          sizeof(T) / 1.0e9);
     }
   }
 
-  if (profile_e2e) {
+  if (profile) {
     DeviceRuntime<DeviceType>::SyncDevice();
     timer_profile.end();
-    timer_profile.print("end to end");
-    float s = 0;
-    for (float t : size)
-      s += t;
-    timer_profile.print_throughput("end to end", s * 1e9);
+    d2h.push_back(timer_profile.get());
   }
 
   if (profile) {
-    // double total_size = domain_decomposer.shape[0] *
-    // domain_decomposer.shape[1] * domain_decomposer.shape[2] * sizeof(T) /
-    // 1e9; std::cout << "comp: " << comp / domain_decomposer.num_subdomains()
-    // << "(" << total_size / comp << " GB/s)"<< "\n"; std::cout << "h2d: " <<
-    // h2d / domain_decomposer.num_subdomains() << "(" << total_size / h2d << "
-    // GB/s)"<< "\n"; std::cout << "d2h: " << d2h /
-    // domain_decomposer.num_subdomains() << "(" << byte_offset/ 1e9 / d2h << "
-    // GB/s)"<< "\n";
     std::cout << "comp: "
               << "\n";
     for (float t : comp)
@@ -254,15 +252,14 @@ enum compress_status_type compress_pipeline_cpu(
 
     std::cout << "size: "
               << "\n";
-    for (float t : size)
-      std::cout << t << ", ";
-    std::cout << "\n";
+    float total_size = 0;
+    for (auto s : size)
+      total_size += s;
+    std::cout << total_size << "\n";
 
     std::cout << "comp_speed: "
               << "\n";
-    for (int i = 0; i < comp.size(); i++)
-      std::cout << size[i] / comp[i] << ", ";
-    std::cout << "\n";
+    std::cout << total_size / comp[0] << "\n";
   }
 
   compressed_subdomain_size = byte_offset;
@@ -333,14 +330,15 @@ enum compress_status_type decompress_pipeline_cpu(
   bool profile = true;
   bool profile_e2e = false;
 
+  if (profile) {
+    DeviceRuntime<DeviceType>::SyncDevice();
+    timer_profile.clear();
+    timer_profile.start();
+  }
+
   for (SIZE curr_subdomain_id = 0;
        curr_subdomain_id < domain_decomposer.num_subdomains();
        curr_subdomain_id++) {
-    if (profile) {
-      DeviceRuntime<DeviceType>::SyncDevice();
-      timer_profile.clear();
-      timer_profile.start();
-    }
 
     // Deserialize and copy next compressed data on queue 1
     SIZE *compressed_size_ptr = &compressed_size[curr_subdomain_id];
@@ -360,78 +358,6 @@ enum compress_status_type decompress_pipeline_cpu(
     MemoryManager<DeviceType>::Copy1D(
         device_compressed_buffer[curr_subdomain_id].data(), compressed_data,
         compressed_size[curr_subdomain_id], 0);
-
-    if (profile) {
-      DeviceRuntime<DeviceType>::SyncDevice();
-      timer_profile.end();
-      h2d.push_back(timer_profile.get());
-    }
-  }
-
-  omp_set_nested(1);
-  omp_set_dynamic(0);
-  int total_threads = DeviceRuntime<DeviceType>::GetNumSMs();
-#pragma omp parallel for num_threads(config.openmp_num_groups)
-  for (SIZE curr_subdomain_id = 0;
-       curr_subdomain_id < domain_decomposer.num_subdomains();
-       curr_subdomain_id++) {
-
-    omp_set_num_threads(total_threads / config.openmp_num_groups);
-
-    double CR =
-        (double)(compressor[curr_subdomain_id].hierarchy->total_num_elems() *
-                 sizeof(T)) /
-        compressed_size[curr_subdomain_id];
-    log::info("Subdomain CR: " + std::to_string(CR));
-    if (CR > 1.0) {
-      std::stringstream ss;
-      for (DIM d = 0; d < D; d++) {
-        ss << compressor[curr_subdomain_id].hierarchy->level_shape(
-                  compressor[curr_subdomain_id].hierarchy->l_target(), d)
-           << " ";
-      }
-      log::info("Decompressing subdomain " + std::to_string(curr_subdomain_id) +
-                " with shape: " + ss.str());
-      compressor[curr_subdomain_id].Deserialize(
-          device_compressed_buffer[curr_subdomain_id], 0);
-    }
-
-    if (profile) {
-      DeviceRuntime<DeviceType>::SyncDevice();
-      timer_profile.clear();
-      timer_profile.start();
-    }
-    if (CR > 1.0) {
-      compressor[curr_subdomain_id].LosslessDecompress(
-          device_compressed_buffer[curr_subdomain_id], 0);
-      compressor[curr_subdomain_id].Dequantize(
-          device_subdomain_buffer[curr_subdomain_id], local_ebtype, local_tol,
-          s, norm, 0);
-      compressor[curr_subdomain_id].Recompose(
-          device_subdomain_buffer[curr_subdomain_id], 0);
-    } else {
-      log::info("Skipping decompression as original data was saved instead");
-      device_subdomain_buffer[curr_subdomain_id].resize(
-          {compressor[curr_subdomain_id].hierarchy->level_shape(
-              compressor[curr_subdomain_id].hierarchy->l_target())});
-      SIZE linearized_width = 1;
-      for (DIM d = 0; d < D - 1; d++)
-        linearized_width *= device_subdomain_buffer[curr_subdomain_id].shape(d);
-      MemoryManager<DeviceType>::CopyND(
-          device_subdomain_buffer[curr_subdomain_id].data(),
-          device_subdomain_buffer[curr_subdomain_id].ld(D - 1),
-          (T *)device_compressed_buffer[curr_subdomain_id].data(),
-          device_subdomain_buffer[curr_subdomain_id].shape(D - 1),
-          device_subdomain_buffer[curr_subdomain_id].shape(D - 1),
-          linearized_width, 0);
-    }
-
-    if (profile) {
-      DeviceRuntime<DeviceType>::SyncDevice();
-      timer_profile.end();
-      comp.push_back(timer_profile.get());
-    }
-
     if (profile || profile_e2e) {
       size.push_back(
           compressor[curr_subdomain_id].hierarchy->total_num_elems() *
@@ -439,46 +365,141 @@ enum compress_status_type decompress_pipeline_cpu(
     }
   }
 
-  for (SIZE curr_subdomain_id = 0;
-       curr_subdomain_id < domain_decomposer.num_subdomains();
-       curr_subdomain_id++) {
-
-    if (profile) {
-      DeviceRuntime<DeviceType>::SyncDevice();
-      timer_profile.clear();
-      timer_profile.start();
-    }
-
-    domain_decomposer.copy_subdomain(
-        device_subdomain_buffer[curr_subdomain_id], curr_subdomain_id,
-        subdomain_copy_direction::SubdomainToOriginal, 0);
-
-    if (profile) {
-      DeviceRuntime<DeviceType>::SyncDevice();
-      timer_profile.end();
-      d2h.push_back(timer_profile.get());
-    }
-  }
-
-  if (profile_e2e) {
+  if (profile) {
     DeviceRuntime<DeviceType>::SyncDevice();
     timer_profile.end();
-    timer_profile.print("end to end");
-    float s = 0;
-    for (float t : size)
-      s += t;
-    timer_profile.print_throughput("end to end", s * 1e9);
+    h2d.push_back(timer_profile.get());
+    timer_profile.clear();
+    timer_profile.start();
+  }
+
+  if (config.cpu_mode == cpu_parallelization_mode::INTER_BLOCK) {
+    omp_set_nested(0);
+#pragma omp parallel for
+    for (SIZE curr_subdomain_id = 0;
+         curr_subdomain_id < domain_decomposer.num_subdomains();
+         curr_subdomain_id++) {
+      double CR =
+          (double)(compressor[curr_subdomain_id].hierarchy->total_num_elems() *
+                   sizeof(T)) /
+          compressed_size[curr_subdomain_id];
+      log::info("Subdomain CR: " + std::to_string(CR));
+      if (CR > 1.0) {
+        std::stringstream ss;
+        for (DIM d = 0; d < D; d++) {
+          ss << compressor[curr_subdomain_id].hierarchy->level_shape(
+                    compressor[curr_subdomain_id].hierarchy->l_target(), d)
+             << " ";
+        }
+        log::info("Decompressing subdomain " +
+                  std::to_string(curr_subdomain_id) +
+                  " with shape: " + ss.str());
+        compressor[curr_subdomain_id].Deserialize(
+            device_compressed_buffer[curr_subdomain_id], 0);
+      }
+
+      if (CR > 1.0) {
+        compressor[curr_subdomain_id].LosslessDecompress(
+            device_compressed_buffer[curr_subdomain_id], 0);
+        compressor[curr_subdomain_id].Dequantize(
+            device_subdomain_buffer[curr_subdomain_id], local_ebtype, local_tol,
+            s, norm, 0);
+        compressor[curr_subdomain_id].Recompose(
+            device_subdomain_buffer[curr_subdomain_id], 0);
+      } else {
+        log::info("Skipping decompression as original data was saved instead");
+        device_subdomain_buffer[curr_subdomain_id].resize(
+            {compressor[curr_subdomain_id].hierarchy->level_shape(
+                compressor[curr_subdomain_id].hierarchy->l_target())});
+        SIZE linearized_width = 1;
+        for (DIM d = 0; d < D - 1; d++)
+          linearized_width *=
+              device_subdomain_buffer[curr_subdomain_id].shape(d);
+        MemoryManager<DeviceType>::CopyND(
+            device_subdomain_buffer[curr_subdomain_id].data(),
+            device_subdomain_buffer[curr_subdomain_id].ld(D - 1),
+            (T *)device_compressed_buffer[curr_subdomain_id].data(),
+            device_subdomain_buffer[curr_subdomain_id].shape(D - 1),
+            device_subdomain_buffer[curr_subdomain_id].shape(D - 1),
+            linearized_width, 0);
+      }
+    }
+  } else {
+    for (SIZE curr_subdomain_id = 0;
+         curr_subdomain_id < domain_decomposer.num_subdomains();
+         curr_subdomain_id++) {
+      double CR =
+          (double)(compressor[curr_subdomain_id].hierarchy->total_num_elems() *
+                   sizeof(T)) /
+          compressed_size[curr_subdomain_id];
+      log::info("Subdomain CR: " + std::to_string(CR));
+      if (CR > 1.0) {
+        std::stringstream ss;
+        for (DIM d = 0; d < D; d++) {
+          ss << compressor[curr_subdomain_id].hierarchy->level_shape(
+                    compressor[curr_subdomain_id].hierarchy->l_target(), d)
+             << " ";
+        }
+        log::info("Decompressing subdomain " +
+                  std::to_string(curr_subdomain_id) +
+                  " with shape: " + ss.str());
+        compressor[curr_subdomain_id].Deserialize(
+            device_compressed_buffer[curr_subdomain_id], 0);
+      }
+
+      if (CR > 1.0) {
+        compressor[curr_subdomain_id].LosslessDecompress(
+            device_compressed_buffer[curr_subdomain_id], 0);
+        compressor[curr_subdomain_id].Dequantize(
+            device_subdomain_buffer[curr_subdomain_id], local_ebtype, local_tol,
+            s, norm, 0);
+        compressor[curr_subdomain_id].Recompose(
+            device_subdomain_buffer[curr_subdomain_id], 0);
+      } else {
+        log::info("Skipping decompression as original data was saved instead");
+        device_subdomain_buffer[curr_subdomain_id].resize(
+            {compressor[curr_subdomain_id].hierarchy->level_shape(
+                compressor[curr_subdomain_id].hierarchy->l_target())});
+        SIZE linearized_width = 1;
+        for (DIM d = 0; d < D - 1; d++)
+          linearized_width *=
+              device_subdomain_buffer[curr_subdomain_id].shape(d);
+        MemoryManager<DeviceType>::CopyND(
+            device_subdomain_buffer[curr_subdomain_id].data(),
+            device_subdomain_buffer[curr_subdomain_id].ld(D - 1),
+            (T *)device_compressed_buffer[curr_subdomain_id].data(),
+            device_subdomain_buffer[curr_subdomain_id].shape(D - 1),
+            device_subdomain_buffer[curr_subdomain_id].shape(D - 1),
+            linearized_width, 0);
+      }
+    }
   }
 
   if (profile) {
-    // double total_size = domain_decomposer.shape[0] *
-    // domain_decomposer.shape[1] * domain_decomposer.shape[2] * sizeof(T) /
-    // 1e9; std::cout << "comp: " << comp / domain_decomposer.num_subdomains()
-    // << "(" << total_size / comp << " GB/s)"<< "\n"; std::cout << "h2d: " <<
-    // h2d / domain_decomposer.num_subdomains() << "(" << total_size / h2d << "
-    // GB/s)"<< "\n"; std::cout << "d2h: " << d2h /
-    // domain_decomposer.num_subdomains() << "(" << byte_offset/ 1e9 / d2h << "
-    // GB/s)"<< "\n";
+    DeviceRuntime<DeviceType>::SyncDevice();
+    timer_profile.end();
+    comp.push_back(timer_profile.get());
+    timer_profile.clear();
+    timer_profile.start();
+  }
+
+  omp_set_nested(0);
+#pragma omp parallel for
+  for (SIZE curr_subdomain_id = 0;
+       curr_subdomain_id < domain_decomposer.num_subdomains();
+       curr_subdomain_id++) {
+    domain_decomposer.copy_subdomain(
+        device_subdomain_buffer[curr_subdomain_id], curr_subdomain_id,
+        subdomain_copy_direction::SubdomainToOriginal, 0);
+  }
+
+  if (profile) {
+    DeviceRuntime<DeviceType>::SyncDevice();
+    timer_profile.end();
+    d2h.push_back(timer_profile.get());
+  }
+
+  if (profile) {
     std::cout << "comp: "
               << "\n";
     for (float t : comp)
@@ -499,15 +520,14 @@ enum compress_status_type decompress_pipeline_cpu(
 
     std::cout << "size: "
               << "\n";
-    for (float t : size)
-      std::cout << t << ", ";
-    std::cout << "\n";
+    float total_size = 0;
+    for (auto s : size)
+      total_size += s;
+    std::cout << total_size << "\n";
 
     std::cout << "comp_speed: "
               << "\n";
-    for (int i = 0; i < comp.size(); i++)
-      std::cout << size[i] / comp[i] << ", ";
-    std::cout << "\n";
+    std::cout << total_size / comp[0] << "\n";
   }
 
   DeviceRuntime<DeviceType>::SyncDevice();
