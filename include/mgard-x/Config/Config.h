@@ -22,8 +22,8 @@ struct Config {
   enum lossless_type lossless;
   int reorder;
   int log_level;
+  bool auto_pin_host_buffers;
   SIZE max_larget_level;
-  bool prefetch;
   SIZE max_memory_footprint;
   SIZE total_num_bitplanes;
   SIZE block_size;
@@ -32,12 +32,11 @@ struct Config {
   SIZE domain_decomposition_dim;
   std::vector<SIZE> domain_decomposition_sizes;
   bool mdr_adaptive_resolution;
-  bool collect_uncertainty;
   bool adjust_shape;
   bool compress_with_dryrun;
   int num_local_refactoring_level;
   bool auto_cache_release;
-  int openmp_num_groups;
+  cpu_parallelization_mode cpu_mode;
 
   Config();
   void apply();

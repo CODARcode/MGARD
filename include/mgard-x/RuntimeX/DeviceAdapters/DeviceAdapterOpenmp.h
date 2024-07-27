@@ -170,9 +170,7 @@ public:
   }
 
   MGARDX_CONT std::string GetDeviceName(int dev_id) {
-    DeviceNames[dev_id] =
-        "CPU (OpenMP) " + std::to_string(GetNumSMs(dev_id)) + " core(s)";
-    return DeviceNames[dev_id];
+    return "CPU (OpenMP) " + std::to_string(GetNumSMs(dev_id)) + " core(s)";
   }
 
   MGARDX_CONT
@@ -1269,7 +1267,8 @@ public:
       std::cout << log::log_info << task.GetFunctorName() << ": <"
                 << task.GetBlockDimX() << ", " << task.GetBlockDimY() << ", "
                 << task.GetBlockDimZ() << "> <" << task.GetGridDimX() << ", "
-                << task.GetGridDimY() << ", " << task.GetGridDimZ() << ">\n";
+                << task.GetGridDimY() << ", " << task.GetGridDimZ() << "> "
+                << " core(s): " << DeviceRuntime<OPENMP>::GetNumSMs() << "\n";
     }
 
     ExecutionReturn ret;

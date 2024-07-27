@@ -309,8 +309,9 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   } else {
     config.decomposition = mgard_x::decomposition_type::Hybrid;
     config.num_local_refactoring_level = 1;
-    // config.max_larget_level = 0;
   }
+
+  config.max_larget_level = 1;
 
   // config.compressor = mgard_x::compressor_type::ZFP;
 
@@ -320,30 +321,38 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
   }
 
+  // config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
+  // config.block_size = 128;
+
+  config.cpu_mode = mgard_x::cpu_parallelization_mode::INTER_BLOCK;
+
   config.domain_decomposition = mgard_x::domain_decomposition_type::Variable;
   config.domain_decomposition_dim = 0;
   // NYX
-  // config.domain_decomposition_sizes = {512, 512};
+  // config.domain_d  ecomposition_sizes = {512, 512};
 
-  config.domain_decomposition_sizes = {512, 512, 512, 512};
+  // config.domain_decomposition_sizes = {512, 512, 512, 512};
+  // config.domain_decomposition_sizes = {2048};
   // config.domain_decomposition_sizes = {128, 248, 315, 348, 384, 424, 201};
-  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(64, 32);
+  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(128, 16);
+  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(128, 16);
 
   // XGC
   // config.domain_decomposition_sizes = {312, 312, 312, 312};
+  // config.domain_decomposition_sizes = {1248};
   // config.domain_decomposition_sizes = {156, 283, 514, 295};
-  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(32, 39);
+  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(96, 13);
 
   // E3SM
-  // config.domain_decomposition_sizes = {720, 720, 720, 720};
+  config.domain_decomposition_sizes = {720, 720, 720, 720};
   // config.domain_decomposition_sizes = {180, 368, 463, 529, 605, 692, 43};
-  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(64, 45);
+  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(192, 15);
 
   config.estimate_outlier_ratio = 0.3;
 
   config.dev_type = dev_type;
   config.reorder = reorder;
-  config.prefetch = true;
+  config.auto_pin_host_buffers = true;
   config.max_memory_footprint = max_memory_footprint;
   config.huff_dict_size = 8192;
   config.adjust_shape = false;
@@ -448,7 +457,7 @@ int launch_decompress(const char *input_file, const char *output_file,
   mgard_x::Config config;
   config.log_level = verbose_to_log_level(verbose);
   config.dev_type = dev_type;
-  config.prefetch = prefetch;
+  config.auto_pin_host_buffers = prefetch;
   config.auto_cache_release = true;
 
   mgard_x::SERIALIZED_TYPE *compressed_data;
