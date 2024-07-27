@@ -163,7 +163,7 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
   if (!MemoryManager<DeviceType>::IsDevicePointer((void *)original_data)) {
     input_previously_pinned =
         MemoryManager<DeviceType>::CheckHostRegister((void *)original_data);
-    if (!input_previously_pinned && config.prefetch) {
+    if (!input_previously_pinned && config.auto_pin_host_buffers) {
       MemoryManager<DeviceType>::HostRegister((void *)original_data,
                                               total_num_elem * sizeof(T));
     }
@@ -177,7 +177,7 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
   if (!MemoryManager<DeviceType>::IsDevicePointer((void *)compressed_data)) {
     output_previously_pinned =
         MemoryManager<DeviceType>::CheckHostRegister((void *)compressed_data);
-    if (!output_previously_pinned && config.prefetch) {
+    if (!output_previously_pinned && config.auto_pin_host_buffers) {
       MemoryManager<DeviceType>::HostRegister((void *)compressed_data,
                                               output_buffer_size);
     }
@@ -223,13 +223,6 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
   if (log::level & log::TIME)
     timer_each.start();
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
-  bool old_sync_set = DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors;
-  if (!config.prefetch) {
-    DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = true;
-  } else {
-    DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = false;
-  }
-
   if (std::is_same<DeviceType, CUDA>::value ||
       std::is_same<DeviceType, HIP>::value ||
       std::is_same<DeviceType, SYCL>::value) {
@@ -241,9 +234,6 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
         domain_decomposer, local_tol, s, norm, local_ebtype, config,
         compressed_subdomain_data, compressed_subdomain_size);
   }
-
-  DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = old_sync_set;
-
   if (log::level & log::TIME) {
     timer_each.end();
     timer_each.print("Aggregated low-level compression");
@@ -284,10 +274,10 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
   DeviceRuntime<DeviceType>::SyncQueue(0);
   compressed_size = byte_offset;
 
-  if (!input_previously_pinned && config.prefetch) {
+  if (!input_previously_pinned && config.auto_pin_host_buffers) {
     MemoryManager<DeviceType>::HostUnregister((void *)original_data);
   }
-  if (!output_previously_pinned && config.prefetch) {
+  if (!output_previously_pinned && config.auto_pin_host_buffers) {
     MemoryManager<DeviceType>::HostUnregister((void *)compressed_data);
   }
 
@@ -423,7 +413,7 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
   if (!MemoryManager<DeviceType>::IsDevicePointer((void *)compressed_data)) {
     input_previously_pinned =
         MemoryManager<DeviceType>::CheckHostRegister((void *)compressed_data);
-    if (!input_previously_pinned && config.prefetch) {
+    if (!input_previously_pinned && config.auto_pin_host_buffers) {
       MemoryManager<DeviceType>::HostRegister((void *)compressed_data,
                                               compressed_size);
     }
@@ -436,7 +426,7 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
   if (!MemoryManager<DeviceType>::IsDevicePointer((void *)decompressed_data)) {
     output_previously_pinned =
         MemoryManager<DeviceType>::CheckHostRegister((void *)decompressed_data);
-    if (!output_previously_pinned && config.prefetch) {
+    if (!output_previously_pinned && config.auto_pin_host_buffers) {
       MemoryManager<DeviceType>::HostRegister((void *)decompressed_data,
                                               total_num_elem * sizeof(T));
     }
@@ -538,12 +528,6 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
   if (log::level & log::TIME)
     timer_each.start();
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
-  bool old_sync_set = DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors;
-  if (!config.prefetch) {
-    DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = true;
-  } else {
-    DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = false;
-  }
 
   if (std::is_same<DeviceType, CUDA>::value ||
       std::is_same<DeviceType, HIP>::value ||
@@ -556,7 +540,6 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
         domain_decomposer, local_tol, (T)m.s, (T)m.norm, local_ebtype, config,
         compressed_subdomain_data);
   }
-  DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = old_sync_set;
   if (log::level & log::TIME) {
     timer_each.end();
     timer_each.print("Aggregated low-level decompression");
@@ -567,10 +550,10 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
     timer_each.clear();
   }
 
-  if (!input_previously_pinned && config.prefetch) {
+  if (!input_previously_pinned && config.auto_pin_host_buffers) {
     MemoryManager<DeviceType>::HostUnregister((void *)compressed_data);
   }
-  if (!output_previously_pinned && config.prefetch) {
+  if (!output_previously_pinned && config.auto_pin_host_buffers) {
     MemoryManager<DeviceType>::HostUnregister((void *)decompressed_data);
   }
 
