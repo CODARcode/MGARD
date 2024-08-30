@@ -321,12 +321,12 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
   }
 
-  // config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
-  // config.block_size = 128;
+  config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
+  config.block_size = 64;
 
   config.cpu_mode = mgard_x::cpu_parallelization_mode::INTER_BLOCK;
 
-  config.domain_decomposition = mgard_x::domain_decomposition_type::Variable;
+  // config.domain_decomposition = mgard_x::domain_decomposition_type::Variable;
   config.domain_decomposition_dim = 0;
   // NYX
   // config.domain_d  ecomposition_sizes = {512, 512};
