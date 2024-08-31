@@ -1,9 +1,9 @@
 #include "mgard/compress_x_lowlevel.hpp"
 
 #include <iostream>
-#include <vector>
-#include <mpi.h>
+// #include <vector>
 #include <cstdlib>
+#include <mpi.h>
 int main(int argc, char *argv[]) {
 
   MPI_Init(&argc, &argv);
@@ -11,7 +11,8 @@ int main(int argc, char *argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   mgard_x::DeviceRuntime<mgard_x::HIP>::SelectDevice(rank);
 
-  printf("Rank %d selecting GPU %d\n", rank, mgard_x::DeviceRuntime<mgard_x::HIP>::GetDevice());
+  printf("Rank %d selecting GPU %d\n", rank,
+         mgard_x::DeviceRuntime<mgard_x::HIP>::GetDevice());
 
   int n = atoi(argv[1]);
   mgard_x::Timer timer;
@@ -19,7 +20,7 @@ int main(int argc, char *argv[]) {
   timer.start();
   MPI_Barrier(MPI_COMM_WORLD);
 
-  mgard_x::Byte * data;
+  mgard_x::Byte *data;
   mgard_x::MemoryManager<mgard_x::HIP>::Malloc1D(data, (size_t)n, 0);
   mgard_x::DeviceRuntime<mgard_x::HIP>::SyncQueue(0);
 
