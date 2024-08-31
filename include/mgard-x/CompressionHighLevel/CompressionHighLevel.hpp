@@ -33,7 +33,9 @@
 #ifndef MGARD_X_COMPRESSION_HIGH_LEVEL_API_HPP
 #define MGARD_X_COMPRESSION_HIGH_LEVEL_API_HPP
 
+#if MGARD_ENABLE_OPENMP
 #include "CPUPipelines.hpp"
+#endif
 #include "ErrorToleranceCalculator.hpp"
 #include "GPUPipelines.hpp"
 #include "ShapeAdjustment.hpp"
@@ -223,9 +225,10 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
   if (log::level & log::TIME)
     timer_each.start();
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
-  if (std::is_same<DeviceType, CUDA>::value ||
-      std::is_same<DeviceType, HIP>::value ||
-      std::is_same<DeviceType, SYCL>::value) {
+  if constexpr (std::is_same<DeviceType, CUDA>::value ||
+                std::is_same<DeviceType, HIP>::value ||
+                std::is_same<DeviceType, SYCL>::value ||
+                std::is_same<DeviceType, SERIAL>::value) {
     compress_status = compress_pipeline_gpu(
         domain_decomposer, local_tol, s, norm, local_ebtype, config,
         compressed_subdomain_data, compressed_subdomain_size);
@@ -529,9 +532,10 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
     timer_each.start();
   DeviceRuntime<DeviceType>::SelectDevice(config.dev_id);
 
-  if (std::is_same<DeviceType, CUDA>::value ||
-      std::is_same<DeviceType, HIP>::value ||
-      std::is_same<DeviceType, SYCL>::value) {
+  if constexpr (std::is_same<DeviceType, CUDA>::value ||
+                std::is_same<DeviceType, HIP>::value ||
+                std::is_same<DeviceType, SYCL>::value ||
+                std::is_same<DeviceType, SERIAL>::value) {
     decompress_status = decompress_pipeline_gpu(
         domain_decomposer, local_tol, (T)m.s, (T)m.norm, local_ebtype, config,
         compressed_subdomain_data);

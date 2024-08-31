@@ -61,7 +61,7 @@ enum compress_status_type compress_pipeline_gpu(
   Timer timer_profile;
   std::vector<float> h2d, d2h, comp, size;
   bool profile = false;
-  bool profile_e2e = true;
+  bool profile_e2e = false;
 
   // For serialization
   SIZE byte_offset = 0;
@@ -329,7 +329,7 @@ enum compress_status_type decompress_pipeline_gpu(
   Timer timer_profile;
   std::vector<float> h2d, d2h, comp, size;
   bool profile = false;
-  bool profile_e2e = true;
+  bool profile_e2e = false;
 
   // Pre-fetch the first subdomain on queue 0
   int current_buffer = 0;
