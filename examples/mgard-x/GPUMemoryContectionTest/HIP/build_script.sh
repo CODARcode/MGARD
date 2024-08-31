@@ -10,7 +10,7 @@ set -x
 set -e
 
 # Setup MGARD installation dir
-install_dir=$(pwd)/../../../../install-hip-fontier
+install_dir=$(pwd)/../../../../install-hip-frontier
 
 rm -rf build
 mkdir build 

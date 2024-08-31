@@ -9,7 +9,7 @@
 set -x
 set -e
 
-install_dir=$(pwd)/../../../install-cuda-turing
+install_dir=$(pwd)/../../../install-hip-frontier
 
 rm -rf build
 mkdir build 

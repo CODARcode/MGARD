@@ -1,7 +1,7 @@
 #include "mgard/compress_x.hpp"
 
 #include <iostream>
-#include <vector>
+// #include <vector>
 
 int main() {
 

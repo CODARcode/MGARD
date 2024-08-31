@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(Example HIP)
+project(Example HIP CXX)
 find_package(mgard REQUIRED)
 find_package(MPI REQUIRED)
 

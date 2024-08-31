@@ -55,7 +55,7 @@ enum compress_status_type compress_pipeline_cpu(
 
   Timer timer_profile;
   std::vector<float> h2d, d2h, comp, size;
-  bool profile = true;
+  bool profile = false;
   bool profile_e2e = false;
 
   // For serialization
@@ -327,7 +327,7 @@ enum compress_status_type decompress_pipeline_cpu(
 
   Timer timer_profile;
   std::vector<float> h2d, d2h, comp, size;
-  bool profile = true;
+  bool profile = false;
   bool profile_e2e = false;
 
   if (profile) {
