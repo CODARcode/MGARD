@@ -1540,15 +1540,15 @@ struct WarpBitTranspose<T_org, T_trans, ALIGN, METHOD, b, B, CUDA> {
 
   MGARDX_EXEC static void Transpose(T_org *v, SIZE inc_v, T_trans *tv,
                                     SIZE inc_tv, SIZE LaneId) {
-    if (METHOD == Warp_Bit_Transpose_Serial_All) {
+    if constexpr (METHOD == Warp_Bit_Transpose_Serial_All) {
       Serial_All(v, inc_v, tv, inc_tv, LaneId);
-    } else if (METHOD == Warp_Bit_Transpose_Parallel_B_Serial_b) {
+    } else if constexpr (METHOD == Warp_Bit_Transpose_Parallel_B_Serial_b) {
       Parallel_B_Serial_b(v, inc_v, tv, inc_tv, LaneId);
-    } else if (METHOD == Warp_Bit_Transpose_Serial_B_Atomic_b) {
+    } else if constexpr (METHOD == Warp_Bit_Transpose_Serial_B_Atomic_b) {
       Serial_B_Atomic_b(v, inc_v, tv, inc_tv, LaneId);
-    } else if (METHOD == Warp_Bit_Transpose_Serial_B_Reduce_b) {
+    } else if constexpr (METHOD == Warp_Bit_Transpose_Serial_B_Reduce_b) {
       Serial_B_Reduce_b(v, inc_v, tv, inc_tv, LaneId);
-    } else if (METHOD == Warp_Bit_Transpose_Serial_B_Ballot_b) {
+    } else if constexpr (METHOD == Warp_Bit_Transpose_Serial_B_Ballot_b) {
       Serial_B_Ballot_b(v, inc_v, tv, inc_tv, LaneId);
     }
   }
@@ -1772,15 +1772,18 @@ struct BlockErrorCollect<T, T_fp, T_sfp, T_error, nblockx, nblocky, nblockz,
   MGARDX_EXEC
   static void Collect(T *v, T_error *temp, T_error *errors, SIZE num_elems,
                       SIZE num_bitplanes, SIZE IdX, SIZE IdY) {
-    if (METHOD == Error_Collecting_Serial_All)
+    if constexpr (METHOD == Error_Collecting_Serial_All)
       Serial_All(v, temp, errors, num_elems, num_bitplanes, IdX, IdY);
-    else if (METHOD == Error_Collecting_Parallel_Bitplanes_Serial_Error)
+    else if constexpr (METHOD ==
+                       Error_Collecting_Parallel_Bitplanes_Serial_Error)
       Parallel_Bitplanes_Serial_Error(v, temp, errors, num_elems, num_bitplanes,
                                       IdX, IdY);
-    else if (METHOD == Error_Collecting_Parallel_Bitplanes_Atomic_Error)
+    else if constexpr (METHOD ==
+                       Error_Collecting_Parallel_Bitplanes_Atomic_Error)
       Parallel_Bitplanes_Atomic_Error(v, temp, errors, num_elems, num_bitplanes,
                                       IdX, IdY);
-    else if (METHOD == Error_Collecting_Parallel_Bitplanes_Reduce_Error)
+    else if constexpr (METHOD ==
+                       Error_Collecting_Parallel_Bitplanes_Reduce_Error)
       Parallel_Bitplanes_Reduce_Error(v, temp, errors, num_elems, num_bitplanes,
                                       IdX, IdY);
     // else if (METHOD == Error_Collecting_Disable) {}

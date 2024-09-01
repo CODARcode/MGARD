@@ -10,8 +10,8 @@
 
 #include "../DataRefactoring.h"
 
+#include "../../MultiDimension/CopyND/LevelwiseProcessingKernel.hpp"
 #include "../../MultiDimension/Correction/IterativeProcessingKernel.hpp"
-#include "../../MultiDimension/Correction/LevelwiseProcessingKernel.hpp"
 
 #include "MassTransKernel.hpp"
 

@@ -151,8 +151,6 @@ void refactor_pipeline(
 template <DIM D, typename T, typename DeviceType, typename ReconstructorType>
 void reconstruct_pipeline(
     DomainDecomposer<D, T, ReconstructorType, DeviceType> &domain_decomposer,
-    DomainDecomposer<D, T, ReconstructorType, DeviceType>
-        &domain_decomposer_org,
     Config &config, RefactoredMetadata &refactored_metadata,
     RefactoredData &refactored_data, ReconstructedData &reconstructed_data) {
   Timer timer_series;
@@ -367,17 +365,8 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
   if (log::level & log::TIME)
     timer_each.start();
 
-  bool old_sync_set = DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors;
-  if (!config.prefetch) {
-    DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = true;
-  } else {
-    DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = false;
-  }
-
   refactor_pipeline(domain_decomposer, config, refactored_metadata,
                     refactored_data);
-
-  DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = old_sync_set;
 
   if (log::level & log::TIME) {
     timer_each.end();
@@ -596,26 +585,6 @@ void MDReconstruct(std::vector<SIZE> shape,
     domain_decomposer.set_decomposed_original_data(decomposed_original_data);
   }
 
-  // This is for accessing original data for error collection
-  DomainDecomposer<D, T, ComposedReconstructor<D, T, DeviceType>, DeviceType>
-      domain_decomposer_org;
-  if (config.collect_uncertainty) {
-    if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
-      domain_decomposer_org =
-          DomainDecomposer<D, T, ComposedReconstructor<D, T, DeviceType>,
-                           DeviceType>(shape, m.domain_decomposed,
-                                       m.domain_decomposed_dim,
-                                       m.domain_decomposed_size, config);
-    } else {
-      domain_decomposer_org =
-          DomainDecomposer<D, T, ComposedReconstructor<D, T, DeviceType>,
-                           DeviceType>(
-              shape, m.domain_decomposed, m.domain_decomposed_dim,
-              m.domain_decomposed_size, config, coords);
-    }
-    domain_decomposer_org.set_original_data((T *)original_data);
-  }
-
   if (log::level & log::TIME) {
     timer_each.end();
     timer_each.print("Prepare input and output buffer");
@@ -625,18 +594,8 @@ void MDReconstruct(std::vector<SIZE> shape,
   if (log::level & log::TIME)
     timer_each.start();
 
-  bool old_sync_set = DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors;
-  if (!config.prefetch) {
-    DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = true;
-  } else {
-    DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = false;
-  }
-
-  reconstruct_pipeline(domain_decomposer, domain_decomposer_org, config,
-                       refactored_metadata, refactored_data,
-                       reconstructed_data);
-
-  DeviceRuntime<DeviceType>::SyncAllKernelsAndCheckErrors = old_sync_set;
+  reconstruct_pipeline(domain_decomposer, config, refactored_metadata,
+                       refactored_data, reconstructed_data);
 
   if (log::level & log::TIME) {
     timer_each.end();
