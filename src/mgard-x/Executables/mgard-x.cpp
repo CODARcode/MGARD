@@ -311,7 +311,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     config.num_local_refactoring_level = 1;
   }
 
-  config.max_larget_level = 1;
+  // config.max_larget_level = 1;
 
   // config.compressor = mgard_x::compressor_type::ZFP;
 
@@ -321,8 +321,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
     config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
   }
 
-  config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
-  config.block_size = 64;
+  // config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
+  // config.block_size = 64;
 
   config.cpu_mode = mgard_x::cpu_parallelization_mode::INTER_BLOCK;
 
@@ -344,7 +344,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(96, 13);
 
   // E3SM
-  config.domain_decomposition_sizes = {720, 720, 720, 720};
+  // config.domain_decomposition_sizes = {720, 720, 720, 720};
   // config.domain_decomposition_sizes = {180, 368, 463, 529, 605, 692, 43};
   // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(192, 15);
 
