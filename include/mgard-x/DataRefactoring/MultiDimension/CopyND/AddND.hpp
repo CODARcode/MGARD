@@ -10,7 +10,7 @@
 
 #include "../DataRefactoring.h"
 
-#include "../Correction/LevelwiseProcessingKernel.hpp"
+#include "LevelwiseProcessingKernel.hpp"
 
 #ifndef MGARD_X_DATA_REFACTORING_ADD_ND
 #define MGARD_X_DATA_REFACTORING_ADD_ND
