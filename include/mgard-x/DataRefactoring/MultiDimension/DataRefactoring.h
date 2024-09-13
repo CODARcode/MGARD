@@ -72,6 +72,10 @@ void CopyND(SubArray<D, T, DeviceType> dinput,
             SubArray<D, T, DeviceType> doutput, int queue_idx);
 
 template <DIM D, typename T, typename DeviceType>
+void Copy3D(SubArray<D, T, DeviceType> dinput,
+            SubArray<D, T, DeviceType> doutput, bool padding, int queue_idx);
+
+template <DIM D, typename T, typename DeviceType>
 void AddND(SubArray<D, T, DeviceType> dinput,
            SubArray<D, T, DeviceType> doutput, int queue_idx);
 

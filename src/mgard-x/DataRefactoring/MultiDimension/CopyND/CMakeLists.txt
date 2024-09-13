@@ -1,4 +1,5 @@
 MgardXGenerateSourceAllCombinations("CopyND")
+MgardXGenerateSourceAllCombinations("Copy3D")
 MgardXGenerateSourceAllCombinations("AddND")
 MgardXGenerateSourceAllCombinations("SubtractND")
 set(MGARD_X_SERIAL_SRC ${MGARD_X_SERIAL_SRC} PARENT_SCOPE)
