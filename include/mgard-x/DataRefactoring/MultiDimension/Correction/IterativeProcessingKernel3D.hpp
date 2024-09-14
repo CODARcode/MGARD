@@ -398,8 +398,8 @@ public:
     tbx = C;
     tby = R;
     tbz = 1;
-    gridx = ceil((float)total_thread_x / tbx);
-    gridy = ceil((float)total_thread_y / tby);
+    gridx = ceil((double)total_thread_x / tbx);
+    gridy = ceil((double)total_thread_y / tby);
     gridz = 1;
     tbx = F;
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
@@ -772,8 +772,8 @@ public:
     tbx = F;
     tby = R;
     tbz = 1;
-    gridx = ceil((float)total_thread_x / tbx);
-    gridy = ceil((float)total_thread_y / tby);
+    gridx = ceil((double)total_thread_x / tbx);
+    gridy = ceil((double)total_thread_y / tby);
     gridz = 1;
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
                 std::string(Name));
@@ -1146,8 +1146,8 @@ public:
     tbx = F;
     tby = C;
     tbz = 1;
-    gridx = ceil((float)total_thread_x / tbx);
-    gridy = ceil((float)total_thread_y / tby);
+    gridx = ceil((double)total_thread_x / tbx);
+    gridy = ceil((double)total_thread_y / tby);
     gridz = 1;
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,
                 std::string(Name));

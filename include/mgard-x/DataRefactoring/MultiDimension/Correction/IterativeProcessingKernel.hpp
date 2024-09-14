@@ -607,8 +607,8 @@ public:
     tbx = C;
     tby = R;
     tbz = 1;
-    gridx = ceil((float)total_thread_x / tbx);
-    gridy = ceil((float)total_thread_y / tby);
+    gridx = ceil((double)total_thread_x / tbx);
+    gridy = ceil((double)total_thread_y / tby);
     gridz = 1;
     tbx = F; // necessary to ensure width is enough
 
@@ -1272,8 +1272,8 @@ public:
     tbx = F;
     tby = R;
     tbz = 1;
-    gridx = ceil((float)total_thread_x / tbx);
-    gridy = ceil((float)total_thread_y / tby);
+    gridx = ceil((double)total_thread_x / tbx);
+    gridy = ceil((double)total_thread_y / tby);
     gridz = 1;
     // tbx = F; // necessary to ensure width is enough
 
@@ -1962,8 +1962,8 @@ public:
     tbx = F;
     tby = C;
     tbz = 1;
-    gridx = ceil((float)total_thread_x / tbx);
-    gridy = ceil((float)total_thread_y / tby);
+    gridx = ceil((double)total_thread_x / tbx);
+    gridy = ceil((double)total_thread_y / tby);
     gridz = 1;
     // tbx = F; // necessary to ensure width is enough
 

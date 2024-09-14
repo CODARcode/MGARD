@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
 
     shape = var_i_f_in.Shape();
     if (ts == 0) {
-      temp_dim = (size_t)ceil((float)shape[1] / np_size);
+      temp_dim = (size_t)ceil((double)shape[1] / np_size);
       local_dim =
           ((rank == np_size - 1) ? (shape[1] - temp_dim * rank) : temp_dim);
       temp_sz = temp_dim * shape[0] * shape[2] * shape[3];

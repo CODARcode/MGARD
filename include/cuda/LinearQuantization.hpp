@@ -389,9 +389,9 @@ void levelwise_linear_quantize_adaptive_launcher(
   int tbz = R;
   int tby = C;
   int tbx = F;
-  int gridz = ceil((float)total_thread_z / tbz);
-  int gridy = ceil((float)total_thread_y / tby);
-  int gridx = ceil((float)total_thread_x / tbx);
+  int gridz = ceil((double)total_thread_z / tbz);
+  int gridy = ceil((double)total_thread_y / tby);
+  int gridx = ceil((double)total_thread_x / tbx);
   for (int d = 3; d < D; d++) {
     gridx *= handle.dofs[d][0];
   }
@@ -834,9 +834,9 @@ void levelwise_linear_dequantize_adaptive_launcher(
   SIZE tbz = R;
   SIZE tby = C;
   SIZE tbx = F;
-  SIZE gridz = ceil((float)total_thread_z / tbz);
-  SIZE gridy = ceil((float)total_thread_y / tby);
-  SIZE gridx = ceil((float)total_thread_x / tbx);
+  SIZE gridz = ceil((double)total_thread_z / tbz);
+  SIZE gridy = ceil((double)total_thread_y / tby);
+  SIZE gridx = ceil((double)total_thread_x / tbx);
   for (DIM d = 3; d < D; d++) {
     gridx *= handle.dofs[d][0];
   }
