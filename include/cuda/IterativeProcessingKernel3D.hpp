@@ -308,8 +308,8 @@ void ipk_1_3d_adaptive_launcher(Handle<D, T> &handle, SIZE nr, SIZE nc,
   tby = R; // std::max(R, std::min(R, total_thread_y));
   tbz = 1;
   sm_size = (R * C + 2) * (F + G) * sizeof(T);
-  gridx = ceil((float)total_thread_x / tbx);
-  gridy = ceil((float)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
+  gridy = ceil((double)total_thread_y / tby);
   gridz = 1;
   threadsPerBlock = dim3(F, tby, tbz);
   blockPerGrid = dim3(gridx, gridy, gridz);
@@ -710,8 +710,8 @@ void ipk_2_3d_adaptive_launcher(Handle<D, T> &handle, SIZE nr, SIZE nc_c,
   tby = R; // std::max(R, std::min(R, total_thread_y));
   tbz = 1;
   sm_size = (R * F + 2) * (C + G) * sizeof(T);
-  gridx = ceil((float)total_thread_x / tbx);
-  gridy = ceil((float)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
+  gridy = ceil((double)total_thread_y / tby);
   gridz = 1;
   threadsPerBlock = dim3(tbx, tby, tbz);
   blockPerGrid = dim3(gridx, gridy, gridz);
@@ -1087,8 +1087,8 @@ void ipk_3_3d_adaptive_launcher(Handle<D, T> &handle, SIZE nr_c, SIZE nc_c,
   tby = C; // std::max(C, std::min(C, total_thread_y));
   tbz = 1;
   sm_size = (C * F + 2) * (R + G) * sizeof(T);
-  gridx = ceil((float)total_thread_x / tbx);
-  gridy = ceil((float)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
+  gridy = ceil((double)total_thread_y / tby);
   gridz = 1;
   threadsPerBlock = dim3(tbx, tby, tbz);
   blockPerGrid = dim3(gridx, gridy, gridz);

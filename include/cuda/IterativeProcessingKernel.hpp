@@ -542,8 +542,8 @@ void ipk_1_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h,
   sm_size = (R * C + 2) * (F + G) * sizeof(T);
   sm_size += (D * 4) * sizeof(SIZE);
   sm_size += (D * 1) * sizeof(DIM);
-  gridx = ceil((float)total_thread_x / tbx);
-  gridy = ceil((float)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
+  gridy = ceil((double)total_thread_y / tby);
   gridz = 1;
   // printf("ipk 1 total_thread_x %d tbx %d\n", total_thread_x, tbx);
 
@@ -1248,8 +1248,8 @@ void ipk_2_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h,
   sm_size += (D * 4) * sizeof(SIZE);
   sm_size += (D * 1) * sizeof(DIM);
 
-  gridx = ceil((float)total_thread_x / tbx);
-  gridy = ceil((float)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
+  gridy = ceil((double)total_thread_y / tby);
   gridz = 1;
   for (DIM d = 0; d < D; d++) {
     if (d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
@@ -1985,8 +1985,8 @@ void ipk_3_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h,
   sm_size += (D * 4) * sizeof(SIZE);
   sm_size += (D * 1) * sizeof(DIM);
 
-  gridx = ceil((float)total_thread_x / tbx);
-  gridy = ceil((float)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
+  gridy = ceil((double)total_thread_y / tby);
   gridz = 1;
   for (DIM d = 0; d < D; d++) {
     if (d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {

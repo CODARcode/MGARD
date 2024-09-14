@@ -61,8 +61,8 @@ void calc_cpt_dist(Handle<D, T> &handle, int n, T *dcoord, T *ddist,
   int total_thread_y = 1;
   int tbx = std::min(16, total_thread_x);
   int tby = 1;
-  int gridx = ceil((float)total_thread_x / tbx);
-  int gridy = ceil((float)total_thread_y / tby);
+  int gridx = ceil((double)total_thread_x / tbx);
+  int gridy = ceil((double)total_thread_y / tby);
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
   size_t sm_size = (tbx + 1) * sizeof(T);
@@ -106,8 +106,8 @@ void reduce_two_dist(Handle<D, T> &handle, int n, T *ddist, T *ddist_reduced,
   int total_thread_y = 1;
   int tbx = std::min(16, total_thread_x);
   int tby = 1;
-  int gridx = ceil((float)total_thread_x / tbx);
-  int gridy = ceil((float)total_thread_y / tby);
+  int gridx = ceil((double)total_thread_x / tbx);
+  int gridy = ceil((double)total_thread_y / tby);
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
   size_t sm_size = tbx * sizeof(T);
@@ -162,8 +162,8 @@ void dist_to_ratio(Handle<D, T> &handle, int n, T *ddist, T *dratio,
   int total_thread_y = 1;
   int tbx = std::min(16, total_thread_x);
   int tby = 1;
-  int gridx = ceil((float)total_thread_x / tbx);
-  int gridy = ceil((float)total_thread_y / tby);
+  int gridx = ceil((double)total_thread_x / tbx);
+  int gridy = ceil((double)total_thread_y / tby);
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
   size_t sm_size = (tbx + 1) * sizeof(T);
@@ -235,8 +235,8 @@ void dist_to_volume(Handle<D, T> &handle, int n, T *ddist, T *dvolume,
   int total_thread_y = 1;
   int tbx = std::min(16, total_thread_x);
   int tby = 1;
-  int gridx = ceil((float)total_thread_x / tbx);
-  int gridy = ceil((float)total_thread_y / tby);
+  int gridx = ceil((double)total_thread_x / tbx);
+  int gridy = ceil((double)total_thread_y / tby);
   dim3 threadsPerBlock(tbx, tby);
   dim3 blockPerGrid(gridx, gridy);
   size_t sm_size = (tbx + 2) * sizeof(T);

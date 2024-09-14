@@ -441,9 +441,9 @@ void lpk_reo_1_adaptive_launcher(
   sm_size = (R * C * (F * 2 + 3) + (F * 2 + 3) * 2) * sizeof(T);
   sm_size += (D * 4) * sizeof(SIZE);
   sm_size += (D * 1) * sizeof(DIM);
-  gridz = ceil((float)total_thread_z / tbz);
-  gridy = ceil((float)total_thread_y / tby);
-  gridx = ceil((float)total_thread_x / tbx);
+  gridz = ceil((double)total_thread_z / tbz);
+  gridy = ceil((double)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
   for (DIM d = 0; d < D; d++) {
     if (d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
       SIZE t = shape_h[d];
@@ -891,9 +891,9 @@ void lpk_reo_2_adaptive_launcher(
   sm_size = (R * (C * 2 + 3) * F + (C * 2 + 3) * 2) * sizeof(T);
   sm_size += (D * 4) * sizeof(SIZE);
   sm_size += (D * 1) * sizeof(DIM);
-  gridz = ceil((float)total_thread_z / tbz);
-  gridy = ceil((float)total_thread_y / tby);
-  gridx = ceil((float)total_thread_x / tbx);
+  gridz = ceil((double)total_thread_z / tbz);
+  gridy = ceil((double)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
   for (DIM d = 0; d < D; d++) {
     if (d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
       SIZE t = shape_h[d];
@@ -1336,9 +1336,9 @@ void lpk_reo_3_adaptive_launcher(
   sm_size = ((R * 2 + 3) * C * F + (R * 2 + 3) * 2) * sizeof(T);
   sm_size += (D * 4) * sizeof(SIZE);
   sm_size += (D * 1) * sizeof(DIM);
-  gridz = ceil((float)total_thread_z / tbz);
-  gridy = ceil((float)total_thread_y / tby);
-  gridx = ceil((float)total_thread_x / tbx);
+  gridz = ceil((double)total_thread_z / tbz);
+  gridy = ceil((double)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
   for (DIM d = 0; d < D; d++) {
     if (d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
       SIZE t = shape_h[d];

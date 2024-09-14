@@ -814,9 +814,9 @@ void amr_gb(const T1 *u_mc, customized_hierarchy<T2> &c_hierarchy,
   float factor_ = 2;
   size_t depth = thresh.size();
   // initialize parent, children blocks (maximal #)
-  size_t nr = (size_t)std::ceil((float)bin_w[0].r / bin_w[depth].r);
-  size_t nc = (size_t)std::ceil((float)bin_w[0].c / bin_w[depth].c);
-  size_t nh = (size_t)std::ceil((float)bin_w[0].h / bin_w[depth].h);
+  size_t nr = (size_t)std::ceil((double)bin_w[0].r / bin_w[depth].r);
+  size_t nc = (size_t)std::ceil((double)bin_w[0].c / bin_w[depth].c);
+  size_t nh = (size_t)std::ceil((double)bin_w[0].h / bin_w[depth].h);
   std::vector<struct cube_<int>> child_blc(nr * nc * nh);
   std::vector<struct cube_<int>> parent_blc(nr * nc * nh);
 
@@ -1028,13 +1028,13 @@ std::vector<size_t> R2)
     float factor_ = (N==3) ? 2.5 : 2;
     size_t depth = thresh.size();
     // initialize parent blocks (maximal #)
-    size_t nr = (size_t)std::ceil((float)bin_w[0].r / bin_w[depth].r);
-    size_t nc = (size_t)std::ceil((float)bin_w[0].c / bin_w[depth].c);
-    size_t nh = (size_t)std::ceil((float)bin_w[0].h / bin_w[depth].h);
+    size_t nr = (size_t)std::ceil((double)bin_w[0].r / bin_w[depth].r);
+    size_t nc = (size_t)std::ceil((double)bin_w[0].c / bin_w[depth].c);
+    size_t nh = (size_t)std::ceil((double)bin_w[0].h / bin_w[depth].h);
     // initialize children blocks (maximal #)
-    nr = (size_t)std::ceil((float)bin_w[0].r / bin_w[depth].r);
-    nc = (size_t)std::ceil((float)bin_w[0].c / bin_w[depth].c);
-    nh = (size_t)std::ceil((float)bin_w[0].h / bin_w[depth].h);
+    nr = (size_t)std::ceil((double)bin_w[0].r / bin_w[depth].r);
+    nc = (size_t)std::ceil((double)bin_w[0].c / bin_w[depth].c);
+    nh = (size_t)std::ceil((double)bin_w[0].h / bin_w[depth].h);
     std::vector<struct cube_<int>> child_blc(nr*nc*nh);
     std::vector<struct cube_<int>> parent_blc(nr*nc*nh);
 
