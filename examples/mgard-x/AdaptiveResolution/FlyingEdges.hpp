@@ -1161,9 +1161,9 @@ public:
     tbz = R;
     tby = C;
     tbx = F;
-    gridz = ceil((float)total_thread_z / tbz);
-    gridy = ceil((float)total_thread_y / tby);
-    gridx = ceil((float)total_thread_x / tbx);
+    gridz = ceil((double)total_thread_z / tbz);
+    gridy = ceil((double)total_thread_y / tby);
+    gridx = ceil((double)total_thread_x / tbx);
 
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
@@ -1191,9 +1191,9 @@ public:
     tbz = R;
     tby = C;
     tbx = F;
-    gridz = ceil((float)total_thread_z / tbz);
-    gridy = ceil((float)total_thread_y / tby);
-    gridx = ceil((float)total_thread_x / tbx);
+    gridz = ceil((double)total_thread_z / tbz);
+    gridy = ceil((double)total_thread_y / tby);
+    gridx = ceil((double)total_thread_x / tbx);
 
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
@@ -1225,9 +1225,9 @@ public:
     tbz = R;
     tby = C;
     tbx = F;
-    gridz = ceil((float)total_thread_z / tbz);
-    gridy = ceil((float)total_thread_y / tby);
-    gridx = ceil((float)total_thread_x / tbx);
+    gridz = ceil((double)total_thread_z / tbz);
+    gridy = ceil((double)total_thread_y / tby);
+    gridx = ceil((double)total_thread_x / tbx);
 
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);

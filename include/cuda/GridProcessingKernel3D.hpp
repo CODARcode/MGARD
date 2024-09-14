@@ -1086,9 +1086,9 @@ void gpk_reo_3d_adaptive_launcher(
   tby = C;
   tbx = F;
   sm_size = ((R + 1) * (C + 1) * (F + 1) + R + C + F) * sizeof(T);
-  gridz = ceil((float)total_thread_z / tbz);
-  gridy = ceil((float)total_thread_y / tby);
-  gridx = ceil((float)total_thread_x / tbx);
+  gridz = ceil((double)total_thread_z / tbz);
+  gridy = ceil((double)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
   threadsPerBlock = dim3(tbx, tby, tbz);
   blockPerGrid = dim3(gridx, gridy, gridz);
   // printf("exec config (%d %d %d) (%d %d %d)\n", tbx, tby, tbz, gridx, gridy,
@@ -2257,9 +2257,9 @@ void gpk_rev_3d_adaptive_launcher(
   tby = C;
   tbx = F;
   sm_size = ((R + 1) * (C + 1) * (F + 1) + R + C + F) * sizeof(T);
-  gridz = ceil((float)total_thread_z / tbz);
-  gridy = ceil((float)total_thread_y / tby);
-  gridx = ceil((float)total_thread_x / tbx);
+  gridz = ceil((double)total_thread_z / tbz);
+  gridy = ceil((double)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
   threadsPerBlock = dim3(tbx, tby, tbz);
   blockPerGrid = dim3(gridx, gridy, gridz);
   // printf("prolongate exec: %d %d %d %d %d %d\n", tbx, tby, tbz, gridx, gridy,

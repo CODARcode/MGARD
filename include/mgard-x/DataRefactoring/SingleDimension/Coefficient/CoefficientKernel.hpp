@@ -189,9 +189,9 @@ public:
     tbz = R;
     tby = C;
     tbx = F;
-    gridz = ceil((float)total_thread_z / tbz);
-    gridy = ceil((float)total_thread_y / tby);
-    gridx = ceil((float)total_thread_x / tbx);
+    gridz = ceil((double)total_thread_z / tbz);
+    gridy = ceil((double)total_thread_y / tby);
+    gridx = ceil((double)total_thread_x / tbx);
 
     for (DIM d = 3; d < D; d++) {
       gridx *= coeff.shape(D - (d + 1));

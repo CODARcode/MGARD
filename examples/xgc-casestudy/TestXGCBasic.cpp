@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
     return -1;
   }
 
-  size_t temp_dim = (size_t)ceil((float)shape[1] / np_size);
+  size_t temp_dim = (size_t)ceil((double)shape[1] / np_size);
   size_t local_dim =
       ((rank == np_size - 1) ? (shape[1] - temp_dim * rank) : temp_dim);
   size_t local_sz = local_dim * shape[0] * shape[2] * shape[3];

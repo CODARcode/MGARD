@@ -184,9 +184,9 @@ compress_roi(const TensorMeshHierarchy<N, Real> &hierarchy, Real *const v,
     bin_w[1].c = (init_bw.size() > 1) ? init_bw.at(1) : 1;
     bin_w[1].h = (init_bw.size() > 2) ? init_bw.at(2) : 1;
     for (int i = 2; i < thresh.size() + 1; i++) {
-      bin_w[i].r = (size_t)std::ceil((float)bin_w[i - 1].r / bw_ratio[i - 2]);
-      bin_w[i].c = (size_t)std::ceil((float)bin_w[i - 1].c / bw_ratio[i - 2]);
-      bin_w[i].h = (size_t)std::ceil((float)bin_w[i - 1].h / bw_ratio[i - 2]);
+      bin_w[i].r = (size_t)std::ceil((double)bin_w[i - 1].r / bw_ratio[i - 2]);
+      bin_w[i].c = (size_t)std::ceil((double)bin_w[i - 1].c / bw_ratio[i - 2]);
+      bin_w[i].h = (size_t)std::ceil((double)bin_w[i - 1].h / bw_ratio[i - 2]);
     }
 
     // depth first search for hierachical block refinement

@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
   var_i_f_in = reader_io.InquireVariable<double>("i_f");
 
   std::vector<std::size_t> shape = var_i_f_in.Shape();
-  size_t temp_dim = (size_t)ceil((float)shape[1] / np_size);
+  size_t temp_dim = (size_t)ceil((double)shape[1] / np_size);
   size_t local_dim =
       ((rank == np_size - 1) ? (shape[1] - temp_dim * rank) : temp_dim);
   size_t temp_sz = temp_dim * shape[0] * shape[2] * shape[3];

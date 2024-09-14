@@ -357,9 +357,9 @@ void lpk_reo_1_3d_adaptive_launcher(Handle<D, T> &handle, SIZE nr, SIZE nc,
   tby = C;
   tbx = F;
   sm_size = (R * C * (F * 2 + 3) + (F * 2 + 3) * 2) * sizeof(T);
-  gridz = ceil((float)total_thread_z / tbz);
-  gridy = ceil((float)total_thread_y / tby);
-  gridx = ceil((float)total_thread_x / tbx);
+  gridz = ceil((double)total_thread_z / tbz);
+  gridy = ceil((double)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
   threadsPerBlock = dim3(tbx, tby, tbz);
   blockPerGrid = dim3(gridx, gridy, gridz);
 
@@ -706,9 +706,9 @@ void lpk_reo_2_3d_adaptive_launcher(Handle<D, T> &handle, SIZE nr, SIZE nc,
   tby = C;
   tbx = F;
   sm_size = (R * (C * 2 + 3) * F + (C * 2 + 3) * 2) * sizeof(T);
-  gridz = ceil((float)total_thread_z / tbz);
-  gridy = ceil((float)total_thread_y / tby);
-  gridx = ceil((float)total_thread_x / tbx);
+  gridz = ceil((double)total_thread_z / tbz);
+  gridy = ceil((double)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
   threadsPerBlock = dim3(tbx, tby, tbz);
   blockPerGrid = dim3(gridx, gridy, gridz);
 
@@ -1046,9 +1046,9 @@ void lpk_reo_3_3d_adaptive_launcher(Handle<D, T> &handle, SIZE nr, SIZE nc_c,
   tby = C;
   tbx = F;
   sm_size = ((R * 2 + 3) * C * F + (R * 2 + 3) * 2) * sizeof(T);
-  gridz = ceil((float)total_thread_z / tbz);
-  gridy = ceil((float)total_thread_y / tby);
-  gridx = ceil((float)total_thread_x / tbx);
+  gridz = ceil((double)total_thread_z / tbz);
+  gridy = ceil((double)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
   threadsPerBlock = dim3(tbx, tby, tbz);
   blockPerGrid = dim3(gridx, gridy, gridz);
 

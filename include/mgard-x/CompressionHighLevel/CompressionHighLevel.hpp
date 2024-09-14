@@ -89,7 +89,8 @@ general_compress(std::vector<SIZE> shape, T tol, T s,
   using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
   if (std::is_same<DeviceType, CUDA>::value ||
       std::is_same<DeviceType, HIP>::value ||
-      std::is_same<DeviceType, SYCL>::value) {
+      std::is_same<DeviceType, SYCL>::value ||
+      std::is_same<DeviceType, SERIAL>::value) {
     Cache::cache.SafeInitialize(2, 1);
   } else {
     Cache::cache.SafeInitialize(domain_decomposer.num_subdomains(),
@@ -495,7 +496,8 @@ general_decompress(std::vector<SIZE> shape, const void *compressed_data,
   using Cache = CompressorCache<D, T, DeviceType, CompressorType>;
   if (std::is_same<DeviceType, CUDA>::value ||
       std::is_same<DeviceType, HIP>::value ||
-      std::is_same<DeviceType, SYCL>::value) {
+      std::is_same<DeviceType, SYCL>::value ||
+      std::is_same<DeviceType, SERIAL>::value) {
     Cache::cache.SafeInitialize(2, 1);
   } else {
     Cache::cache.SafeInitialize(domain_decomposer.num_subdomains(),

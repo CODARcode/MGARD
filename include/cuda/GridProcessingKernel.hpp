@@ -1948,9 +1948,9 @@ void gpk_reo_adaptive_launcher(
   sm_size += (D_GLOBAL * 4) * sizeof(SIZE);
   sm_size += (D_GLOBAL * 1) * sizeof(DIM);
 
-  gridz = ceil((float)total_thread_z / tbz);
-  gridy = ceil((float)total_thread_y / tby);
-  gridx = ceil((float)total_thread_x / tbx);
+  gridz = ceil((double)total_thread_z / tbz);
+  gridy = ceil((double)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
   for (DIM d = 0; d < D_GLOBAL; d++) {
     if (D_LOCAL == 3 && d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
       gridx *= shape_h[d];
@@ -4173,9 +4173,9 @@ void gpk_rev_adaptive_launcher(
   sm_size += (D_GLOBAL * 4) * sizeof(SIZE);
   sm_size += (D_GLOBAL * 1) * sizeof(DIM);
 
-  gridz = ceil((float)total_thread_z / tbz);
-  gridy = ceil((float)total_thread_y / tby);
-  gridx = ceil((float)total_thread_x / tbx);
+  gridz = ceil((double)total_thread_z / tbz);
+  gridy = ceil((double)total_thread_y / tby);
+  gridx = ceil((double)total_thread_x / tbx);
   for (DIM d = 0; d < D_GLOBAL; d++) {
     if (D_LOCAL == 3 && d != curr_dim_f && d != curr_dim_c && d != curr_dim_r) {
       gridx *= shape_h[d];

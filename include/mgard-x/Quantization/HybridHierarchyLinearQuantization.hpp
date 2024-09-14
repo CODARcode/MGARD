@@ -131,9 +131,9 @@ public:
     tbz = 1;
     tby = 1;
     tbx = 256;
-    gridz = ceil((float)total_thread_z / tbz);
-    gridy = ceil((float)total_thread_y / tby);
-    gridx = ceil((float)total_thread_x / tbx);
+    gridz = ceil((double)total_thread_z / tbz);
+    gridy = ceil((double)total_thread_y / tby);
+    gridx = ceil((double)total_thread_x / tbx);
     // printf("%u %u %u\n", shape.dataHost()[2], shape.dataHost()[1],
     // shape.dataHost()[0]); PrintSubarray("shape", shape);
     return Task(functor, gridz, gridy, gridx, tbz, tby, tbx, sm_size, queue_idx,

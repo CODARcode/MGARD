@@ -79,9 +79,9 @@ void lwpk_adaptive_launcher(Handle<D, T> &handle, SIZE *shape_h, SIZE *shape_d,
   SIZE tbz = R;
   SIZE tby = C;
   SIZE tbx = F;
-  SIZE gridz = ceil((float)total_thread_z / tbz);
-  SIZE gridy = ceil((float)total_thread_y / tby);
-  SIZE gridx = ceil((float)total_thread_x / tbx);
+  SIZE gridz = ceil((double)total_thread_z / tbz);
+  SIZE gridy = ceil((double)total_thread_y / tby);
+  SIZE gridx = ceil((double)total_thread_x / tbx);
   for (DIM d = 3; d < D; d++) {
     gridx *= shape_h[d];
   }
