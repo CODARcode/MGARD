@@ -22,11 +22,7 @@ Config::Config() {
   huff_block_size = 1024 * 20;
   lz4_block_size = 1 << 15;
   zstd_compress_level = 3;
-#if MGARD_ENABLE_COORDINATE_NORMALIZATION
-  normalize_coordinates = true;
-#else
   normalize_coordinates = false;
-#endif
   lossless = lossless_type::Huffman;
   reorder = 0;
   log_level = log::ERR;
