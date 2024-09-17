@@ -7,6 +7,8 @@ env:
         CATCH2_INSTALL_PREFIX: "${{ github.workspace }}/catch2"
         TCLAP_CACHE_KEY: "TCLAP-1.4.0-rc1"
         TCLAP_INSTALL_PREFIX: "${{ github.workspace }}/tclap"
+        ZSTD_CACHE_KEY: "ZSTD-1.5.0"
+        ZSTD_INSTALL_PREFIX: "${{ github.workspace }}/zstd"
         MGARD_CACHE_KEY: "MGARD-${{ github.sha }}"
         MGARD_INSTALL_PREFIX: "${{ github.workspace }}/mgard"
         MGARD_BUILD_TYPE: "Release"
@@ -70,11 +72,32 @@ jobs:
                                   cmake --build "build" --parallel
                                   cmake --install "build"
 
-        build-MGARD:
-                needs: [build-MOAB, build-Catch2, build-TCLAP]
+        build-ZSTD:
                 runs-on: ubuntu-20.04
                 steps:
-                        - run: sudo apt-get install mpich libmpich-dev liblapack-dev libzstd1 libzstd-dev libtclap-dev protobuf-compiler libprotobuf17 libprotobuf-dev
+                        - name: cache-ZSTD
+                          id: cache-ZSTD
+                          uses: actions/cache@v2.1.6
+                          with:
+                                  key: "${{ env.ZSTD_CACHE_KEY }}"
+                                  path: "${{ env.ZSTD_INSTALL_PREFIX }}"
+                        - name: build-ZSTD
+                          if: steps.cache-ZSTD.outputs.cache-hit != 'true'
+                          run: |
+                                  git clone -b v1.5.0 https://github.com/facebook/zstd.git zstd_src
+                                  mkdir -p zstd_build
+                                  cmake -S zstd_src/build/cmake -B zstd_build\
+                                        -DZSTD_MULTITHREAD_SUPPORT=ON\
+                                        -DCMAKE_INSTALL_LIBDIR=lib\
+                                        -DCMAKE_INSTALL_PREFIX="${{ env.ZSTD_INSTALL_PREFIX }}"
+                                  cmake --build zstd_build --parallel
+                                  cmake --install zstd_build
+
+        build-MGARD:
+                needs: [build-MOAB, build-Catch2, build-TCLAP, build-ZSTD]
+                runs-on: ubuntu-20.04
+                steps:
+                        - run: sudo apt-get install mpich doxygen libmpich-dev liblapack-dev libzstd1 libzstd-dev libtclap-dev protobuf-compiler libprotobuf17 libprotobuf-dev
                         - name: checkout
                           uses: actions/checkout@v2.3.4
                         - name: fetch-MOAB
@@ -92,8 +115,13 @@ jobs:
                           with:
                                   key: "${{ env.TCLAP_CACHE_KEY }}"
                                   path: "${{ env.TCLAP_INSTALL_PREFIX }}"
+                        - name: fetch-ZSTD
+                          uses: actions/cache@v2.1.6
+                          with:
+                                  key: "${{ env.ZSTD_CACHE_KEY }}"
+                                  path: "${{ env.ZSTD_INSTALL_PREFIX }}"
                         - name: configure
-                          run: cmake -S . -B "${{ env.MGARD_BUILD_DIR }}" -DCMAKE_PREFIX_PATH="${{ env.MOAB_INSTALL_PREFIX }};${{ env.CATCH2_INSTALL_PREFIX }};${{ env.TCLAP_INSTALL_PREFIX }}" -DCMAKE_BUILD_TYPE="${{ env.MGARD_BUILD_TYPE }}" -DCMAKE_INSTALL_PREFIX="${{ env.MGARD_INSTALL_PREFIX }}"
+                          run: cmake -S . -B "${{ env.MGARD_BUILD_DIR }}" -DCMAKE_PREFIX_PATH="${{ env.MOAB_INSTALL_PREFIX }};${{ env.CATCH2_INSTALL_PREFIX }};${{ env.TCLAP_INSTALL_PREFIX }};${{ env.ZSTD_INSTALL_PREFIX }}" -DCMAKE_BUILD_TYPE="${{ env.MGARD_BUILD_TYPE }}" -DCMAKE_INSTALL_PREFIX="${{ env.MGARD_INSTALL_PREFIX }}" -D MGARD_ENABLE_DOCS=ON
                         - name: build
                           run: cmake --build "${{ env.MGARD_BUILD_DIR }}" -j 8
                         - name: test
