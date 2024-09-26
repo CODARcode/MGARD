@@ -119,7 +119,7 @@ public:
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.end();
       timer.print("Huffman compress");
-      log::info("Huffman compression throughput: " +
+      log::time("Huffman compression throughput: " +
                 std::to_string((double)primary_count * sizeof(Q) / timer.get() /
                                1e9) +
                 " GB/s");
@@ -353,7 +353,7 @@ public:
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
       timer.end();
       timer.print("Huffman decompress");
-      log::info("Huffman decompression throughput: " +
+      log::time("Huffman decompression throughput: " +
                 std::to_string((double)primary_count * sizeof(Q) / timer.get() /
                                1e9) +
                 " GB/s");
