@@ -3,6 +3,7 @@
 
 //#define CUDA_ZFP_RATE_PRINT 1
 typedef unsigned long long ZFPWord;
+typedef unsigned int uint;
 #define ZFPWsize ((uint)(CHAR_BIT * sizeof(ZFPWord)))
 
 #include "type_info.h"
