@@ -1,14 +1,19 @@
-# - Find zstd
-# Find the zstd compression library and includes
-#
-# ZSTD_INCLUDE_DIRS - where to find zstd.h, etc.
-# ZSTD_LIBRARIES - List of libraries when using zstd.
-# ZSTD_FOUND - True if zstd found.
-
 find_package(zstd QUIET)
 if (zstd_FOUND)
-    message(STATUS "Found Zstd (CMAKE): ${zstd_DIR}")
+    message(STATUS "Found ZSTD (CMAKE): ${zstd_DIR}")
+    set(ZSTD_FOUND 1)
+    set(ZSTD_FOUND_BY_CMAKE 1)
 else()
     pkg_search_module(ZSTD IMPORTED_TARGET GLOBAL libzstd)
-    message(STATUS "Found Zstd (PkgConfig): ${ZSTD_LINK_LIBRARIES}")
+    message(STATUS "Found ZSTD (PkgConfig): ${ZSTD_LINK_LIBRARIES}")
+    set(ZSTD_FOUND 1)
+    set(ZSTD_FOUND_BY_PKGCONFIG 1)
+endif()
+
+if(NOT ZSTD_FOUND) 
+    if(ZSTD_FIND_REQUIRED)
+        message(FATAL_ERROR "ZSTD not found.")
+    else()
+        message(STATUS "ZSTD not found.")
+    endif()
 endif()
