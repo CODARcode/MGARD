@@ -51,7 +51,7 @@ template <typename DeviceType>
 void MDReconstruct(RefactoredMetadata &refactored_metadata,
                    RefactoredData &refactored_data,
                    ReconstructedData &reconstructed_data, Config config,
-                   bool output_pre_allocated, const void *original_data);
+                   bool output_pre_allocated);
 
 template <typename DeviceType> void release_cache();
 } // namespace MDR
