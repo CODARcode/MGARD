@@ -160,17 +160,14 @@ void reconstruct_pipeline(
   using Cache = ReconstructorCache<D, T, DeviceType, ReconstructorType>;
   using HierarchyType = typename ReconstructorType::HierarchyType;
 
-  ReconstructorType reconstructor = *Cache::cache.reconstructor;
-
+  ReconstructorType &reconstructor = *Cache::cache.reconstructor;
   Array<D, T, DeviceType> *device_subdomain_buffer =
       Cache::cache.device_subdomain_buffer;
   MDRData<DeviceType> *mdr_data = Cache::cache.mdr_data;
-
   if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(0),
                                      domain_decomposer.uniform)) {
     Cache::cache.ClearHierarchyCache();
   }
-
   for (SIZE id = 0; id < domain_decomposer.num_subdomains(); id++) {
     if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(id),
                                        domain_decomposer.uniform)) {
@@ -479,7 +476,7 @@ void MDReconstruct(std::vector<SIZE> shape,
                    RefactoredMetadata &refactored_metadata,
                    RefactoredData &refactored_data,
                    ReconstructedData &reconstructed_data, Config config,
-                   bool output_pre_allocated, const void *original_data) {
+                   bool output_pre_allocated) {
   DeviceRuntime<DeviceType>::Initialize();
   config.apply();
 
@@ -640,11 +637,11 @@ void MDReconstruct(std::vector<SIZE> shape,
                    RefactoredMetadata &refactored_metadata,
                    RefactoredData &refactored_data,
                    ReconstructedData &reconstructed_data, Config config,
-                   bool output_pre_allocated, const void *original_data) {
+                   bool output_pre_allocated) {
 
   MDReconstruct<D, T, DeviceType, ComposedReconstructor<D, T, DeviceType>>(
       shape, refactored_metadata, refactored_data, reconstructed_data, config,
-      output_pre_allocated, original_data);
+      output_pre_allocated);
 }
 
 template <typename DeviceType>
@@ -888,7 +885,7 @@ template <typename DeviceType>
 void MDReconstruct(RefactoredMetadata &refactored_metadata,
                    RefactoredData &refactored_data,
                    ReconstructedData &reconstructed_data, Config config,
-                   bool output_pre_allocated, const void *original_data) {
+                   bool output_pre_allocated) {
 
   Metadata<DeviceType> meta;
   meta.Deserialize((SERIALIZED_TYPE *)refactored_metadata.header.data());
@@ -900,50 +897,50 @@ void MDReconstruct(RefactoredMetadata &refactored_metadata,
 
   if (dtype == data_type::Float) {
     if (shape.size() == 1) {
-      MDReconstruct<1, float, DeviceType>(
-          shape, refactored_metadata, refactored_data, reconstructed_data,
-          config, output_pre_allocated, original_data);
+      MDReconstruct<1, float, DeviceType>(shape, refactored_metadata,
+                                          refactored_data, reconstructed_data,
+                                          config, output_pre_allocated);
     } else if (shape.size() == 2) {
-      MDReconstruct<2, float, DeviceType>(
-          shape, refactored_metadata, refactored_data, reconstructed_data,
-          config, output_pre_allocated, original_data);
+      MDReconstruct<2, float, DeviceType>(shape, refactored_metadata,
+                                          refactored_data, reconstructed_data,
+                                          config, output_pre_allocated);
     } else if (shape.size() == 3) {
-      MDReconstruct<3, float, DeviceType>(
-          shape, refactored_metadata, refactored_data, reconstructed_data,
-          config, output_pre_allocated, original_data);
+      MDReconstruct<3, float, DeviceType>(shape, refactored_metadata,
+                                          refactored_data, reconstructed_data,
+                                          config, output_pre_allocated);
     } else if (shape.size() == 4) {
-      MDReconstruct<4, float, DeviceType>(
-          shape, refactored_metadata, refactored_data, reconstructed_data,
-          config, output_pre_allocated, original_data);
+      MDReconstruct<4, float, DeviceType>(shape, refactored_metadata,
+                                          refactored_data, reconstructed_data,
+                                          config, output_pre_allocated);
     } else if (shape.size() == 5) {
-      MDReconstruct<5, float, DeviceType>(
-          shape, refactored_metadata, refactored_data, reconstructed_data,
-          config, output_pre_allocated, original_data);
+      MDReconstruct<5, float, DeviceType>(shape, refactored_metadata,
+                                          refactored_data, reconstructed_data,
+                                          config, output_pre_allocated);
     } else {
       log::err("do not support higher than five dimentions");
       exit(-1);
     }
   } else if (dtype == data_type::Double) {
     if (shape.size() == 1) {
-      MDReconstruct<1, double, DeviceType>(
-          shape, refactored_metadata, refactored_data, reconstructed_data,
-          config, output_pre_allocated, original_data);
+      MDReconstruct<1, double, DeviceType>(shape, refactored_metadata,
+                                           refactored_data, reconstructed_data,
+                                           config, output_pre_allocated);
     } else if (shape.size() == 2) {
-      MDReconstruct<2, double, DeviceType>(
-          shape, refactored_metadata, refactored_data, reconstructed_data,
-          config, output_pre_allocated, original_data);
+      MDReconstruct<2, double, DeviceType>(shape, refactored_metadata,
+                                           refactored_data, reconstructed_data,
+                                           config, output_pre_allocated);
     } else if (shape.size() == 3) {
-      MDReconstruct<3, double, DeviceType>(
-          shape, refactored_metadata, refactored_data, reconstructed_data,
-          config, output_pre_allocated, original_data);
+      MDReconstruct<3, double, DeviceType>(shape, refactored_metadata,
+                                           refactored_data, reconstructed_data,
+                                           config, output_pre_allocated);
     } else if (shape.size() == 4) {
-      MDReconstruct<4, double, DeviceType>(
-          shape, refactored_metadata, refactored_data, reconstructed_data,
-          config, output_pre_allocated, original_data);
+      MDReconstruct<4, double, DeviceType>(shape, refactored_metadata,
+                                           refactored_data, reconstructed_data,
+                                           config, output_pre_allocated);
     } else if (shape.size() == 5) {
-      MDReconstruct<5, double, DeviceType>(
-          shape, refactored_metadata, refactored_data, reconstructed_data,
-          config, output_pre_allocated, original_data);
+      MDReconstruct<5, double, DeviceType>(shape, refactored_metadata,
+                                           refactored_data, reconstructed_data,
+                                           config, output_pre_allocated);
     } else {
       log::err("do not support higher than five dimentions");
       exit(-1);

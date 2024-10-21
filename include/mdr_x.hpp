@@ -33,8 +33,7 @@ SIZE MDRMaxOutputDataSize(DIM D, data_type dtype, std::vector<SIZE> shape,
 void MDReconstruct(RefactoredMetadata &refactored_metadata,
                    RefactoredData &refactored_data,
                    ReconstructedData &reconstructed_data, Config config,
-                   bool output_pre_allocated,
-                   const void *original_data = nullptr);
+                   bool output_pre_allocated);
 
 void release_cache(Config config);
 

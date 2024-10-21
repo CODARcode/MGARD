@@ -43,12 +43,12 @@ template <typename T> std::vector<T> find_refactors(T n) {
 template <typename T> void adjust_shape(std::vector<T> &shape, Config config) {
   log::info("Using shape adjustment");
   int num_timesteps;
-  if (config.domain_decomposition == domain_decomposition_type::TemporalDim) {
-    // If do shape adjustment with temporal dim domain decomposition
+  if (config.domain_decomposition == domain_decomposition_type::Variable) {
+    // If do shape adjustment with variable domain decomposition
     // the temporal dim has to be the first dim
-    assert(config.temporal_dim == 0);
-    num_timesteps = shape[0] / config.temporal_dim_size;
-    shape[0] = config.temporal_dim_size;
+    assert(config.domain_decomposition_dim == 0);
+    num_timesteps = shape[0] / config.domain_decomposition_sizes[0];
+    shape[0] = config.domain_decomposition_sizes[0];
   }
   int max_d = max_dim(shape);
   SIZE max_n = shape[max_d];
@@ -63,7 +63,7 @@ template <typename T> void adjust_shape(std::vector<T> &shape, Config config) {
     // std::cout << "multiple " << factors[i] <<
     // " to dim " << min_d << ": " << shape[min_d] << "\n";
   }
-  if (config.domain_decomposition == domain_decomposition_type::TemporalDim) {
+  if (config.domain_decomposition == domain_decomposition_type::Variable) {
     shape[0] *= num_timesteps;
   }
   // std::cout << "shape: ";

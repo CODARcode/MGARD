@@ -27,8 +27,6 @@ struct Config {
   SIZE max_memory_footprint;
   SIZE total_num_bitplanes;
   SIZE block_size;
-  SIZE temporal_dim;
-  SIZE temporal_dim_size;
   SIZE domain_decomposition_dim;
   std::vector<SIZE> domain_decomposition_sizes;
   bool mdr_adaptive_resolution;
