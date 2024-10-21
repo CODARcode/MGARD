@@ -25,32 +25,32 @@ const string log_dbg = "\e[34m[dbg]\e[0m  ";
 const string log_warn = "\e[31m[WARN]\e[0m ";
 const string log_err = "\e[31m[ERR]\e[0m  ";
 
-void info(std::string msg) {
-  if (level & INFO) {
+void info(std::string msg, bool override) {
+  if (level & INFO || override) {
     std::cout << log_info << msg << std::endl;
   }
 }
 
-void time(std::string msg) {
-  // if (level & TIME) {
-  std::cout << log_time << msg << std::endl;
-  // }
+void time(std::string msg, bool override) {
+  if (level & TIME || override) {
+    std::cout << log_time << msg << std::endl;
+  }
 }
 
-void dbg(std::string msg) {
-  if (level & DBG) {
+void dbg(std::string msg, bool override) {
+  if (level & DBG || override) {
     std::cout << log_dbg << msg << std::endl;
   }
 }
 
-void warn(std::string msg) {
-  if (level & WARN) {
+void warn(std::string msg, bool override) {
+  if (level & WARN || override) {
     std::cout << log_warn << msg << std::endl;
   }
 }
 
-void err(std::string msg) {
-  if (level & ERR) {
+void err(std::string msg, bool override) {
+  if (level & ERR || override) {
     std::cout << log_err << msg << std::endl;
   }
 }

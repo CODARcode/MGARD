@@ -27,7 +27,7 @@ template SIZE MDRMaxOutputDataSize<@DEVICE_TYPE@>(DIM D, data_type dtype, std::v
 template void MDReconstruct<@DEVICE_TYPE@>(RefactoredMetadata &refactored_metadata,
                   RefactoredData &refactored_data,
                   ReconstructedData &reconstructed_data, Config config,
-                  bool output_pre_allocated, const void *original_data);
+                  bool output_pre_allocated);
 
 template void release_cache<@DEVICE_TYPE@>();
 }
