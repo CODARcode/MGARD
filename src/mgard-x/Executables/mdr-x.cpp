@@ -297,10 +297,17 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
   if (domain_decomposition == "max-dim") {
     config.domain_decomposition = mgard_x::domain_decomposition_type::MaxDim;
   } else if (domain_decomposition == "block") {
+<<<<<<< HEAD
     config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
     config.block_size = block_size;
   } else if (domain_decomposition == "variable") {
     config.domain_decomposition = mgard_x::domain_decomposition_type::Variable;
+=======
+    config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
+    config.block_size = block_size;
+  } else if (domain_decomposition == "variable") {
+    config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
+>>>>>>> 6b648144 (Revise MDR-X API and MDR-X executable)
   }
 
   config.dev_type = dev_type;
@@ -362,9 +369,8 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
 int launch_reconstruct(std::string input_file, std::string output_file,
                        std::string original_file, enum mgard_x::data_type dtype,
-                       std::vector<mgard_x::SIZE> shape,
-                       std::vector<double> tols, double s,
-                       enum mgard_x::error_bound_type mode,
+                       std::vector<mgard_x::SIZE> shape, double tolerance,
+                       double s, enum mgard_x::error_bound_type mode,
                        bool adaptive_resolution,
                        enum mgard_x::device_type dev_type, int verbose) {
 
@@ -407,6 +413,11 @@ int launch_reconstruct(std::string input_file, std::string output_file,
   mgard_x::MDR::ReconstructedData reconstructed_data;
   read_mdr_metadata(refactored_metadata, refactored_data, input_file);
   bool first_reconstruction = true;
+  std::vector<double> tols;
+  tols.push_back(tolerance);
+  // reconstruct to one toleracne for now
+  // Progressively reconstruct to additional tolerance can be added by appending
+  // to tols
   for (double tol : tols) {
     for (auto &metadata : refactored_metadata.metadata) {
       metadata.requested_tol = tol;
@@ -424,7 +435,11 @@ int launch_reconstruct(std::string input_file, std::string output_file,
 
     first_reconstruction = false;
 
+<<<<<<< HEAD
     if (original_file.compare("none") != 0 && !config.mdr_adaptive_resolution) {
+=======
+    if (input_file.compare("none") != 0 && !config.mdr_adaptive_resolution) {
+>>>>>>> 6b648144 (Revise MDR-X API and MDR-X executable)
       if (dtype == mgard_x::data_type::Float) {
         print_statistics<float>(s, mode, shape, (float *)original_data,
                                 (float *)reconstructed_data.data[0], tol,
@@ -502,6 +517,7 @@ bool try_reconstruction(int argc, char *argv[]) {
   if (has_arg(argc, argv, "-g", "--orignal")) {
     original_file =
         get_arg<std::string>(argc, argv, "Original data", "-g", "--orignal");
+<<<<<<< HEAD
     dtype = get_data_type(argc, argv);
     shape = get_args<mgard_x::SIZE>(argc, argv, "Dimensions", "-dim",
                                     "--dimension");
@@ -521,6 +537,18 @@ bool try_reconstruction(int argc, char *argv[]) {
     throw std::runtime_error(
         "Missing option -e/--error-bound or -me/--multi-error-bounds");
   }
+=======
+    enum mgard_x::data_type dtype = get_data_type(argc, argv);
+    std::vector<mgard_x::SIZE> shape = get_args<mgard_x::SIZE>(
+        argc, argv, "Dimensions", "-dim", "--dimension");
+  }
+  // only abs mode is supported now
+  enum mgard_x::error_bound_type mode =
+      mgard_x::error_bound_type::ABS; // REL or ABS
+
+  double tol =
+      get_arg<double>(argc, argv, "Error bound", "-e", "--error-bound");
+>>>>>>> 6b648144 (Revise MDR-X API and MDR-X executable)
   double s = get_arg<double>(argc, argv, "Smoothness", "-s", "--smoothness");
   enum mgard_x::device_type dev_type = get_device_type(argc, argv);
   int verbose = 0;
@@ -534,7 +562,11 @@ bool try_reconstruction(int argc, char *argv[]) {
   }
   if (verbose)
     std::cout << mgard_x::log::log_info << "verbose: enabled.\n";
+<<<<<<< HEAD
   launch_reconstruct(input_file, output_file, original_file, dtype, shape, tols,
+=======
+  launch_reconstruct(input_file, output_file, original_file, dtype, shape, tol,
+>>>>>>> 6b648144 (Revise MDR-X API and MDR-X executable)
                      s, mode, adaptive_resolution, dev_type, verbose);
   return true;
 }
