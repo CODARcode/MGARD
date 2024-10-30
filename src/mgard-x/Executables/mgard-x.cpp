@@ -85,37 +85,6 @@ template <typename T> size_t readfile(const char *input_file, T *&in_buff) {
 }
 
 template <typename T>
-std::vector<T *> readcoords(const char *input_file, mgard_x::DIM D,
-                            std::vector<mgard_x::SIZE> shape) {
-  std::cout << mgard_x::log::log_info
-            << "Loading coordinate file: " << input_file << "\n";
-  FILE *pFile;
-  pFile = fopen(input_file, "rb");
-  if (pFile == NULL) {
-    std::cout << mgard_x::log::log_err << "coordinate file open error!\n";
-    exit(1);
-  }
-  fseek(pFile, 0, SEEK_END);
-  size_t lSize = ftell(pFile);
-  size_t expected_size = 0;
-  for (mgard_x::DIM d = 0; d < D; d++) {
-    expected_size += sizeof(T) * shape[d];
-  }
-  if (lSize < expected_size) {
-    std::cout << mgard_x::log::log_err << "coordinate file read error!\n";
-    exit(-1);
-  }
-  rewind(pFile);
-  std::vector<T *> coords(D);
-  for (mgard_x::DIM d = 0; d < D; d++) {
-    coords[d] = (T *)malloc(shape[d]);
-    lSize = fread(coords[d], sizeof(T), shape[d], pFile);
-  }
-  fclose(pFile);
-  return coords;
-}
-
-template <typename T>
 void writefile(const char *output_file, size_t num_bytes, T *out_buff) {
   FILE *file = fopen(output_file, "w");
   fwrite(out_buff, 1, num_bytes, file);

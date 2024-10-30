@@ -109,37 +109,6 @@ void readfile(std::string input_file, std::vector<T> &in_buff) {
 }
 
 template <typename T>
-std::vector<T *> readcoords(const char *input_file, mgard_x::DIM D,
-                            std::vector<mgard_x::SIZE> shape) {
-  std::cout << mgard_x::log::log_info
-            << "Loading coordinate file: " << input_file << "\n";
-  FILE *pFile;
-  pFile = fopen(input_file, "rb");
-  if (pFile == NULL) {
-    std::cout << mgard_x::log::log_err << "coordinate file open error!\n";
-    exit(1);
-  }
-  fseek(pFile, 0, SEEK_END);
-  size_t lSize = ftell(pFile);
-  size_t expected_size = 0;
-  for (mgard_x::DIM d = 0; d < D; d++) {
-    expected_size += sizeof(T) * shape[d];
-  }
-  if (lSize < expected_size) {
-    std::cout << mgard_x::log::log_err << "coordinate file read error!\n";
-    exit(-1);
-  }
-  rewind(pFile);
-  std::vector<T *> coords(D);
-  for (mgard_x::DIM d = 0; d < D; d++) {
-    coords[d] = (T *)malloc(shape[d]);
-    lSize = fread(coords[d], sizeof(T), shape[d], pFile);
-  }
-  fclose(pFile);
-  return coords;
-}
-
-template <typename T>
 void writefile(std::string output_file, T *out_buff, size_t num_bytes) {
   FILE *file = fopen(output_file.c_str(), "w");
   fwrite(out_buff, 1, num_bytes, file);
@@ -537,8 +506,8 @@ bool try_reconstruction(int argc, char *argv[]) {
     original_file =
         get_arg<std::string>(argc, argv, "Original data", "-g", "--orignal");
     enum mgard_x::data_type dtype = get_data_type(argc, argv);
-    std::vector<mgard_x::SIZE> shape = get_args<mgard_x::SIZE>(
-        argc, argv, "Dimensions", "-dim", "--dimension");
+    shape = get_args<mgard_x::SIZE>(argc, argv, "Dimensions", "-dim",
+                                    "--dimension");
   }
   // only abs mode is supported now
   enum mgard_x::error_bound_type mode =
