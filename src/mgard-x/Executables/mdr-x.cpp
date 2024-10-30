@@ -539,8 +539,8 @@ bool try_reconstruction(int argc, char *argv[]) {
   }
 =======
     enum mgard_x::data_type dtype = get_data_type(argc, argv);
-    std::vector<mgard_x::SIZE> shape = get_args<mgard_x::SIZE>(
-        argc, argv, "Dimensions", "-dim", "--dimension");
+    shape = get_args<mgard_x::SIZE>(argc, argv, "Dimensions", "-dim",
+                                    "--dimension");
   }
   // only abs mode is supported now
   enum mgard_x::error_bound_type mode =
