@@ -49,6 +49,7 @@ void print_usage_message(std::string error) {
 \t\t -o / --output <path to reconstructed data file>\n\
 \t\t (optional)  -g / --orginal <path to original data file for error calculation> (optinal)\n\
 \t\t -e / --error-bound <float>: error bound\n\
+\t\t -me / --multi-error-bounds <num errors> <float> <float>..: multiple error bounds\n\
 \t\t -s / --smoothness <float>: smoothness parameter\n\
 \t\t -d <auto|serial|cuda|hip>: device type\n\
 \t\t (optional) -v / --verbose <0|1|2|3> 0: error; 1: error+info; 2: error+timing; 3: all\n");
@@ -299,7 +300,7 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
     config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
     config.block_size = block_size;
   } else if (domain_decomposition == "variable") {
-    config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
+    config.domain_decomposition = mgard_x::domain_decomposition_type::Variable;
   }
 
   config.dev_type = dev_type;
@@ -361,8 +362,9 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
 int launch_reconstruct(std::string input_file, std::string output_file,
                        std::string original_file, enum mgard_x::data_type dtype,
-                       std::vector<mgard_x::SIZE> shape, double tolerance,
-                       double s, enum mgard_x::error_bound_type mode,
+                       std::vector<mgard_x::SIZE> shape,
+                       std::vector<double> tols, double s,
+                       enum mgard_x::error_bound_type mode,
                        bool adaptive_resolution,
                        enum mgard_x::device_type dev_type, int verbose) {
 
@@ -405,11 +407,6 @@ int launch_reconstruct(std::string input_file, std::string output_file,
   mgard_x::MDR::ReconstructedData reconstructed_data;
   read_mdr_metadata(refactored_metadata, refactored_data, input_file);
   bool first_reconstruction = true;
-  std::vector<double> tols;
-  tols.push_back(tolerance);
-  // reconstruct to one toleracne for now
-  // Progressively reconstruct to additional tolerance can be added by appending
-  // to tols
   for (double tol : tols) {
     for (auto &metadata : refactored_metadata.metadata) {
       metadata.requested_tol = tol;
@@ -513,8 +510,17 @@ bool try_reconstruction(int argc, char *argv[]) {
   enum mgard_x::error_bound_type mode =
       mgard_x::error_bound_type::ABS; // REL or ABS
 
-  double tol =
-      get_arg<double>(argc, argv, "Error bound", "-e", "--error-bound");
+  std::vector<double> tols;
+  if (has_arg(argc, argv, "-e", "--error-bound")) {
+    tols.push_back(
+        get_arg<double>(argc, argv, "Error bound", "-e", "--error-bound"));
+  } else if (has_arg(argc, argv, "-me", "--multi-error-bounds")) {
+    tols = get_args<double>(argc, argv, "Multi error bounds", "-me",
+                            "--multi-error-bounds");
+  } else {
+    throw std::runtime_error(
+        "Missing option -e/--error-bound or -me/--multi-error-bounds");
+  }
   double s = get_arg<double>(argc, argv, "Smoothness", "-s", "--smoothness");
   enum mgard_x::device_type dev_type = get_device_type(argc, argv);
   int verbose = 0;
@@ -528,7 +534,7 @@ bool try_reconstruction(int argc, char *argv[]) {
   }
   if (verbose)
     std::cout << mgard_x::log::log_info << "verbose: enabled.\n";
-  launch_reconstruct(input_file, output_file, original_file, dtype, shape, tol,
+  launch_reconstruct(input_file, output_file, original_file, dtype, shape, tols,
                      s, mode, adaptive_resolution, dev_type, verbose);
   return true;
 }
