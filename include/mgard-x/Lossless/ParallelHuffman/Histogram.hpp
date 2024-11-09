@@ -199,6 +199,10 @@ MGARDX_CONT void Histogram(SubArray<1, T, DeviceType> input_data,
     using FunctorType = HistogramFunctor<T, Q, true, DeviceType>;
     using TaskType = Task<FunctorType>;
     int RPerBlock = (maxbytes / (int)sizeof(int)) / (bins);
+    if (std::is_same<DeviceType, SERIAL>::value ||
+        std::is_same<DeviceType, OPENMP>::value) {
+      RPerBlock = 1;
+    }
     int threadsPerBlock, numBlocks;
     ExecutionConfig<DeviceType>(N, bins, RPerBlock, threadsPerBlock, numBlocks);
     DeviceLauncher<DeviceType>::Execute(
