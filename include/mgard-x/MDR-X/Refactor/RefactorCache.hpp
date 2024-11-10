@@ -131,7 +131,8 @@ public:
 template <DIM D, typename T, typename DeviceType, typename RefactorType>
 class RefactorCache {
 public:
-  static inline RefactorBundle<D, T, DeviceType, RefactorType> cache;
+  static inline thread_local RefactorBundle<D, T, DeviceType, RefactorType>
+      cache;
 };
 
 } // namespace MDR
