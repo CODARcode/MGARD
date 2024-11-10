@@ -138,7 +138,8 @@ public:
 template <DIM D, typename T, typename DeviceType, typename CompressorType>
 class CompressorCache {
 public:
-  static inline CompressorBundle<D, T, DeviceType, CompressorType> cache;
+  static inline thread_local CompressorBundle<D, T, DeviceType, CompressorType>
+      cache;
 };
 
 } // namespace mgard_x

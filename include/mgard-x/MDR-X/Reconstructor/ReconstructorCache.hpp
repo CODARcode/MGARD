@@ -132,7 +132,9 @@ public:
 template <DIM D, typename T, typename DeviceType, typename ReconstructorType>
 class ReconstructorCache {
 public:
-  static inline ReconstructorBundle<D, T, DeviceType, ReconstructorType> cache;
+  static inline thread_local ReconstructorBundle<D, T, DeviceType,
+                                                 ReconstructorType>
+      cache;
 };
 
 } // namespace MDR
