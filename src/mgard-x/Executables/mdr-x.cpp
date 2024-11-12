@@ -424,7 +424,7 @@ int launch_reconstruct(std::string input_file, std::string output_file,
 
     first_reconstruction = false;
 
-    if (input_file.compare("none") != 0 && !config.mdr_adaptive_resolution) {
+    if (original_file.compare("none") != 0 && !config.mdr_adaptive_resolution) {
       if (dtype == mgard_x::data_type::Float) {
         print_statistics<float>(s, mode, shape, (float *)original_data,
                                 (float *)reconstructed_data.data[0], tol,
