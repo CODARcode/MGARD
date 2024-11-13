@@ -128,6 +128,11 @@ public:
     if (local_bitplane_idx < num_bitplanes + 1) {
       sm_errors[local_bitplane_idx] = 0;
     }
+
+    if (local_data_idx < num_elems_per_TB) {
+      sm_fix_point[local_data_idx] = 0;
+      sm_shifted[local_data_idx] = 0;
+    }
   }
 
   MGARDX_EXEC void Operation2() {
