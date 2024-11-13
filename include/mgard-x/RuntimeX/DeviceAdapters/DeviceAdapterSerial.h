@@ -1343,7 +1343,7 @@ public:
                               bool workspace_allocated, int queue_idx) {
 
     if (workspace_allocated) {
-      *result((IDX)0) = std::accumulate(v((IDX)0), v((IDX)n), 0);
+      *result((IDX)0) = std::accumulate(v((IDX)0), v((IDX)n), (T)0);
     } else {
       workspace.resize({(SIZE)1}, queue_idx);
     }
