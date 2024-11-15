@@ -206,7 +206,7 @@ public:
         } else if (BinaryType == NEGABINARY) {
           mantissa = data - fps_data;
         }
-        uint64_t mask = (1 << bitplane_idx) - 1;
+        T_fp mask = ((T_fp)1 << bitplane_idx) - 1;
         T_error diff = 0;
         if (BinaryType == BINARY) {
           diff = (T_error)(fp_data & mask) + mantissa;
@@ -367,8 +367,8 @@ public:
       // }
 
       // for (int i = 0; i < num_bitplanes + 1; i++) {
-      //   printf("error %d/%d: ", i, num_bitplanes + 1);
-      //   printf (" %f ", sm_errors[i]);
+      //   printf("error %d/%llu: ", i, num_bitplanes + 1);
+      //   printf (" %.12f ", sm_errors[i]);
       //   printf("\n");
       // }
       // clang-format on
@@ -680,19 +680,20 @@ public:
 
   MGARDX_EXEC void Operation4() {
 
-    if (debug) {
-      // for (int i = 0; i < num_bitplanes; i++) {
-      //   printf("decode bitpane[%d]: ", i);
-      //   for (int j = 0; j < num_batches_per_TB; j++) {
-      //     printf(" %u  ", sm_bitplanes[j*num_bitplanes+i]);
-      //     // for (int k = 0; k < B; k++) {
-      //     //   printf("%u", (sm_bitplanes[j*B+i] >> B-1-k) & 1u);
-      //     // }
-      //   }
-      //   printf("\n");
-      // }
-      // printf("\n");
-    }
+    // if (debug) {
+    //   for (int i = 0; i < num_bitplanes; i++) {
+    //     printf("decode bitpane[%d]: ", i);
+    //     for (int j = 0; j < num_batches_per_TB; j++) {
+    //       printf(" %u  ", sm_bitplanes[j*num_bitplanes+i]);
+    //       for (int k = 0; k < sizeof(T_bitplane)*8; k++) {
+    //         printf("%u", (sm_bitplanes[j*num_bitplanes+i] >>
+    //         sizeof(T_bitplane)*8-1-k) & 1u);
+    //       }
+    //     }
+    //     printf("\n");
+    //   }
+    //   printf("\n");
+    // }
 
     // if (debug) {
     //   printf("sm_signs: ");
