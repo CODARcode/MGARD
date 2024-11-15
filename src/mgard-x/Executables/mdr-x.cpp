@@ -49,7 +49,7 @@ void print_usage_message(std::string error) {
 \t\t -o / --output <path to reconstructed data file>\n\
 \t\t (optional)  -g / --orginal <path to original data file for error calculation> (optinal)\n\
 \t\t -e / --error-bound <float>: error bound\n\
-\t\t -me / --multi-error-bounds <num errors> <float> <float>..: multiple error bounds\n\
+\t\t -me / --multi-error-bounds <num of error bounds> <float> <float>..: multiple error bounds\n\
 \t\t -s / --smoothness <float>: smoothness parameter\n\
 \t\t -d <auto|serial|cuda|hip>: device type\n\
 \t\t (optional) -v / --verbose <0|1|2|3> 0: error; 1: error+info; 2: error+timing; 3: all\n");
@@ -502,7 +502,7 @@ bool try_reconstruction(int argc, char *argv[]) {
   if (has_arg(argc, argv, "-g", "--orignal")) {
     original_file =
         get_arg<std::string>(argc, argv, "Original data", "-g", "--orignal");
-    enum mgard_x::data_type dtype = get_data_type(argc, argv);
+    dtype = get_data_type(argc, argv);
     shape = get_args<mgard_x::SIZE>(argc, argv, "Dimensions", "-dim",
                                     "--dimension");
   }

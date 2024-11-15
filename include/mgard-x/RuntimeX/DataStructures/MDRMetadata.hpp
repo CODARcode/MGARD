@@ -75,11 +75,11 @@ public:
              loaded_level_num_bitplanes[level_idx],
              requested_level_num_bitplanes[level_idx]);
     }
-    printf("level_num_elems: ");
-    for (int level_idx = 0; level_idx < num_levels; level_idx++) {
-      printf("%llu ", level_num_elems[level_idx]);
-    }
-    printf("\n");
+    // printf("level_num_elems: ");
+    // for (int level_idx = 0; level_idx < num_levels; level_idx++) {
+    //   printf("%llu ", level_num_elems[level_idx]);
+    // }
+    // printf("\n");
   }
 
   void DoneLoadingBitplans() {
