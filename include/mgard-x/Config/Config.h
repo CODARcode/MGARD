@@ -22,6 +22,7 @@ struct Config {
   enum lossless_type lossless;
   int reorder;
   int log_level;
+  bool prefetch;
   bool auto_pin_host_buffers;
   SIZE max_larget_level;
   SIZE max_memory_footprint;

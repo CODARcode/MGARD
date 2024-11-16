@@ -111,8 +111,11 @@ if (MGARD_ENABLE_SERIAL OR
   add_subdirectory (include/mgard-x/MDR)
   add_subdirectory (include/mgard-x/MDR-X)
   find_package(PkgConfig REQUIRED)
-  find_package(ZSTD REQUIRED)
-
+  pkg_search_module(ZSTD REQUIRED IMPORTED_TARGET GLOBAL libzstd)
+  if(ZSTD_FOUND)
+    message(STATUS "Found ZSTD: ${ZSTD_LINK_LIBRARIES}")
+  endif()
+  
   add_executable(mgard-x ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/mgard-x.cpp)
   target_link_libraries(mgard-x mgard-library  ${CMAKE_DL_LIBS})
   target_include_directories(mgard-x PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -258,6 +261,10 @@ set(MGARD_FILE_FORMAT_HPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.h")
 set(MGARD_FILE_FORMAT_CPP "${MGARD_FILE_FORMAT_DIR}/mgard.pb.cc")
 
 pkg_search_module(protobuf REQUIRED IMPORTED_TARGET GLOBAL protobuf>=3.0.0)
+if(protobuf_FOUND)
+  message(STATUS "Found protobuf: ${protobuf_LINK_LIBRARIES}")
+endif()
+
 find_program(PROTOC NAMES "protoc" REQUIRED)
 
 file(MAKE_DIRECTORY "${MGARD_FILE_FORMAT_DIR}")
@@ -340,12 +347,7 @@ target_link_libraries(mgard-library PUBLIC ZLIB::ZLIB)
 
 if(ZSTD_FOUND)
   target_compile_definitions(mgard-library PUBLIC MGARD_ZSTD)
-  if(ZSTD_FOUND_BY_CMAKE)
-    target_link_libraries(mgard-library PUBLIC zstd::libzstd_shared)
-  endif()
-  if(ZSTD_FOUND_BY_PKGCONFIG)
-    target_link_libraries(mgard-library PUBLIC PkgConfig::ZSTD)
-  endif()
+  target_link_libraries(mgard-library PUBLIC PkgConfig::ZSTD)
 endif()
 
 if(MGARD_ENABLE_CUDA)
