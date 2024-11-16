@@ -7,9 +7,10 @@ if(@ZLIB_FOUND@)
 	list(APPEND REQUIRED_VARS ZLIB_FOUND)
 endif()
 
-if(@zstd_FOUND@)
-  find_dependency(zstd)
-	list(APPEND REQUIRED_VARS zstd_FOUND)
+if(@ZSTD_FOUND@)
+	find_package(PkgConfig REQUIRED)
+	pkg_search_module(ZSTD IMPORTED_TARGET GLOBAL libzstd)
+	list(APPEND REQUIRED_VARS ZSTD_FOUND)
 endif()
 
 if(@NVCOMP_FOUND@)
