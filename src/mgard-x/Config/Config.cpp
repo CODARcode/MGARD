@@ -25,6 +25,7 @@ Config::Config() {
   normalize_coordinates = false;
   lossless = lossless_type::Huffman;
   reorder = 0;
+  prefetch = false;
   log_level = log::ERR;
   max_larget_level = std::numeric_limits<SIZE>::max(); // no limit
   auto_pin_host_buffers = true;
