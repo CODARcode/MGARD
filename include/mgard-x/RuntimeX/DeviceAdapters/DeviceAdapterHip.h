@@ -928,7 +928,7 @@ public:
     log::dbg("Calling MemoryManager<HIP>::IsDevicePointer");
     hipPointerAttribute_t attr;
     hipPointerGetAttributes(&attr, ptr);
-    return attr.memoryType == hipMemoryTypeDevice;
+    return attr.type == hipMemoryTypeDevice;
   }
 
   template <typename T> MGARDX_CONT static int GetPointerDevice(T *ptr) {
