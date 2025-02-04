@@ -207,6 +207,21 @@ if (MGARD_ENABLE_HIP)
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_HIP)
   set (CMAKE_HIP_FLAGS  "${CMAKE_HIP_FLAGS} -w")
   set_source_files_properties(${MGARD_X_HIP_SRC} PROPERTIES LANGUAGE HIP)
+
+  # Find the required hipCUB packages, which is usually, but not always,
+  # installed with hip.
+  find_package(rocprim REQUIRED CONFIG)
+  find_package(hipcub REQUIRED CONFIG)
+  # Normally, we would use target_link_libraries to include the hip::hipcub
+  # include directories and other parameters. However, for some reason this
+  # library has been changing the compiler and causing errors. Perhaps this
+  # is because different sources require different compilers. So, instead just
+  # grab the include directories.
+  target_include_directories(mgard-library
+    PUBLIC $<TARGET_PROPERTY:hip::hipcub,INTERFACE_INCLUDE_DIRECTORIES>
+    PUBLIC $<TARGET_PROPERTY:roc::rocprim_hip,INTERFACE_INCLUDE_DIRECTORIES>
+    PUBLIC $<TARGET_PROPERTY:roc::rocprim,INTERFACE_INCLUDE_DIRECTORIES>
+    )
 endif()
 
 if (MGARD_ENABLE_SYCL)
