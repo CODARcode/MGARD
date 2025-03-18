@@ -2341,7 +2341,8 @@ public:
     AbsMaxOp absMaxOp;
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     hipcub::DeviceReduce::Reduce(d_temp_storage, temp_storage_bytes, v.data(),
-                                 result.data(), n, absMaxOp, 0, stream);
+                                 result.data(), n, absMaxOp, static_cast<T>(0),
+                                 stream);
     ErrorAsyncCheck(hipGetLastError(), "DeviceCollective<HIP>::AbsMax");
     if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
       ErrorSyncCheck(hipDeviceSynchronize(), "DeviceCollective<HIP>::AbsMax");
