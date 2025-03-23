@@ -3,7 +3,7 @@ on: [push, pull_request]
 env:
         MOAB_CACHE_KEY: "MOAB-5.3.0"
         MOAB_INSTALL_PREFIX: "${{ github.workspace }}/moab"
-        CATCH2_CACHE_KEY: "Catch2-3.0.0"
+        CATCH2_CACHE_KEY: "Catch2-3.8.0"
         CATCH2_INSTALL_PREFIX: "${{ github.workspace }}/catch2"
         TCLAP_CACHE_KEY: "TCLAP-1.4.0-rc1"
         TCLAP_INSTALL_PREFIX: "${{ github.workspace }}/tclap"
@@ -15,12 +15,12 @@ env:
         MGARD_BUILD_DIR: "${{ github.workspace }}/build"
 jobs:
         build-MOAB:
-                runs-on: ubuntu-20.04
+                runs-on: ubuntu-24.04
                 steps:
                         - run: sudo apt-get install mpich libmpich-dev liblapack-dev
                         - name: cache-MOAB
                           id: cache-MOAB
-                          uses: actions/cache@v2.1.6
+                          uses: actions/cache@v4
                           with:
                                   key: "${{ env.MOAB_CACHE_KEY }}"
                                   path: "${{ env.MOAB_INSTALL_PREFIX }}"
@@ -35,30 +35,30 @@ jobs:
                                   cmake --install "build"
 
         build-Catch2:
-                runs-on: ubuntu-20.04
+                runs-on: ubuntu-24.04
                 steps:
                         - name: cache-Catch2
                           id: cache-Catch2
-                          uses: actions/cache@v2.1.6
+                          uses: actions/cache@v4
                           with:
                                   key: "${{ env.CATCH2_CACHE_KEY }}"
                                   path: "${{ env.CATCH2_INSTALL_PREFIX }}"
                         - name: build-Catch2
                           if: steps.cache-Catch2.outputs.cache-hit != 'true'
                           run: |
-                                  wget https://github.com/catchorg/Catch2/archive/v3.0.0-preview3.tar.gz
-                                  gunzip "v3.0.0-preview3.tar.gz"
-                                  tar --file "v3.0.0-preview3.tar" --extract
-                                  cmake -S "Catch2-3.0.0-preview3" -B "build" -DCMAKE_INSTALL_PREFIX="${{ env.CATCH2_INSTALL_PREFIX }}"
+                                  wget https://github.com/catchorg/Catch2/archive/refs/tags/v3.8.0.tar.gz
+                                  gunzip "v3.8.0.tar.gz"
+                                  tar --file "v3.8.0.tar" --extract
+                                  cmake -S "Catch2-3.8.0" -B "build" -DCMAKE_INSTALL_PREFIX="${{ env.CATCH2_INSTALL_PREFIX }}"
                                   cmake --build "build" --parallel
                                   cmake --install "build"
 
         build-TCLAP:
-                runs-on: ubuntu-20.04
+                runs-on: ubuntu-24.04
                 steps:
                         - name: cache-TCLAP
                           id: cache-TCLAP
-                          uses: actions/cache@v2.1.6
+                          uses: actions/cache@v4
                           with:
                                   key: "${{ env.TCLAP_CACHE_KEY }}"
                                   path: "${{ env.TCLAP_INSTALL_PREFIX }}"
@@ -73,11 +73,11 @@ jobs:
                                   cmake --install "build"
 
         build-ZSTD:
-                runs-on: ubuntu-20.04
+                runs-on: ubuntu-24.04
                 steps:
                         - name: cache-ZSTD
                           id: cache-ZSTD
-                          uses: actions/cache@v2.1.6
+                          uses: actions/cache@v4
                           with:
                                   key: "${{ env.ZSTD_CACHE_KEY }}"
                                   path: "${{ env.ZSTD_INSTALL_PREFIX }}"
@@ -95,28 +95,28 @@ jobs:
 
         build-MGARD:
                 needs: [build-MOAB, build-Catch2, build-TCLAP, build-ZSTD]
-                runs-on: ubuntu-20.04
+                runs-on: ubuntu-24.04
                 steps:
-                        - run: sudo apt-get install mpich doxygen libmpich-dev liblapack-dev libzstd1 libzstd-dev libtclap-dev protobuf-compiler libprotobuf17 libprotobuf-dev
+                        - run: sudo apt-get install mpich doxygen libmpich-dev liblapack-dev libzstd1 libzstd-dev libtclap-dev protobuf-compiler libprotobuf-dev
                         - name: checkout
-                          uses: actions/checkout@v2.3.4
+                          uses: actions/checkout@v4
                         - name: fetch-MOAB
-                          uses: actions/cache@v2.1.6
+                          uses: actions/cache@v4
                           with:
                                   key: "${{ env.MOAB_CACHE_KEY }}"
                                   path: "${{ env.MOAB_INSTALL_PREFIX }}"
                         - name: fetch-Catch2
-                          uses: actions/cache@v2.1.6
+                          uses: actions/cache@v4
                           with:
                                   key: "${{ env.CATCH2_CACHE_KEY }}"
                                   path: "${{ env.CATCH2_INSTALL_PREFIX }}"
                         - name: fetch-TCLAP
-                          uses: actions/cache@v2.1.6
+                          uses: actions/cache@v4
                           with:
                                   key: "${{ env.TCLAP_CACHE_KEY }}"
                                   path: "${{ env.TCLAP_INSTALL_PREFIX }}"
                         - name: fetch-ZSTD
-                          uses: actions/cache@v2.1.6
+                          uses: actions/cache@v4
                           with:
                                   key: "${{ env.ZSTD_CACHE_KEY }}"
                                   path: "${{ env.ZSTD_INSTALL_PREFIX }}"
@@ -129,7 +129,7 @@ jobs:
                         - name: install
                           run: cmake --install "${{ env.MGARD_BUILD_DIR }}"
                         - name: cache-MGARD
-                          uses: actions/cache@v2.1.6
+                          uses: actions/cache@v4
                           with:
                                   key: "${{ env.MGARD_CACHE_KEY }}"
                                   path: "${{ env.MGARD_INSTALL_PREFIX }}"
