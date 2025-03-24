@@ -9,18 +9,18 @@
 set -e
 set -x
 
-module load rocm/5.5.1
+module load rocm/6.3.1
 module load cmake
 
 ######## User Configurations ########
 # Source directory
 mgard_x_src_dir=.
 # Build directory
-build_dir=./build-hip-crusher
+build_dir=./build-hip-frontier-adios2
 # Number of processors used for building
 num_build_procs=$1
 # Installtaion directory
-install_dir=./install-hip-crusher
+install_dir=./install-hip-frontier-adios2
 
 export LD_LIBRARY_PATH=$(pwd)/${install_dir}/lib:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$(pwd)/${install_dir}/lib64:$LD_LIBRARY_PATH
