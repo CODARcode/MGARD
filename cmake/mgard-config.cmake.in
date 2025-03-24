@@ -23,6 +23,21 @@ if(@CUDAToolkit_FOUND@)
 	list(APPEND REQUIRED_VARS CUDAToolkit_FOUND)
 endif()
 
+if(@HIP_FOUND@)
+	find_dependency(HIP)
+	list(APPEND REQUIRED_VARS HIP_FOUND)
+endif()
+
+if(@rocprim_FOUND@)
+	find_dependency(rocprim)
+	list(APPEND REQUIRED_VARS rocprim_FOUND)
+endif()
+
+if(@hipcub_FOUND@)
+	find_dependency(hipcub)
+	list(APPEND REQUIRED_VARS hipcub_FOUND)
+endif()
+
 if(@MOAB_FOUND@)
 	find_dependency(MOAB)
 	list(APPEND REQUIRED_VARS MOAB_FOUND)
