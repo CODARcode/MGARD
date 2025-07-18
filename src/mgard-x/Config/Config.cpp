@@ -22,7 +22,7 @@ Config::Config() {
   huff_block_size = 1024 * 20;
   lz4_block_size = 1 << 15;
   zstd_compress_level = 3;
-  normalize_coordinates = false;
+  normalize_coordinates = true;
   lossless = lossless_type::Huffman;
   reorder = 0;
   prefetch = false;
