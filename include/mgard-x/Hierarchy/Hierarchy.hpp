@@ -174,7 +174,7 @@ void Hierarchy<D, T, DeviceType>::calc_volume(SIZE dof, T *dist, T *volume,
   // level-wise uniform quantizer
   if (dof > 1) {
     for (int i = 0; i < dof; i++) {
-      h_volume[i] = 1.0 / (T)(dof - 1); 
+      h_volume[i] = 1.0 / (T)(dof - 1);
     }
   }
 
