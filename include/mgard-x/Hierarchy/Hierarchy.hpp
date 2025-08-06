@@ -171,25 +171,10 @@ void Hierarchy<D, T, DeviceType>::calc_volume(SIZE dof, T *dist, T *volume,
   }
   MemoryManager<DeviceType>::Copy1D(h_dist, dist, dof, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
-  if (dof == 2) {
-    h_volume[0] = h_dist[0] / 2;
-    h_volume[1] = h_dist[0] / 2;
-  } else {
-    int node_coeff_div = dof / 2 + 1;
-    h_volume[0] = h_dist[0] / 2;
-    for (int i = 1; i < dof - 1; i++) {
-      if (i % 2 == 0) { // node
-        h_volume[i / 2] = (h_dist[i - 1] + h_dist[i]) / 2;
-      } else { // coeff
-        h_volume[node_coeff_div + i / 2] = (h_dist[i - 1] + h_dist[i]) / 2;
-      }
-    }
-    if (dof % 2 != 0) {
-      h_volume[node_coeff_div - 1] = h_dist[dof - 2] / 2;
-    } else {
-      h_volume[node_coeff_div - 1] = h_dist[dof - 1] / 2;
-    }
-  }
+  // level-wise uniform quantizer
+  for (int i = 0; i < dof; i++) {
+    h_volume[i] = 1.0/ (T)(dof-1);
+  } 
 
   if (reciprocal) {
     for (int i = 0; i < dof; i++) {
