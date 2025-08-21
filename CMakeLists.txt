@@ -218,9 +218,9 @@ if (MGARD_ENABLE_HIP)
   # is because different sources require different compilers. So, instead just
   # grab the include directories.
   target_include_directories(mgard-library
-    PUBLIC $<TARGET_PROPERTY:hip::hipcub,INTERFACE_INCLUDE_DIRECTORIES>
-    PUBLIC $<TARGET_PROPERTY:roc::rocprim_hip,INTERFACE_INCLUDE_DIRECTORIES>
-    PUBLIC $<TARGET_PROPERTY:roc::rocprim,INTERFACE_INCLUDE_DIRECTORIES>
+    PRIVATE $<TARGET_PROPERTY:hip::hipcub,INTERFACE_INCLUDE_DIRECTORIES>
+    PRIVATE $<TARGET_PROPERTY:roc::rocprim_hip,INTERFACE_INCLUDE_DIRECTORIES>
+    PRIVATE $<TARGET_PROPERTY:roc::rocprim,INTERFACE_INCLUDE_DIRECTORIES>
     )
 endif()
 
