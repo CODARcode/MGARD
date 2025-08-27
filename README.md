@@ -69,6 +69,7 @@ Data produced by MGARD, MGARD-X, and MDR-X are designed to follow a unified self
 * Ben Whitney. [Multilevel Techniques for Compression and Reduction of Scientific Data.][thesis] PhD thesis, Brown University, 2018.
 
 ### Preserving Quantites of Interest (QoIs)
+* Xuan Wu et al. [Error-controlled Progressive Retrieval of Scientific Data under Derivable Quantities of Interest.] [qoi] **the International Conference for High Performance Computing, Networking, Storage and Analysis 2024*, Nov, 2024* 
 * Tania Banerjee et al. [Scalable Hybrid Learning Techniques for Scientific Data Compression.][pp3], *Arxiv*, 2022
 * Qian Gong et al. [Region-adaptive, Error-controlled Scientific Data Compression using Multilevel Decomposition.][roi2] *the 34th International Conference on Scientific and Statistical Database Management*, Jul. 2022
 * Tania Benerjee et al. An algorithmic and software pipeline for very large scale scientific data compression with error guarantees. *International Conference on High Performance Computing, Data, and Analytics*, 2022
@@ -79,8 +80,8 @@ Data produced by MGARD, MGARD-X, and MDR-X are designed to follow a unified self
 * Jinzheng Wang et al. Improving Progressive Retrieval for HPC Scientific Data using Deep Neural Network. *IEEE International Conference on Data Engineering (ICDE)*, 2023 
 * Xin Liang et al. [Error-controlled, progressive, and adaptable retrieval of scientific data with multilevel decomposition.][mdr] *the International Conference for High Performance Computing, Networking, Storage and Analysis 2021*, Nov, 2021
 
-
 ### Parallelization and GPU Acceleration
+* Jieyang Chen et al. [HPDR: High-Performance Portable Scientific Data Reduction Framework.][gpu3] 39th IEEE International Parallel and Distributed Processing Symposium, June 3-7, 2025
 * Jieyang Chen et al. [Scalable Multigrid-based Hierarchical Scientific Data Refactoring on GPUs.][gpu2] *Arxiv*
 * Jieyang Chen et al. [Accelerating Multigrid-based Hierarchical Scientific Data Refactoring on GPUs.][gpu] *35th IEEE International Parallel & Distributed Processing Symposium*, May 17–21, 2021.
 
@@ -95,6 +96,7 @@ Data produced by MGARD, MGARD-X, and MDR-X are designed to follow a unified self
 [unstructured]: https://doi.org/10.1137/19M1267878
 [gpu]: https://ieeexplore.ieee.org/abstract/document/9460526/
 [gpu2]: https://arxiv.org/abs/2105.12764
+[gpu3]: https://ieeexplore.ieee.org/document/11078565
 [mgard+]: https://ieeexplore.ieee.org/abstract/document/9479913/
 [unbalanced-io]: https://ieeexplore.ieee.org/abstract/document/9652573/
 [mdr]: https://dl.acm.org/doi/abs/10.1145/3458817.3476179
@@ -102,6 +104,7 @@ Data produced by MGARD, MGARD-X, and MDR-X are designed to follow a unified self
 [roi2]: https://dl.acm.org/doi/abs/10.1145/3538712.3538717
 [pp]: https://www.mdpi.com/1709018 
 [pp3]: https://arxiv.org/abs/2212.10733
+[qoi]: https://ieeexplore.ieee.org/abstract/document/10793162
 
 
 
