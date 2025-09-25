@@ -113,7 +113,7 @@ TEST_CASE("compression with header configuration", "[compressors]") {
   std::generate(quantized, quantized + ndof, f);
   const std::size_t quantizedLen = ndof * sizeof(*quantized);
   // `dst` must have the correct alignment for the quantization type.
-  std::int64_t *const dst = new std::int64_t[ndof];
+  long *const dst = new long[ndof];
 
   std::int64_t *const quantized_ = new std::int64_t[ndof];
   std::copy(quantized, quantized + ndof, quantized_);
@@ -193,7 +193,7 @@ TEST_CASE("decompression with header configuration", "[compressors]") {
   SECTION("zstd") {
     e.set_compressor(mgard::pb::Encoding::CPU_HUFFMAN_ZSTD);
 
-    std::int64_t *const quantized_ = new std::int64_t[ndof];
+    long *const quantized_ = new long[ndof];
     std::copy(quantized, quantized + ndof, quantized_);
     const mgard::MemoryBuffer<unsigned char> out =
         mgard::compress_memory_huffman(quantized_, ndof);
