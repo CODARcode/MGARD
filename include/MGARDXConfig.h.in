@@ -8,52 +8,20 @@
 #ifndef MGARD_X_CONFIG_H
 #define MGARD_X_CONFIG_H
 
-#if '@MGARD_ENABLE_SERIAL@' == 'ON'
-#define MGARD_ENABLE_SERIAL 1
-#else
-#define MGARD_ENABLE_SERIAL 0   
-#endif
+#cmakedefine01 MGARD_ENABLE_SERIAL
 
-#if '@MGARD_ENABLE_OPENMP@' == 'ON'
-#define MGARD_ENABLE_OPENMP 1
-#else
-#define MGARD_ENABLE_OPENMP 0   
-#endif
+#cmakedefine01 MGARD_ENABLE_OPENMP
 
-#if '@MGARD_ENABLE_CUDA@' == 'ON'
-#define MGARD_ENABLE_CUDA 1
-#else
-#define MGARD_ENABLE_CUDA 0   
-#endif
+#cmakedefine01 MGARD_ENABLE_CUDA
 
-#if '@MGARD_ENABLE_HIP@' == 'ON'
-#define MGARD_ENABLE_HIP 1
-#else
-#define MGARD_ENABLE_HIP 0   
-#endif
+#cmakedefine01 MGARD_ENABLE_HIP
 
-#if '@MGARD_ENABLE_SYCL@' == 'ON'
-#define MGARD_ENABLE_SYCL 1
-#else
-#define MGARD_ENABLE_SYCL 0   
-#endif
+#cmakedefine01 MGARD_ENABLE_SYCL
 
-#if '@MGARD_ENABLE_LEGACY_CUDA@' == 'ON'
-#define MGARD_ENABLE_LEGACY_CUDA 1
-#else
-#define MGARD_ENABLE_LEGACY_CUDA 0   
-#endif
+#cmakedefine01 MGARD_ENABLE_LEGACY_CUDA
 
-#if '@MGARD_ENABLE_AUTO_TUNING@' == 'ON'
-#define MGARD_ENABLE_AUTO_TUNING 1
-#else
-#define MGARD_ENABLE_AUTO_TUNING 0   
-#endif
+#cmakedefine01 MGARD_ENABLE_AUTO_TUNING
 
-#if '@MGARD_ENABLE_EXTERNAL_COMPRESSOR@' == 'ON'
-#define MGARD_ENABLE_EXTERNAL_COMPRESSOR 1
-#else
-#define MGARD_ENABLE_EXTERNAL_COMPRESSOR 0   
-#endif
+#cmakedefine01 MGARD_ENABLE_EXTERNAL_COMPRESSOR
 
 #endif

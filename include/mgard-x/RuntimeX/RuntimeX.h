@@ -20,6 +20,8 @@
 // Serial backend should be always available
 #if MGARD_ENABLE_SERIAL
 #include "DeviceAdapters/DeviceAdapterSerial.h"
+#else
+#error "The serial MGARD device should always be available."
 #endif
 
 #if MGARD_ENABLE_OPENMP
