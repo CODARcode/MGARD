@@ -133,6 +133,7 @@ if (MGARD_ENABLE_SERIAL OR
                                                       $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
   install(TARGETS mgard-cpu)
 
+  set(MGARD_X_BUILD_PMDR OFF)
   if(MGARD_ENABLE_MDR)
     add_executable(mdr-x ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/mdr-x.cpp)
     target_link_libraries(mdr-x mgard-library  ${CMAKE_DL_LIBS})
@@ -144,17 +145,24 @@ if (MGARD_ENABLE_SERIAL OR
     target_include_directories(mdr-x-qoi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                                               $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
     install(TARGETS mdr-x-qoi)
-    find_package(MPI REQUIRED)
-    add_executable(pmdr-x-qoi ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/pmdr-x-qoi.cpp)
-    target_link_libraries(pmdr-x-qoi mgard-library MPI::MPI_CXX ${CMAKE_DL_LIBS})
-    target_include_directories(pmdr-x-qoi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                              $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-    install(TARGETS pmdr-x-qoi)
-    add_executable(pmdr-x-qoi-io ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/pmdr-x-qoi-io.cpp)
-    target_link_libraries(pmdr-x-qoi-io mgard-library MPI::MPI_CXX ${CMAKE_DL_LIBS})
-    target_include_directories(pmdr-x-qoi-io PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                                              $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-    install(TARGETS pmdr-x-qoi-io)
+    # MPI is only needed by the parallel pmdr-x executables; the rest of MDR-X
+    # (library, mdr-x, mdr-x-qoi) builds without it.
+    find_package(MPI COMPONENTS CXX)
+    if(MPI_CXX_FOUND)
+      set(MGARD_X_BUILD_PMDR ON)
+      add_executable(pmdr-x-qoi ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/pmdr-x-qoi.cpp)
+      target_link_libraries(pmdr-x-qoi mgard-library MPI::MPI_CXX ${CMAKE_DL_LIBS})
+      target_include_directories(pmdr-x-qoi PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+      install(TARGETS pmdr-x-qoi)
+      add_executable(pmdr-x-qoi-io ${CMAKE_CURRENT_SOURCE_DIR}/src/mgard-x/Executables/pmdr-x-qoi-io.cpp)
+      target_link_libraries(pmdr-x-qoi-io mgard-library MPI::MPI_CXX ${CMAKE_DL_LIBS})
+      target_include_directories(pmdr-x-qoi-io PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+      install(TARGETS pmdr-x-qoi-io)
+    else()
+      message(STATUS "MPI not found: skipping pmdr-x-qoi and pmdr-x-qoi-io.")
+    endif()
   endif()
 endif()
 
@@ -486,6 +494,11 @@ message(STATUS "SYCL:        ${MGARD_ENABLE_SYCL}")
 list(POP_BACK CMAKE_MESSAGE_INDENT)
 message(STATUS "auto tuning:   ${MGARD_ENABLE_AUTO_TUNING}")
 message(STATUS "MDR:           ${MGARD_ENABLE_MDR}")
+if(MGARD_ENABLE_MDR)
+  list(APPEND CMAKE_MESSAGE_INDENT "  ")
+  message(STATUS "pmdr-x (MPI): ${MGARD_X_BUILD_PMDR}")
+  list(POP_BACK CMAKE_MESSAGE_INDENT)
+endif()
 message(STATUS "timing:        ${MGARD_ENABLE_TIMING}")
 message(STATUS "ASan:          ${MGARD_ENABLE_ASAN}")
 message(STATUS "UBSan:         ${MGARD_ENABLE_UBSAN}")
