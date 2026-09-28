@@ -3,8 +3,10 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 
 #include <algorithm>
+#include <limits>
 #include <numeric>
 #include <random>
 #include <sstream>
@@ -18,7 +20,43 @@
 #include "mgard/TensorMeshHierarchyIteration.hpp"
 #include "mgard/TensorNorms.hpp"
 #include "mgard/blas.hpp"
+#include "mgard/compressors.hpp"
 #include "mgard/shuffle.hpp"
+
+TEST_CASE("Huffman preserves outliers wider than int",
+          "[mgard][compress][huffman]") {
+  const auto round_trip = [](const std::vector<long int> &original,
+                             const std::size_t outlier_width) {
+    std::vector<long int> input(original);
+    const mgard::MemoryBuffer<unsigned char> compressed =
+        mgard::compress_memory_huffman(input.data(), input.size());
+
+    std::size_t encoded_outlier_bytes;
+    std::memcpy(&encoded_outlier_bytes,
+                compressed.data.get() + 2 * sizeof(std::size_t),
+                sizeof(encoded_outlier_bytes));
+    REQUIRE(encoded_outlier_bytes == original.size() * outlier_width);
+
+    std::vector<long int> decompressed(original.size());
+    mgard::decompress_memory_huffman(
+        compressed.data.get(), compressed.size, decompressed.data(),
+        decompressed.size() * sizeof(decompressed.front()));
+    REQUIRE(decompressed == original);
+  };
+
+  SECTION("legacy int-width outliers") {
+    round_trip({1000000, -1000000}, sizeof(int));
+  }
+  SECTION("outliers outside the int range") {
+    if (sizeof(long int) <= sizeof(int)) {
+      SUCCEED("long int has no values outside the int range");
+      return;
+    }
+    round_trip({std::numeric_limits<long int>::max() / 4,
+                std::numeric_limits<long int>::lowest() / 4},
+               sizeof(long int));
+  }
+}
 
 namespace {
 

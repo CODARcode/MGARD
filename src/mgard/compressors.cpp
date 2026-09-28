@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <bitset>
+#include <limits>
 #include <numeric>
 #include <queue>
 #include <stdexcept>
@@ -199,14 +200,31 @@ void huffman_decoding(long int *quantized_data,
 
   unsigned int *buf = (unsigned int *)out_data_hit;
 
-  // The out_data_miss may not be aligned. Therefore, the code
-  // here makes a new buffer.
-  int *miss_buf = (int *)malloc(out_data_miss_size);
-  if (out_data_miss_size) {
-    std::memcpy(miss_buf, out_data_miss, out_data_miss_size);
+  // The out_data_miss may not be aligned, so copy it into an aligned buffer.
+  // Legacy streams store outliers as int. New streams use long int only when
+  // an outlier does not fit in int; the byte count distinguishes the formats.
+  const size_t encoded_num_missed = ft[0];
+  long int *miss_buf =
+      (long int *)malloc(encoded_num_missed * sizeof(long int));
+  if (out_data_miss_size == encoded_num_missed * sizeof(long int)) {
+    if (out_data_miss_size) {
+      std::memcpy(miss_buf, out_data_miss, out_data_miss_size);
+    }
+  } else if (out_data_miss_size == encoded_num_missed * sizeof(int)) {
+    int *legacy_miss_buf = (int *)malloc(out_data_miss_size);
+    if (out_data_miss_size) {
+      std::memcpy(legacy_miss_buf, out_data_miss, out_data_miss_size);
+    }
+    for (size_t i = 0; i < encoded_num_missed; ++i) {
+      miss_buf[i] = legacy_miss_buf[i];
+    }
+    free(legacy_miss_buf);
+  } else {
+    free(miss_buf);
+    throw std::runtime_error("invalid Huffman outlier stream size");
   }
 
-  int *miss_bufp = miss_buf;
+  long int *miss_bufp = miss_buf;
 
   size_t start_bit = 0;
   unsigned int mask = 0x80000000;
@@ -256,7 +274,7 @@ void huffman_decoding(long int *quantized_data,
   }
 
   assert(start_bit == out_data_hit_size);
-  assert(sizeof(int) * num_missed == out_data_miss_size);
+  assert(num_missed == encoded_num_missed);
 
   // Avoid unused argument warning. If NDEBUG is defined, then the assert
   // becomes empty and out_data_hit_size is unused. Tell the compiler that
@@ -330,10 +348,20 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
   unsigned char *p_hit = (unsigned char *)malloc(n * sizeof(int));
   std::memset(p_hit, 0, n * sizeof(int));
 
-  int *p_miss = 0;
+  bool wide_miss = false;
+  for (std::size_t i = 0; i < n; ++i) {
+    const long int q = quantized_data[i];
+    if ((q <= 0 || q >= nql) && (q < std::numeric_limits<int>::min() ||
+                                 q > std::numeric_limits<int>::max())) {
+      wide_miss = true;
+      break;
+    }
+  }
+  const size_t miss_width = wide_miss ? sizeof(long int) : sizeof(int);
+  unsigned char *p_miss = 0;
   if (num_miss > 0) {
-    p_miss = (int *)malloc(num_miss * sizeof(int));
-    std::memset(p_miss, 0, num_miss * sizeof(int));
+    p_miss = (unsigned char *)malloc(num_miss * miss_width);
+    std::memset(p_miss, 0, num_miss * miss_width);
   }
 
   *out_data_hit = p_hit;
@@ -345,7 +373,7 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
   unsigned int *cur = (unsigned int *)p_hit;
   size_t cnt_missed = 0;
   for (std::size_t i = 0; i < n; i++) {
-    int q = quantized_data[i];
+    long int q = quantized_data[i];
     unsigned int code;
     size_t len;
 
@@ -358,8 +386,11 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
       code = codec[0].code;
       len = codec[0].len;
 
-      *p_miss = q;
-      p_miss++;
+      if (wide_miss) {
+        ((long int *)p_miss)[cnt_missed] = q;
+      } else {
+        ((int *)p_miss)[cnt_missed] = static_cast<int>(q);
+      }
       cnt_missed++;
     }
 
@@ -389,7 +420,7 @@ void huffman_encoding(long int *quantized_data, const std::size_t n,
 
   // Note: hit size is in bits, while miss size is in bytes.
   *out_data_hit_size = start_bit;
-  *out_data_miss_size = num_miss * sizeof(int);
+  *out_data_miss_size = num_miss * miss_width;
 
   // write frequency table to buffer
   int nonZeros = 0;
