@@ -286,8 +286,9 @@ public:
       // This ensure all each batch of merged bitplanes are used for
       // Reconstruction. Otherwise, unsed bitplanes will not be guaranteed
       // to be in memory in future reconstructions.
+      // (a level that needs no bitplanes stays at 0).
       int m = Compressor::num_merged_bitplanes;
-      n = ((n - 1) / m + 1) * m;
+      n = (n + m - 1) / m * m;
     }
     timer.end();
     // timer.print("Preprocessing");
@@ -316,8 +317,10 @@ public:
 
   void LoadMetadata(MDRMetadata &mdr_metadata, MDRData<DeviceType> &mdr_data,
                     int queue_idx) {
-    for (int level_idx = 0; level_idx <= mdr_metadata.CurrFinalLevel();
-         level_idx++) {
+    // All levels, not just up to CurrFinalLevel(): levels with no bitplanes
+    // must get level_num_bitplanes = 0 rather than keep a value from a
+    // previous use of this reconstructor (ProgressiveReconstruct visits all).
+    for (int level_idx = 0; level_idx <= hierarchy->l_target(); level_idx++) {
       level_num_bitplanes[level_idx] =
           mdr_metadata.loaded_level_num_bitplanes[level_idx] -
           mdr_metadata.prev_used_level_num_bitplanes[level_idx];
