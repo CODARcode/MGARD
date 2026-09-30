@@ -204,14 +204,24 @@ public:
     // mark("Huffman stage: codebook");
 
     if (target_cr > 1.0) {
-      workspace.freq_array.hostCopy(false, queue_idx);
-      workspace.CL_array.hostCopy(false, queue_idx);
+      // Encoded bits = sum over symbols of frequency x codeword length. After
+      // GetCodebook, freq_subarray holds the frequencies sorted ascending and
+      // CL_subarray has been reversed by GenerateCW, so they cannot be paired
+      // by index. Use the unsorted histogram (_d_freq_copy_subarray) and the
+      // symbol-indexed codebook, whose top byte is the codeword length (see
+      // deflate_bitwidth).
+      std::vector<unsigned int> freq(dict_size);
+      std::vector<H> codebook(dict_size);
+      MemoryManager<DeviceType>::Copy1D(freq.data(),
+                                        workspace._d_freq_copy_subarray.data(),
+                                        dict_size, queue_idx);
+      MemoryManager<DeviceType>::Copy1D(codebook.data(),
+                                        workspace.codebook_subarray.data(),
+                                        dict_size, queue_idx);
       DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
-      unsigned int *_freq = workspace.freq_array.dataHost();
-      unsigned int *_cl = workspace.CL_array.dataHost();
       double LC = 0;
       for (SIZE i = 0; i < dict_size; i++) {
-        LC += (double)_freq[i] * _cl[i];
+        LC += (double)freq[i] * (double)(codebook[i] >> (sizeof(H) * 8 - 8));
       }
       double estimated_cr =
           (double)(sizeof(Q) * primary_count) / (LC / 8 + 2000);
