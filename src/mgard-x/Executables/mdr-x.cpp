@@ -43,6 +43,7 @@ void print_usage_message(std::string error) {
 \t\t (optional) -m / --max-memory <max memory usage>  \n\
 \t\t (optional) -dd / --domain-decomposition <max-dim|block>\n\
 \t\t\t (optional) -dd-size / --domain-decomposition-size <integer> (for block domain decomposition only) \n\
+\t\t (optional) -l / --lossless <huffman|huffman-zstd>: bitplane lossless stage (default: huffman)\n\
 \n\
 \t -x / --reconstruct: reconstruct data\n\
 \t\t -i / --input <path to refactored data dir>\n\
@@ -306,10 +307,12 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     std::vector<mgard_x::SIZE> shape,
                     std::string domain_decomposition, mgard_x::SIZE block_size,
                     enum mgard_x::device_type dev_type, int verbose,
-                    mgard_x::SIZE max_memory_footprint) {
+                    mgard_x::SIZE max_memory_footprint,
+                    enum mgard_x::lossless_type lossless) {
 
   mgard_x::Config config;
   config.normalize_coordinates = false;
+  config.lossless = lossless;
   config.log_level = verbose_to_log_level(verbose);
   config.decomposition = mgard_x::decomposition_type::MultiDim;
   if (domain_decomposition == "max-dim") {
@@ -498,8 +501,12 @@ bool try_refactoring(int argc, char *argv[]) {
   enum mgard_x::data_type dtype = get_data_type(argc, argv);
   std::vector<mgard_x::SIZE> shape =
       get_args<mgard_x::SIZE>(argc, argv, "Dimensions", "-dim", "--dimension");
-  // std::string lossless_level = get_arg<std::string>(argc, argv, "Lossless",
-  // "-l", "--lossless");
+  enum mgard_x::lossless_type lossless = mgard_x::lossless_type::Huffman;
+  if (has_arg(argc, argv, "-l", "--lossless") &&
+      get_arg<std::string>(argc, argv, "Lossless", "-l", "--lossless") ==
+          "huffman-zstd") {
+    lossless = mgard_x::lossless_type::Huffman_Zstd;
+  }
   enum mgard_x::device_type dev_type = get_device_type(argc, argv);
   int verbose = 0;
   if (has_arg(argc, argv, "-v", "--verbose")) {
@@ -524,12 +531,13 @@ bool try_refactoring(int argc, char *argv[]) {
   if (dtype == mgard_x::data_type::Double) {
     launch_refactor<double>(shape.size(), dtype, input_file.c_str(),
                             output_file.c_str(), shape, domain_decomposition,
-                            block_size, dev_type, verbose,
-                            max_memory_footprint);
+                            block_size, dev_type, verbose, max_memory_footprint,
+                            lossless);
   } else if (dtype == mgard_x::data_type::Float) {
     launch_refactor<float>(shape.size(), dtype, input_file.c_str(),
                            output_file.c_str(), shape, domain_decomposition,
-                           block_size, dev_type, verbose, max_memory_footprint);
+                           block_size, dev_type, verbose, max_memory_footprint,
+                           lossless);
   }
   return true;
 }
