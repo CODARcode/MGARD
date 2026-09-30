@@ -7,6 +7,7 @@
 // #include "../RefactorUtils.hpp"
 #include "LevelCompressorInterface.hpp"
 #include "LosslessCompressor.hpp"
+#include <cstring>
 
 namespace mgard_x {
 namespace MDR {
@@ -65,7 +66,7 @@ public:
                  int level_idx, int queue_idx) {
 
     std::vector<float> cr, time;
-    bool huffman_success, rle_success;
+    bool huffman_success, rle_success, zstd_success;
     for (SIZE bitplane_idx = 0; bitplane_idx < encoded_bitplanes.shape(0);
          bitplane_idx++) {
       if (bitplane_idx % num_merged_bitplanes == 0) {
@@ -81,8 +82,14 @@ public:
         log::level = 0;
         huffman_success = false;
         rle_success = false;
+        zstd_success = false;
         // cr_threshold = 2.0;
-        if (merged_bitplane_size > size_threshold) {
+        if (merged_bitplane_size > size_threshold &&
+            config.lossless == lossless_type::Huffman_Zstd) {
+          zstd_success =
+              compress_zstd((Byte *)bitplane, merged_bitplane_size,
+                            compressed_bitplanes[bitplane_idx], queue_idx);
+        } else if (merged_bitplane_size > size_threshold) {
           rle_success =
               rle.Compress(encoded_bitplane, compressed_bitplanes[bitplane_idx],
                            cr_threshold, queue_idx);
@@ -105,7 +112,7 @@ public:
           }
         }
 
-        if (huffman_success == false && rle_success == false) {
+        if (!huffman_success && !rle_success && !zstd_success) {
           // direct copy
           compressed_bitplanes[bitplane_idx].resize({merged_bitplane_size});
           MemoryManager<DeviceType>::Copy1D(
@@ -172,6 +179,10 @@ public:
           rle.Deserialize(compressed_bitplanes[bitplane_idx], queue_idx);
           rle.Decompress(compressed_bitplanes[bitplane_idx], encoded_bitplane,
                          queue_idx);
+        } else if (is_zstd(compressed_bitplanes[bitplane_idx],
+                           merged_bitplane_size, queue_idx)) {
+          decompress_zstd(compressed_bitplanes[bitplane_idx], (Byte *)bitplane,
+                          merged_bitplane_size, queue_idx);
         } else {
           // Direct copy
           MemoryManager<DeviceType>::Copy1D(
@@ -189,6 +200,52 @@ public:
     //   time_string += std::to_string(x) + " ";
     // }
     // log::info("Time: " + time_string);
+  }
+
+  // ZSTD stage (Config::lossless == Huffman_Zstd): replaces RLE/byte Huffman
+  // for groups above size_threshold and is kept whenever it is smaller than
+  // the raw group. Stored as [signature][Zstd stream].
+  static constexpr Byte zstd_signature[7] = {'M', 'G', 'X', 'Z', 'S', 'T', 'D'};
+
+  bool compress_zstd(Byte *group, SIZE n, Array<1, Byte, DeviceType> &out,
+                     int queue_idx) {
+    Array<1, Byte, DeviceType> buffer({n});
+    MemoryManager<DeviceType>::Copy1D(buffer.data(), group, n, queue_idx);
+    zstd.Compress(buffer, queue_idx);
+    SIZE size = buffer.shape(0);
+    if (size + sizeof(zstd_signature) >= n) {
+      return false;
+    }
+    out.resize({(SIZE)(size + sizeof(zstd_signature))}, queue_idx);
+    MemoryManager<DeviceType>::Copy1D(out.data(), (Byte *)zstd_signature,
+                                      sizeof(zstd_signature), queue_idx);
+    MemoryManager<DeviceType>::Copy1D(out.data() + sizeof(zstd_signature),
+                                      buffer.data(), size, queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+    return true;
+  }
+
+  // A raw group is exactly n bytes; a ZSTD group is smaller and signed.
+  bool is_zstd(Array<1, Byte, DeviceType> &data, SIZE n, int queue_idx) {
+    if (data.shape(0) >= n || data.shape(0) <= sizeof(zstd_signature)) {
+      return false;
+    }
+    Byte signature[sizeof(zstd_signature)];
+    MemoryManager<DeviceType>::Copy1D(signature, data.data(),
+                                      sizeof(zstd_signature), queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
+    return std::memcmp(signature, zstd_signature, sizeof(zstd_signature)) == 0;
+  }
+
+  void decompress_zstd(Array<1, Byte, DeviceType> &data, Byte *group, SIZE n,
+                       int queue_idx) {
+    SIZE size = data.shape(0) - sizeof(zstd_signature);
+    Array<1, Byte, DeviceType> buffer({size});
+    MemoryManager<DeviceType>::Copy1D(
+        buffer.data(), data.data() + sizeof(zstd_signature), size, queue_idx);
+    zstd.Decompress(buffer, queue_idx);
+    MemoryManager<DeviceType>::Copy1D(group, buffer.data(), n, queue_idx);
+    DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
   }
 
   // release the buffer created
