@@ -25,13 +25,15 @@ public:
       SubArray<2, SIZE, DeviceType> level_ranges,
       SubArray<2, int, DeviceType> level_marks, SIZE l_target,
       SubArray<1, T, DeviceType> quantizers,
-      SubArray<3, T, DeviceType> level_volumes, bool calc_vol,
+      SubArray<1, T, DeviceType> level_volumes,
+      SubArray<2, SIZE, DeviceType> level_volume_offsets, bool calc_vol,
       SubArray<D, T, DeviceType> v,
       SubArray<D, QUANTIZED_INT, DeviceType> quantized_v, bool prep_huffman,
       SIZE dict_size)
       : level_ranges(level_ranges), level_marks(level_marks),
         l_target(l_target), quantizers(quantizers),
-        level_volumes(level_volumes), calc_vol(calc_vol), v(v),
+        level_volumes(level_volumes),
+        level_volume_offsets(level_volume_offsets), calc_vol(calc_vol), v(v),
         quantized_v(quantized_v), prep_huffman(prep_huffman),
         dict_size(dict_size) {
     Functor<DeviceType>();
@@ -81,7 +83,7 @@ public:
 
         // Determine volume
         for (int d = D - 1; d >= 0; d--) {
-          volume *= *level_volumes(level, d, idx[d]);
+          volume *= *level_volumes(*level_volume_offsets(level, d) + idx[d]);
         }
         if (sizeof(T) == sizeof(double))
           volume = sqrt(volume);
@@ -130,7 +132,8 @@ private:
   SubArray<2, int, DeviceType> level_marks;
   SIZE l_target;
   SubArray<1, T, DeviceType> quantizers;
-  SubArray<3, T, DeviceType> level_volumes;
+  SubArray<1, T, DeviceType> level_volumes;
+  SubArray<2, SIZE, DeviceType> level_volume_offsets;
   SubArray<D, T, DeviceType> v;
   SubArray<D, QUANTIZED_INT, DeviceType> quantized_v;
   bool calc_vol;
@@ -155,13 +158,15 @@ public:
       SubArray<2, SIZE, DeviceType> level_ranges,
       SubArray<2, int, DeviceType> level_marks, SIZE l_target,
       SubArray<1, T, DeviceType> quantizers,
-      SubArray<3, T, DeviceType> level_volumes, bool calc_vol,
+      SubArray<1, T, DeviceType> level_volumes,
+      SubArray<2, SIZE, DeviceType> level_volume_offsets, bool calc_vol,
       SubArray<D, T, DeviceType> v,
       SubArray<D, QUANTIZED_INT, DeviceType> quantized_v, bool prep_huffman,
       SIZE dict_size)
       : level_ranges(level_ranges), level_marks(level_marks),
         l_target(l_target), quantizers(quantizers),
-        level_volumes(level_volumes), calc_vol(calc_vol), v(v),
+        level_volumes(level_volumes),
+        level_volume_offsets(level_volume_offsets), calc_vol(calc_vol), v(v),
         quantized_v(quantized_v), prep_huffman(prep_huffman),
         dict_size(dict_size) {}
 
@@ -173,8 +178,8 @@ public:
         LevelwiseLinearQuantizerNDFunctor<D, T, R, C, F, OP, DeviceType>;
 
     FunctorType functor(level_ranges, level_marks, l_target, quantizers,
-                        level_volumes, calc_vol, v, quantized_v, prep_huffman,
-                        dict_size);
+                        level_volumes, level_volume_offsets, calc_vol, v,
+                        quantized_v, prep_huffman, dict_size);
 
     SIZE total_thread_z = v.shape(D - 3);
     SIZE total_thread_y = v.shape(D - 2);
@@ -203,7 +208,8 @@ private:
   SubArray<2, int, DeviceType> level_marks;
   SIZE l_target;
   SubArray<1, T, DeviceType> quantizers;
-  SubArray<3, T, DeviceType> level_volumes;
+  SubArray<1, T, DeviceType> level_volumes;
+  SubArray<2, SIZE, DeviceType> level_volume_offsets;
   bool calc_vol;
   SubArray<D, T, DeviceType> v;
   SubArray<D, QUANTIZED_INT, DeviceType> quantized_v;
@@ -330,8 +336,10 @@ public:
     SubArray<2, SIZE, DeviceType> level_ranges_subarray(
         hierarchy->level_ranges());
     SubArray<2, int, DeviceType> level_marks_subarray(hierarchy->level_marks());
-    SubArray<3, T, DeviceType> level_volumes_subarray(
+    SubArray<1, T, DeviceType> level_volumes_subarray(
         hierarchy->level_volumes(false));
+    SubArray<2, SIZE, DeviceType> level_volume_offsets_subarray(
+        hierarchy->level_volume_offsets());
     SubArray<1, T, DeviceType> quantizers_subarray(quantizers_array);
     T *quantizers = new T[hierarchy->l_target() + 1];
     CalcQuantizers(total_elems, quantizers, ebtype, tol, s, norm,
@@ -351,8 +359,9 @@ public:
     DeviceLauncher<DeviceType>::Execute(
         LevelwiseLinearQuantizerKernel<D, T, MGARDX_QUANTIZE, DeviceType>(
             level_ranges_subarray, level_marks_subarray, hierarchy->l_target(),
-            quantizers_subarray, level_volumes_subarray, calc_vol,
-            original_data, quantized_data, prep_huffman, config.huff_dict_size),
+            quantizers_subarray, level_volumes_subarray,
+            level_volume_offsets_subarray, calc_vol, original_data,
+            quantized_data, prep_huffman, config.huff_dict_size),
         queue_idx);
 
     if (log::level & log::TIME) {
@@ -376,8 +385,10 @@ public:
     SubArray<2, SIZE, DeviceType> level_ranges_subarray(
         hierarchy->level_ranges());
     SubArray<2, int, DeviceType> level_marks_subarray(hierarchy->level_marks());
-    SubArray<3, T, DeviceType> level_volumes_subarray(
+    SubArray<1, T, DeviceType> level_volumes_subarray(
         hierarchy->level_volumes(true));
+    SubArray<2, SIZE, DeviceType> level_volume_offsets_subarray(
+        hierarchy->level_volume_offsets());
 
     // Must mirror the toggle used during Quantize so the dictionary shift is
     // undone exactly when it was applied.
@@ -405,8 +416,9 @@ public:
     DeviceLauncher<DeviceType>::Execute(
         LevelwiseLinearQuantizerKernel<D, T, MGARDX_DEQUANTIZE, DeviceType>(
             level_ranges_subarray, level_marks_subarray, hierarchy->l_target(),
-            quantizers_subarray, level_volumes_subarray, calc_vol,
-            original_data, quantized_data, prep_huffman, config.huff_dict_size),
+            quantizers_subarray, level_volumes_subarray,
+            level_volume_offsets_subarray, calc_vol, original_data,
+            quantized_data, prep_huffman, config.huff_dict_size),
         queue_idx);
 
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
