@@ -23,6 +23,11 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   /* for Internal use only */
   Hierarchy();
   Hierarchy(const Hierarchy &hierarchy);
+  // Moves hand over the device arrays (a moved-from Array is left empty), so
+  // e.g. inserting into a hierarchy cache does not deep-copy every array.
+  Hierarchy(Hierarchy &&hierarchy) = default;
+  Hierarchy &operator=(const Hierarchy &hierarchy) = default;
+  Hierarchy &operator=(Hierarchy &&hierarchy) = default;
 
   SIZE total_num_elems();
   SIZE level_num_elems(SIZE level);
