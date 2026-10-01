@@ -10,6 +10,7 @@
 #include <iostream>
 #include <numeric>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "../Utilities/Types.h"
@@ -60,7 +61,7 @@ public:
 
   void InsertHierarchyCache(HierarchyType hierarchy) {
     std::vector<SIZE> shape = hierarchy.level_shape(hierarchy.l_target());
-    (*hierarchy_cache)[GenHierarchyKey(shape)] = hierarchy;
+    (*hierarchy_cache)[GenHierarchyKey(shape)] = std::move(hierarchy);
     std::stringstream ss;
     for (int i = 0; i < shape.size(); i++) {
       ss << shape[i] << " ";
