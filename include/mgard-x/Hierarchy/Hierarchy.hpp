@@ -403,26 +403,30 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
     }
   }
 
-  { // volume for quantization
-    SIZE volumes_width = 0;
-    for (DIM d = 0; d < D; d++) {
-      volumes_width = std::max(volumes_width, _level_shape[_l_target][d]);
+  { // volume for quantization, packed per level (see Hierarchy.h)
+    std::vector<SIZE> offsets_h((_l_target + 1) * D);
+    SIZE total_volumes = 0;
+    for (SIZE l = 0; l < _l_target + 1; l++) {
+      for (DIM d = 0; d < D; d++) {
+        offsets_h[l * D + d] = total_volumes;
+        total_volumes += _level_shape[l][d];
+      }
     }
 
     bool pitched = false;
-    _level_volumes =
-        Array<3, T, DeviceType>({_l_target + 1, D, volumes_width}, pitched);
+    _level_volume_offsets =
+        Array<2, SIZE, DeviceType>({_l_target + 1, D}, pitched);
+    _level_volume_offsets.load(offsets_h.data());
+    _level_volumes = Array<1, T, DeviceType>({total_volumes}, pitched);
     _level_volumes_reciprocal =
-        Array<3, T, DeviceType>({_l_target + 1, D, volumes_width}, pitched);
-    SubArray<3, T, DeviceType> volumes_subarray(_level_volumes);
-    SubArray<3, T, DeviceType> volumes_reciprocal_subarray(
-        _level_volumes_reciprocal);
+        Array<1, T, DeviceType>({total_volumes}, pitched);
     for (SIZE l = 0; l < _l_target + 1; l++) {
       for (DIM d = 0; d < D; d++) {
+        SIZE offset = offsets_h[l * D + d];
         calc_volume(_level_shape[l][d], _dist_array[l][d].data(),
-                    volumes_subarray(l, d, 0), false);
+                    _level_volumes.data() + offset, false);
         calc_volume(_level_shape[l][d], _dist_array[l][d].data(),
-                    volumes_reciprocal_subarray(l, d, 0), true);
+                    _level_volumes_reciprocal.data() + offset, true);
       }
     }
   }
@@ -574,13 +578,15 @@ Hierarchy<D, T, DeviceType>::EstimateMemoryFootprint(std::vector<SIZE> shape) {
     }
   }
 
-  { // volume for quantization
-    SIZE volumes_width = 0;
-    for (DIM d = 0; d < D; d++) {
-      volumes_width = std::max(volumes_width, _level_shape[_l_target][d]);
+  { // volume for quantization, packed per level
+    size_t total_volumes = 0;
+    for (SIZE l = 0; l < _l_target + 1; l++) {
+      for (DIM d = 0; d < D; d++) {
+        total_volumes += _level_shape[l][d];
+      }
     }
-    estimate_memory_usgae += (_l_target + 1) * D * volumes_width * sizeof(T);
-    estimate_memory_usgae += (_l_target + 1) * D * volumes_width * sizeof(T);
+    estimate_memory_usgae += 2 * total_volumes * sizeof(T);
+    estimate_memory_usgae += (_l_target + 1) * D * sizeof(SIZE);
   }
 
   { // am and bm
@@ -739,13 +745,19 @@ Array<2, int, DeviceType> &Hierarchy<D, T, DeviceType>::level_marks() {
 }
 
 template <DIM D, typename T, typename DeviceType>
-Array<3, T, DeviceType> &
+Array<1, T, DeviceType> &
 Hierarchy<D, T, DeviceType>::level_volumes(bool reciprocal) {
   if (!reciprocal) {
     return _level_volumes;
   } else {
     return _level_volumes_reciprocal;
   }
+}
+
+template <DIM D, typename T, typename DeviceType>
+Array<2, SIZE, DeviceType> &
+Hierarchy<D, T, DeviceType>::level_volume_offsets() {
+  return _level_volume_offsets;
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -865,6 +877,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy(const Hierarchy &hierarchy) {
   _ratio_array = hierarchy._ratio_array;
   _level_volumes = hierarchy._level_volumes;
   _level_volumes_reciprocal = hierarchy._level_volumes_reciprocal;
+  _level_volume_offsets = hierarchy._level_volume_offsets;
   _am_array = hierarchy._am_array;
   _bm_array = hierarchy._bm_array;
   _level_shape = hierarchy._level_shape;

@@ -40,7 +40,8 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   Array<1, DIM, DeviceType> &unprocessed(SIZE idx, DIM &processed_n);
   Array<2, SIZE, DeviceType> &level_ranges();
   Array<2, int, DeviceType> &level_marks();
-  Array<3, T, DeviceType> &level_volumes(bool reciprocal);
+  Array<1, T, DeviceType> &level_volumes(bool reciprocal);
+  Array<2, SIZE, DeviceType> &level_volume_offsets();
   data_structure_type data_structure();
   bool is_initialized();
   bool can_reuse(std::vector<SIZE> shape);
@@ -80,9 +81,14 @@ private:
   // Pre-computed range array for fast quantization
   Array<2, SIZE, DeviceType> _level_ranges;
   Array<2, int, DeviceType> _level_marks;
-  // Pre-computed volume array for fast quantization
-  Array<3, T, DeviceType> _level_volumes;
-  Array<3, T, DeviceType> _level_volumes_reciprocal;
+  // Pre-computed volume array for fast quantization. Stored per level: the
+  // level_shape[l][d] volumes of each (level l, dim d) are packed back to
+  // back starting at _level_volume_offsets(l, d), so the total is
+  // sum_l sum_d level_shape[l][d] rather than (l_target + 1) * D * max_width
+  // (which in 1D is ~log2(N) * N).
+  Array<1, T, DeviceType> _level_volumes;
+  Array<1, T, DeviceType> _level_volumes_reciprocal;
+  Array<2, SIZE, DeviceType> _level_volume_offsets;
   // Indicating if it is uniform or non-uniform grid
   enum data_structure_type dstype;
 
