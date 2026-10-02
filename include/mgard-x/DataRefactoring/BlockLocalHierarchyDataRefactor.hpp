@@ -1,3 +1,4 @@
+#include "../Hierarchy/HybridHierarchy.h"
 #include "InCacheBlock/DataRefactoring.h"
 #include "MultiDimension/DataRefactoring.h"
 
@@ -14,9 +15,10 @@ public:
   BlockLocalHierarchyDataRefactor() : initialized(false) {}
 
   // Removing all checks for L since processed in HybridHierarchyDataRefactor
-  BlockLocalHierarchyDataRefactor(Hierarchy<D, T, DeviceType> &hierarchy,
+  BlockLocalHierarchyDataRefactor(HybridHierarchy<D, T, DeviceType> &hierarchy,
                                   Config config)
       : initialized(true), hierarchy(&hierarchy), config(config) {
+    hierarchy.check_config(config);
     this->L = config.num_local_refactoring_level;
     compute_local_ranges();
     w_array = Array<1, T, DeviceType>({DecomposedCoeffSize()});
@@ -26,8 +28,9 @@ public:
     coarse_buffers[1] = Array<D, T, DeviceType>(fine_shapes[0]);
   }
 
-  void Adapt(Hierarchy<D, T, DeviceType> &hierarchy, Config config,
+  void Adapt(HybridHierarchy<D, T, DeviceType> &hierarchy, Config config,
              int queue_idx) {
+    hierarchy.check_config(config);
     this->initialized = true;
     this->hierarchy = &hierarchy;
     this->config = config;
@@ -69,8 +72,7 @@ public:
   }
 
   void compute_local_ranges() {
-    // Get original shape from hierarchy
-    coarse_shape = hierarchy->level_shape(hierarchy->l_target());
+    coarse_shape = hierarchy->input_shape();
     fine_num_elems.clear();
     coarse_num_elems.clear();
     local_coeff_size.clear();
@@ -79,12 +81,10 @@ public:
 
     for (int l = 0; l < this->L; ++l) {
       SIZE last_level_size = 1, curr_level_size = 1;
-      std::vector<SIZE> fine_shape(D);
+      std::vector<SIZE> fine_shape = hierarchy->local_fine_shape(l);
+      coarse_shape = hierarchy->local_coarse_shape(l);
       for (DIM d = 0; d < D; ++d) {
-        coarse_shape[d] = ((coarse_shape[d] - 1) / 8 + 1) * 8;
-        last_level_size *= coarse_shape[d];
-        fine_shape[d] = coarse_shape[d];
-        coarse_shape[d] = ((coarse_shape[d] - 1) / 8 + 1) * 5;
+        last_level_size *= fine_shape[d];
         curr_level_size *= coarse_shape[d];
       }
       fine_num_elems.push_back(last_level_size);
@@ -461,7 +461,7 @@ public:
   SIZE accumulated_local_coeff_size = 0;
   bool initialized;
   SIZE L;
-  Hierarchy<D, T, DeviceType> *hierarchy;
+  HybridHierarchy<D, T, DeviceType> *hierarchy;
   Config config;
 
   std::vector<SIZE> fine_num_elems;

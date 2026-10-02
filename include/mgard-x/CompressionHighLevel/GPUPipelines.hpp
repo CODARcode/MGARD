@@ -18,13 +18,13 @@ enum compress_status_type compress_pipeline_gpu(
       Cache::cache.device_compressed_buffer;
 
   if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(0),
-                                     domain_decomposer.uniform)) {
+                                     domain_decomposer.uniform, config)) {
     Cache::cache.ClearHierarchyCache();
   }
 
   for (SIZE id = 0; id < domain_decomposer.num_subdomains(); id++) {
     if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(id),
-                                       domain_decomposer.uniform)) {
+                                       domain_decomposer.uniform, config)) {
       Cache::cache.InsertHierarchyCache(
           domain_decomposer.subdomain_hierarchy(id));
     }
@@ -277,13 +277,13 @@ enum compress_status_type decompress_pipeline_gpu(
       Cache::cache.device_compressed_buffer;
 
   if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(0),
-                                     domain_decomposer.uniform)) {
+                                     domain_decomposer.uniform, config)) {
     Cache::cache.ClearHierarchyCache();
   }
 
   for (SIZE id = 0; id < domain_decomposer.num_subdomains(); id++) {
     if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(id),
-                                       domain_decomposer.uniform)) {
+                                       domain_decomposer.uniform, config)) {
       Cache::cache.InsertHierarchyCache(
           domain_decomposer.subdomain_hierarchy(id));
     }

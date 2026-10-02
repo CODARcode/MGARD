@@ -1,6 +1,7 @@
 #ifndef MGARD_X_LOCAL_QUANTIZATION_TEMPLATE
 #define MGARD_X_LOCAL_QUANTIZATION_TEMPLATE
 
+#include "../Hierarchy/HybridHierarchy.h"
 #include "../RuntimeX/RuntimeX.h"
 
 #include "QuantizationInterface.hpp"
@@ -292,8 +293,9 @@ template <DIM D, typename T, typename Q, typename DeviceType>
 class LocalQuantizer : public QuantizationInterface<D, T, Q, DeviceType> {
 public:
   LocalQuantizer() : initialized(false) {}
-  LocalQuantizer(Hierarchy<D, T, DeviceType> &hierarchy, Config config)
+  LocalQuantizer(HybridHierarchy<D, T, DeviceType> &hierarchy, Config config)
       : initialized(true), hierarchy(&hierarchy), config(config) {
+    hierarchy.check_config(config);
     this->L = config.num_local_refactoring_level;
     this->M = config.num_global_refactoring_level;
     compute_local_ranges();
@@ -301,8 +303,9 @@ public:
   }
 
   // Add logic to determine if roi or not
-  void Adapt(Hierarchy<D, T, DeviceType> &hierarchy, Config config,
+  void Adapt(HybridHierarchy<D, T, DeviceType> &hierarchy, Config config,
              int queue_idx) {
+    hierarchy.check_config(config);
     this->initialized = true;
     this->hierarchy = &hierarchy;
     this->config = config;
@@ -322,7 +325,7 @@ public:
   }
 
   void compute_local_ranges() {
-    coarse_shape = hierarchy->level_shape(hierarchy->l_target());
+    coarse_shape = hierarchy->input_shape();
 
     fine_num_elems.clear();
     coarse_num_elems.clear();
@@ -332,12 +335,10 @@ public:
 
     for (int l = 0; l < this->L; ++l) {
       SIZE last_level_size = 1, curr_level_size = 1;
-      std::vector<SIZE> fine_shape(D);
+      std::vector<SIZE> fine_shape = hierarchy->local_fine_shape(l);
+      coarse_shape = hierarchy->local_coarse_shape(l);
       for (DIM d = 0; d < D; ++d) {
-        coarse_shape[d] = ((coarse_shape[d] - 1) / 8 + 1) * 8;
-        fine_shape[d] = coarse_shape[d];
-        last_level_size *= coarse_shape[d];
-        coarse_shape[d] = ((coarse_shape[d] - 1) / 8 + 1) * 5;
+        last_level_size *= fine_shape[d];
         curr_level_size *= coarse_shape[d];
       }
       fine_num_elems.push_back(last_level_size);
@@ -760,7 +761,7 @@ public:
   bool initialized;
   SIZE L;
   SIZE M;
-  Hierarchy<D, T, DeviceType> *hierarchy;
+  HybridHierarchy<D, T, DeviceType> *hierarchy;
   Config config;
   bool orthogonal_projection = true;
 

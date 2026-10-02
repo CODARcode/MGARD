@@ -14,7 +14,7 @@
 
 // #include "CompressionLowLevelWorkspace.hpp"
 
-#include "../Hierarchy/Hierarchy.h"
+#include "../Hierarchy/HybridHierarchy.h"
 #include "../Lossless/Lossless.hpp"
 #include "../Quantization/HybridHierarchyLinearQuantization.hpp"
 #include "../Quantization/LocalQuantization.hpp"
@@ -28,7 +28,7 @@ template <DIM D, typename T, typename DeviceType>
 class HybridHierarchyCompressor
     : public LossyCompressorInterface<D, T, DeviceType> {
 public:
-  using HierarchyType = Hierarchy<D, T, DeviceType>;
+  using HierarchyType = HybridHierarchy<D, T, DeviceType>;
   //   using BlockLocalHierarchyDataRefactorType =
   //       data_refactoring::BlockLocalHierarchyDataRefactor<D, T, DeviceType>;
   using HybridHierarchyDataRefactorType =
@@ -42,10 +42,10 @@ public:
 
   HybridHierarchyCompressor();
 
-  HybridHierarchyCompressor(Hierarchy<D, T, DeviceType> &hierarchy,
+  HybridHierarchyCompressor(HybridHierarchy<D, T, DeviceType> &hierarchy,
                             Config config);
 
-  void Adapt(Hierarchy<D, T, DeviceType> &hierarchy, Config config,
+  void Adapt(HybridHierarchy<D, T, DeviceType> &hierarchy, Config config,
              int queue_idx);
 
   static size_t EstimateMemoryFootprint(std::vector<SIZE> shape, Config config);
@@ -106,11 +106,13 @@ public:
                   enum error_bound_type ebtype, T tol, T s, T &norm,
                   Array<D, T, DeviceType> &decompressed_data, int queue_idx);
 
-  static SIZE calculate_padded_size(Hierarchy<D, T, DeviceType> &hierarchy,
-                                    Config config);
+  static SIZE calculate_padded_size(std::vector<SIZE> shape, Config config);
+  static SIZE
+  calculate_padded_size(HybridHierarchy<D, T, DeviceType> &hierarchy,
+                        Config config);
 
   bool initialized;
-  Hierarchy<D, T, DeviceType> *hierarchy;
+  HybridHierarchy<D, T, DeviceType> *hierarchy;
   Config config;
   bool orthogonal_projection = true;
   Array<1, T, DeviceType> norm_tmp_array;

@@ -47,12 +47,11 @@ public:
              " GB");
 
     using HierarchyType = typename OperatorType::HierarchyType;
-    HierarchyType hierarchy;
-    estimate_memory_usgae += hierarchy.EstimateMemoryFootprint(shape);
-    log::dbg(
-        "Hierarchy space: " +
-        std::to_string((double)hierarchy.EstimateMemoryFootprint(shape) / 1e9) +
-        " GB");
+    size_t hierarchy_space =
+        HierarchyType::EstimateMemoryFootprint(shape, config);
+    estimate_memory_usgae += hierarchy_space;
+    log::dbg("Hierarchy space: " +
+             std::to_string((double)hierarchy_space / 1e9) + " GB");
 
     // For prefetching
     if (enable_prefetch) {
@@ -250,9 +249,10 @@ public:
     return true;
   }
 
-  Hierarchy<D, T, DeviceType> subdomain_hierarchy(int subdomain_id) {
+  typename OperatorType::HierarchyType subdomain_hierarchy(int subdomain_id) {
+    using HierarchyType = typename OperatorType::HierarchyType;
     if (uniform) {
-      return Hierarchy<D, T, DeviceType>(subdomain_shape(subdomain_id), config);
+      return HierarchyType(subdomain_shape(subdomain_id), config);
     } else {
       if (config.domain_decomposition == domain_decomposition_type::MaxDim ||
           config.domain_decomposition == domain_decomposition_type::Variable) {
@@ -266,8 +266,7 @@ public:
             chunk_shape[_domain_decomposed_dim], 0);
         DeviceRuntime<DeviceType>::SyncQueue(0);
         chunk_coords[_domain_decomposed_dim] = decompose_dim_coord;
-        Hierarchy<D, T, DeviceType> hierarchy(chunk_shape, chunk_coords,
-                                              config);
+        HierarchyType hierarchy(chunk_shape, chunk_coords, config);
         delete[] decompose_dim_coord;
         return hierarchy;
       } else if (config.domain_decomposition ==
@@ -283,8 +282,7 @@ public:
               chunk_shape[d], 0);
           DeviceRuntime<DeviceType>::SyncQueue(0);
         }
-        Hierarchy<D, T, DeviceType> hierarchy(chunk_shape, chunk_coords,
-                                              config);
+        HierarchyType hierarchy(chunk_shape, chunk_coords, config);
         for (int d = D - 1; d >= 0; d--)
           delete[] chunk_coords[d];
         return hierarchy;

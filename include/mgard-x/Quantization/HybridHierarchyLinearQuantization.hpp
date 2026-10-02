@@ -26,11 +26,10 @@ class HybridHierarchyQuantizer
 public:
   HybridHierarchyQuantizer() : initialized(false) {}
 
-  HybridHierarchyQuantizer(Hierarchy<D, T, DeviceType> &hierarchy,
-                           Hierarchy<D, T, DeviceType> &global_hierarchy,
+  HybridHierarchyQuantizer(HybridHierarchy<D, T, DeviceType> &hierarchy,
                            Config config)
-      : initialized(true), hierarchy(&hierarchy),
-        global_hierarchy(&global_hierarchy), config(config) {
+      : initialized(true), hierarchy(&hierarchy), config(config) {
+    hierarchy.check_config(config);
     this->L = config.num_local_refactoring_level;
     this->M = config.num_global_refactoring_level;
 
@@ -39,12 +38,11 @@ public:
     }
   }
 
-  void Adapt(Hierarchy<D, T, DeviceType> &hierarchy,
-             Hierarchy<D, T, DeviceType> &global_hierarchy, Config config,
+  void Adapt(HybridHierarchy<D, T, DeviceType> &hierarchy, Config config,
              int queue_idx) {
+    hierarchy.check_config(config);
     this->initialized = true;
     this->hierarchy = &hierarchy;
-    this->global_hierarchy = &global_hierarchy;
     this->config = config;
     this->L = config.num_local_refactoring_level;
     this->M = config.num_global_refactoring_level;
@@ -63,7 +61,10 @@ public:
     }
 
     if (this->M > 0) {
-      global_quantizer.Adapt(global_hierarchy, config, queue_idx);
+      global_hierarchy = &hierarchy.global_hierarchy();
+      global_quantizer.Adapt(*global_hierarchy, config, queue_idx);
+    } else {
+      global_hierarchy = nullptr;
     }
   }
 
@@ -570,21 +571,9 @@ public:
       return;
     }
 
-    // Get original shape from hierarchy
-    std::vector<SIZE> coarse_shape =
-        hierarchy->level_shape(hierarchy->l_target());
-
     for (SIZE l = 0; l < this->L; ++l) {
-      std::vector<SIZE> fine_shape(D);
-      for (DIM d = 0; d < D; ++d) {
-        // Round up to multiple of 8 for fine shape
-        coarse_shape[d] = ((coarse_shape[d] - 1) / 8 + 1) * 8;
-        fine_shape[d] = coarse_shape[d];
-        // Compute next coarse shape (8->5 mapping)
-        coarse_shape[d] = ((coarse_shape[d] - 1) / 8 + 1) * 5;
-      }
-      fine_shapes.push_back(fine_shape);
-      coarse_shapes.push_back(coarse_shape);
+      fine_shapes.push_back(hierarchy->local_fine_shape(l));
+      coarse_shapes.push_back(hierarchy->local_coarse_shape(l));
     }
   }
 
@@ -807,8 +796,9 @@ public:
   SIZE L; // Number of local levels
   SIZE M; // Number of global levels
 
-  Hierarchy<D, T, DeviceType> *hierarchy;
-  Hierarchy<D, T, DeviceType> *global_hierarchy;
+  HybridHierarchy<D, T, DeviceType> *hierarchy;
+  // hierarchy->global_hierarchy() when M > 0.
+  Hierarchy<D, T, DeviceType> *global_hierarchy = nullptr;
   Config config;
   bool orthogonal_projection = true;
 

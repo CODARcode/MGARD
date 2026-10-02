@@ -32,11 +32,11 @@ HybridHierarchyCompressor<D, T, DeviceType>::HybridHierarchyCompressor()
 
 template <DIM D, typename T, typename DeviceType>
 HybridHierarchyCompressor<D, T, DeviceType>::HybridHierarchyCompressor(
-    Hierarchy<D, T, DeviceType> &hierarchy, Config config)
+    HybridHierarchy<D, T, DeviceType> &hierarchy, Config config)
     : initialized(true), hierarchy(&hierarchy), config(config),
       hybrid_refactor(hierarchy, config),
       lossless_compressor(calculate_padded_size(hierarchy, config), config),
-      hybrid_quantizer(hierarchy, hybrid_refactor.global_hierarchy, config) {
+      hybrid_quantizer(hierarchy, config) {
   norm_array = Array<1, T, DeviceType>({1});
   hybrid_decomposed_array =
       Array<1, T, DeviceType>({hybrid_refactor.DecomposedDataSize()});
@@ -70,15 +70,16 @@ HybridHierarchyCompressor<D, T, DeviceType>::HybridHierarchyCompressor(
 
 template <DIM D, typename T, typename DeviceType>
 void HybridHierarchyCompressor<D, T, DeviceType>::Adapt(
-    Hierarchy<D, T, DeviceType> &hierarchy, Config config, int queue_idx) {
+    HybridHierarchy<D, T, DeviceType> &hierarchy, Config config,
+    int queue_idx) {
+  hierarchy.check_config(config);
   this->initialized = true;
   this->hierarchy = &hierarchy;
   this->config = config;
   hybrid_refactor.Adapt(hierarchy, config, queue_idx);
   lossless_compressor.Adapt(calculate_padded_size(hierarchy, config), config,
                             queue_idx);
-  hybrid_quantizer.Adapt(hierarchy, hybrid_refactor.global_hierarchy, config,
-                         queue_idx);
+  hybrid_quantizer.Adapt(hierarchy, config, queue_idx);
   norm_array.resize({1}, queue_idx);
   hybrid_decomposed_array.resize({hybrid_refactor.DecomposedDataSize()},
                                  queue_idx);
@@ -115,8 +116,6 @@ void HybridHierarchyCompressor<D, T, DeviceType>::Adapt(
 template <DIM D, typename T, typename DeviceType>
 size_t HybridHierarchyCompressor<D, T, DeviceType>::EstimateMemoryFootprint(
     std::vector<SIZE> shape, Config config) {
-  Hierarchy<D, T, DeviceType> hierarchy;
-  hierarchy.EstimateMemoryFootprint(shape);
   size_t size = 0;
   // size +=
   // BlockLocalHierarchyDataRefactorType::EstimateMemoryFootprint(shape);
@@ -138,7 +137,7 @@ size_t HybridHierarchyCompressor<D, T, DeviceType>::EstimateMemoryFootprint(
   //         +
   //     " GB");
   size += LosslessCompressorType::EstimateMemoryFootprint(
-      calculate_padded_size(hierarchy, config), config);
+      calculate_padded_size(shape, config), config);
   // log::info(
   //     "Lossless space: " +
   //     std::to_string((double)(LosslessCompressorType::EstimateMemoryFootprint(
@@ -147,8 +146,8 @@ size_t HybridHierarchyCompressor<D, T, DeviceType>::EstimateMemoryFootprint(
   //     " GB");
   size += sizeof(T);
   if (sizeof(QUANTIZED_INT) > sizeof(T)) {
-    size += sizeof(T) * calculate_padded_size(hierarchy, config);
-    size += sizeof(QUANTIZED_INT) * calculate_padded_size(hierarchy, config);
+    size += sizeof(T) * calculate_padded_size(shape, config);
+    size += sizeof(QUANTIZED_INT) * calculate_padded_size(shape, config);
   }
   return size;
 }
@@ -427,19 +426,18 @@ void HybridHierarchyCompressor<D, T, DeviceType>::Decompress(
 // Only calculating padding to 8x8x8 for once
 template <DIM D, typename T, typename DeviceType>
 SIZE HybridHierarchyCompressor<D, T, DeviceType>::calculate_padded_size(
-    Hierarchy<D, T, DeviceType> &hierarchy, Config config) {
+    std::vector<SIZE> shape, Config config) {
   int L = config.num_local_refactoring_level;
   SIZE total_num_elems_1D = 1;
   if (L > 0) {
-    std::vector<SIZE> coarse_shape =
-        hierarchy.level_shape(hierarchy.l_target());
+    std::vector<std::vector<SIZE>> fine_shapes, coarse_shapes;
+    HybridHierarchy<D, T, DeviceType>::compute_local_shapes(
+        shape, L, fine_shapes, coarse_shapes);
     for (int l = 0; l < L; l++) {
       SIZE last_level_size = 1, curr_level_size = 1;
       for (DIM d = 0; d < D; d++) {
-        coarse_shape[d] = ((coarse_shape[d] - 1) / 8 + 1) * 8;
-        last_level_size *= coarse_shape[d];
-        coarse_shape[d] = ((coarse_shape[d] - 1) / 8 + 1) * 5;
-        curr_level_size *= coarse_shape[d];
+        last_level_size *= fine_shapes[l][d];
+        curr_level_size *= coarse_shapes[l][d];
       }
       total_num_elems_1D += (last_level_size - curr_level_size);
       if (l == L - 1) {
@@ -447,10 +445,19 @@ SIZE HybridHierarchyCompressor<D, T, DeviceType>::calculate_padded_size(
       }
     }
   } else {
-    total_num_elems_1D = hierarchy.total_num_elems();
+    total_num_elems_1D = 1;
+    for (DIM d = 0; d < D; d++) {
+      total_num_elems_1D *= shape[d];
+    }
   }
 
   return total_num_elems_1D;
+}
+
+template <DIM D, typename T, typename DeviceType>
+SIZE HybridHierarchyCompressor<D, T, DeviceType>::calculate_padded_size(
+    HybridHierarchy<D, T, DeviceType> &hierarchy, Config config) {
+  return calculate_padded_size(hierarchy.input_shape(), config);
 }
 
 } // namespace mgard_x

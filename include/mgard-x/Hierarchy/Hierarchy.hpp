@@ -824,6 +824,42 @@ template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy() {}
 
 template <DIM D, typename T, typename DeviceType>
+size_t
+Hierarchy<D, T, DeviceType>::EstimateMemoryFootprint(std::vector<SIZE> shape,
+                                                     Config config) {
+  Hierarchy<D, T, DeviceType> hierarchy;
+  return hierarchy.EstimateMemoryFootprint(shape);
+}
+
+template <DIM D, typename T, typename DeviceType>
+void Hierarchy<D, T, DeviceType>::init_shape_only(std::vector<SIZE> shape,
+                                                  data_structure_type dstype) {
+  int ret = check_shape<D>(shape);
+  if (ret == -1) {
+    throw std::runtime_error(
+        "Number of dimensions mismatch. mgard_x::Hierarchy not initialized!");
+  }
+  if (ret == -2) {
+    throw std::runtime_error("Size of any dimension cannot be smaller than 3. "
+                             "mgard_x::Hierarchy not initialized!");
+  }
+  this->shape = shape;
+  this->dstype = dstype;
+  _l_target = 0;
+  _level_shape = {shape};
+  _total_num_elems = 1;
+  for (DIM d = 0; d < D; d++) {
+    _total_num_elems *= shape[d];
+  }
+  _linearized_width = 1;
+  for (int d = D - 2; d >= 0; d--) {
+    _linearized_width *= shape[d];
+  }
+  _level_num_elems = {_total_num_elems};
+  initialized = true;
+}
+
+template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape, Config config) {
   int ret = check_shape<D>(shape);
   if (ret == -1) {
