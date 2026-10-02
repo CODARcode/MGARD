@@ -65,11 +65,11 @@ void round_trip(std::vector<SIZE> shape, int num_local_levels,
       hybrid_config<T, DevType>(num_local_levels, num_global_levels);
   decompress_config.fuse_dequantize_recompose = fuse_decompress;
 
-  Hierarchy<D, T, DevType> compress_hierarchy(shape, compress_config);
+  HybridHierarchy<D, T, DevType> compress_hierarchy(shape, compress_config);
   HybridHierarchyCompressor<D, T, DevType> compressor;
   compressor.Adapt(compress_hierarchy, compress_config, 0);
 
-  Hierarchy<D, T, DevType> decompress_hierarchy(shape, decompress_config);
+  HybridHierarchy<D, T, DevType> decompress_hierarchy(shape, decompress_config);
   HybridHierarchyCompressor<D, T, DevType> decompressor;
   decompressor.Adapt(decompress_hierarchy, decompress_config, 0);
   DeviceRuntime<DevType>::SyncQueue(0);

@@ -65,7 +65,7 @@ void run_block_local_roundtrip(std::vector<SIZE> shape, int num_local_levels,
 
   Config config;
   config.num_local_refactoring_level = num_local_levels;
-  Hierarchy<D, T, DevType> hierarchy(shape, config);
+  HybridHierarchy<D, T, DevType> hierarchy(shape, config);
 
   data_refactoring::BlockLocalHierarchyDataRefactor<D, T, DevType> refactor;
   refactor.Adapt(hierarchy, config, 0);
@@ -112,7 +112,7 @@ void run_hybrid_refactor_roundtrip(std::vector<SIZE> shape,
   Config config;
   config.num_local_refactoring_level = num_local_levels;
   config.num_global_refactoring_level = num_global_levels;
-  Hierarchy<D, T, DevType> hierarchy(shape, config);
+  HybridHierarchy<D, T, DevType> hierarchy(shape, config);
 
   data_refactoring::HybridHierarchyDataRefactor<D, T, DevType> refactor;
   refactor.Adapt(hierarchy, config, 0);
@@ -168,7 +168,7 @@ void run_hybrid_compressor_test(
   // Separate compressor and decompressor objects so the round trip only
   // communicates through the serialized bytes (and the norm, as it would be
   // carried in metadata in real usage).
-  Hierarchy<D, T, DevType> hierarchy(shape, config);
+  HybridHierarchy<D, T, DevType> hierarchy(shape, config);
   HybridHierarchyCompressor<D, T, DevType> compressor;
   compressor.Adapt(hierarchy, config, 0);
   HybridHierarchyCompressor<D, T, DevType> decompressor;
@@ -358,7 +358,7 @@ void run_block_local_multilinear_test(std::vector<SIZE> shape) {
 
   Config config;
   config.num_local_refactoring_level = 1;
-  Hierarchy<D, T, DevType> hierarchy(shape, config);
+  HybridHierarchy<D, T, DevType> hierarchy(shape, config);
 
   data_refactoring::BlockLocalHierarchyDataRefactor<D, T, DevType> refactor;
   refactor.Adapt(hierarchy, config, 0);
@@ -707,7 +707,7 @@ TEMPLATE_TEST_CASE(
   config.num_local_refactoring_level = 1;
   config.num_global_refactoring_level = 0;
   config.projection_mode = compression_projection_mode_type::Hierarchical;
-  Hierarchy<D, TestType, TestDevice> hierarchy(shape, config);
+  HybridHierarchy<D, TestType, TestDevice> hierarchy(shape, config);
   HybridHierarchyCompressor<D, TestType, TestDevice> compressor;
   compressor.Adapt(hierarchy, config, 0);
   DeviceRuntime<TestDevice>::SyncQueue(0);
@@ -747,7 +747,7 @@ static std::vector<T> decomposed_to_host(Array<1, T, DevType> &array, SIZE n) {
 template <typename T, typename DevType>
 static void adapt_refactor(
     data_refactoring::HybridHierarchyDataRefactor<3, T, DevType> &refactor,
-    Hierarchy<3, T, DevType> &hierarchy, Config config) {
+    HybridHierarchy<3, T, DevType> &hierarchy, Config config) {
   refactor.Adapt(hierarchy, config, 0);
   DeviceRuntime<DevType>::SyncQueue(0);
 }
@@ -772,7 +772,7 @@ void run_hybrid_stage_split_test(std::vector<SIZE> shape, int num_local_levels,
   Config config;
   config.num_local_refactoring_level = num_local_levels;
   config.num_global_refactoring_level = num_global_levels;
-  Hierarchy<D, T, DevType> hierarchy(shape, config);
+  HybridHierarchy<D, T, DevType> hierarchy(shape, config);
 
   data_refactoring::HybridHierarchyDataRefactor<D, T, DevType> monolithic;
   data_refactoring::HybridHierarchyDataRefactor<D, T, DevType> staged;
@@ -857,7 +857,7 @@ void run_hybrid_standalone_recompose_test(std::vector<SIZE> shape,
   Config config;
   config.num_local_refactoring_level = num_local_levels;
   config.num_global_refactoring_level = num_global_levels;
-  Hierarchy<D, T, DevType> hierarchy(shape, config);
+  HybridHierarchy<D, T, DevType> hierarchy(shape, config);
 
   data_refactoring::HybridHierarchyDataRefactor<D, T, DevType> compressor_side;
   adapt_refactor(compressor_side, hierarchy, config);
@@ -870,7 +870,7 @@ void run_hybrid_standalone_recompose_test(std::vector<SIZE> shape,
   DeviceRuntime<DevType>::SyncQueue(0);
 
   // Hand the decomposed buffer to a refactor with no decomposition history.
-  Hierarchy<D, T, DevType> decompress_hierarchy(shape, config);
+  HybridHierarchy<D, T, DevType> decompress_hierarchy(shape, config);
   data_refactoring::HybridHierarchyDataRefactor<D, T, DevType>
       decompressor_side;
   adapt_refactor(decompressor_side, decompress_hierarchy, config);
@@ -901,16 +901,16 @@ void run_hybrid_shape_contract_test(std::vector<SIZE> shape,
   Config config;
   config.num_local_refactoring_level = num_local_levels;
   config.num_global_refactoring_level = num_global_levels;
-  Hierarchy<D, T, DevType> hierarchy(shape, config);
+  HybridHierarchy<D, T, DevType> hierarchy(shape, config);
 
   data_refactoring::HybridHierarchyDataRefactor<D, T, DevType> refactor;
   adapt_refactor(refactor, hierarchy, config);
 
   std::vector<SIZE> local_coarsest =
       refactor.local_refactor.coarse_shapes[num_local_levels - 1];
+  Hierarchy<D, T, DevType> &global_hierarchy = hierarchy.global_hierarchy();
   std::vector<SIZE> global_finest =
-      refactor.global_hierarchy.level_shape(
-          refactor.global_hierarchy.l_target());
+      global_hierarchy.level_shape(global_hierarchy.l_target());
 
   REQUIRE(global_finest.size() == local_coarsest.size());
   for (DIM d = 0; d < D; d++) {
@@ -1000,7 +1000,7 @@ TEST_CASE("Hybrid refactor rejects having no levels at all",
 
   Config config;
   config.num_local_refactoring_level = 1;
-  Hierarchy<D, T, TestDevice> hierarchy(shape, config);
+  HybridHierarchy<D, T, TestDevice> hierarchy(shape, config);
 
   Config empty_config;
   empty_config.num_local_refactoring_level = 0;
@@ -1368,7 +1368,7 @@ void run_roi_pipeline_test(std::vector<SIZE> shape, int num_local_levels,
   // up only in a separate decompressor process, and an in-process check
   // caught it or not depending on which allocation it happened to get --
   // it caught it for double and missed it for float.
-  Hierarchy<D, T, DevType> hierarchy(shape, config);
+  HybridHierarchy<D, T, DevType> hierarchy(shape, config);
   HybridHierarchyCompressor<D, T, DevType> compressor;
   compressor.Adapt(hierarchy, config, 0);
   HybridHierarchyCompressor<D, T, DevType> decompressor;
@@ -1476,7 +1476,7 @@ TEMPLATE_TEST_CASE("Hybrid refuses an s-norm bound it cannot bound",
     config.decomposition = decomposition_type::Hybrid;
     config.num_local_refactoring_level = L;
     config.num_global_refactoring_level = M;
-    Hierarchy<3, TestType, TestDevice> hierarchy(shape, config);
+    HybridHierarchy<3, TestType, TestDevice> hierarchy(shape, config);
     HybridHierarchyCompressor<3, TestType, TestDevice> compressor;
     compressor.Adapt(hierarchy, config, 0);
     DeviceRuntime<TestDevice>::SyncQueue(0);

@@ -50,9 +50,22 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   data_structure_type data_structure();
   bool is_initialized();
   bool can_reuse(std::vector<SIZE> shape);
+  // Whether a cached hierarchy is still valid for `config`. A plain hierarchy
+  // does not depend on it; HybridHierarchy hides this to compare its level
+  // counts.
+  bool matches_config(Config config) { return true; }
   size_t EstimateMemoryFootprint(std::vector<SIZE> shape);
+  static size_t EstimateMemoryFootprint(std::vector<SIZE> shape,
+                                        Config config);
 
   ~Hierarchy();
+
+protected:
+  // Describe only the input grid: one level equal to `shape`, so l_target(),
+  // level_shape() and total_num_elems() work, but no device arrays (coords,
+  // dist/ratio, am/bm, volumes, ranges/marks) are built. For hierarchies such
+  // as HybridHierarchy whose decomposition does not use them.
+  void init_shape_only(std::vector<SIZE> shape, data_structure_type dstype);
 
 private:
   // Shape of the finest grid

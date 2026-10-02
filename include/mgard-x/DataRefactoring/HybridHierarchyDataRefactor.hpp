@@ -5,6 +5,7 @@
  * Date: September 21, 2026
  */
 
+#include "../Hierarchy/HybridHierarchy.h"
 #include "../RuntimeX/Utilities/Exceptions.h"
 #include "BlockLocalHierarchyDataRefactor.hpp"
 #include "DataRefactor.hpp"
@@ -24,14 +25,14 @@ class HybridHierarchyDataRefactor
     : public HybridHierarchyDataRefactorInterface<D, T, DeviceType> {
 public:
   HybridHierarchyDataRefactor() : initialized(false) {}
-  HybridHierarchyDataRefactor(Hierarchy<D, T, DeviceType> &hierarchy,
+  HybridHierarchyDataRefactor(HybridHierarchy<D, T, DeviceType> &hierarchy,
                               Config config)
       : initialized(true), hierarchy(&hierarchy), config(config) {
     this->L = config.num_local_refactoring_level;
     this->M = config.num_global_refactoring_level;
   }
 
-  void Adapt(Hierarchy<D, T, DeviceType> &hierarchy, Config config,
+  void Adapt(HybridHierarchy<D, T, DeviceType> &hierarchy, Config config,
              int queue_idx) {
     this->initialized = true;
     this->hierarchy = &hierarchy;
@@ -43,30 +44,18 @@ public:
     if (this->L == 0 && this->M == 0) {
       throw ProcessingException("Both L and M cannot be zero");
     }
+    hierarchy.check_config(config);
 
     if (this->L > 0) {
       local_refactor.Adapt(hierarchy, config, queue_idx);
     }
 
     if (this->M > 0) {
-      if (this->L > 0) {
-        // With local, global adapt from the output shape of local
-        std::vector<SIZE> global_hierarchy_shape =
-            local_refactor.coarse_shapes[this->L - 1];
-        Config global_config;
-        global_config.max_larget_level = this->M;
-        this->global_hierarchy =
-            Hierarchy<D, T, DeviceType>(global_hierarchy_shape, global_config);
-        global_refactor.Adapt(this->global_hierarchy, global_config, queue_idx);
-      } else {
-        // Without local, global directly adapt to original shape
-        Config global_config;
-        global_config.max_larget_level = this->M;
-
-        this->global_hierarchy = Hierarchy<D, T, DeviceType>(
-            hierarchy.level_shape(hierarchy.l_target()), global_config);
-        global_refactor.Adapt(global_hierarchy, global_config, queue_idx);
-      }
+      // The global hierarchy is built (once) by the HybridHierarchy, on the
+      // coarsest local grid or, without a local stage, on the input grid.
+      global_refactor.Adapt(
+          hierarchy.global_hierarchy(),
+          HybridHierarchy<D, T, DeviceType>::global_config(this->M), queue_idx);
     }
   }
 
@@ -110,9 +99,7 @@ public:
   // decompose+quantize path can run it separately from the local stage.
   void DecomposeGlobal(SubArray<1, T, DeviceType> decomposed_data,
                        int queue_idx, bool orthogonal_projection = true) {
-    std::vector<SIZE> global_shape =
-        (this->L > 0) ? local_refactor.coarse_shapes[this->L - 1]
-                      : hierarchy->level_shape(hierarchy->l_target());
+    std::vector<SIZE> global_shape = hierarchy->global_shape();
     SubArray<D, T, DeviceType> global_input_data(global_shape,
                                                  decomposed_data.data());
     for (DIM d = 0; d < D; d++) {
@@ -129,9 +116,7 @@ public:
   // dequantize+recompose path can run it separately from the local stage.
   void RecomposeGlobal(SubArray<1, T, DeviceType> decomposed_data,
                        int queue_idx, bool orthogonal_projection = true) {
-    std::vector<SIZE> global_shape =
-        (this->L > 0) ? local_refactor.coarse_shapes[this->L - 1]
-                      : hierarchy->level_shape(hierarchy->l_target());
+    std::vector<SIZE> global_shape = hierarchy->global_shape();
     SubArray<D, T, DeviceType> global_input_data(global_shape,
                                                  decomposed_data.data());
     for (DIM d = 0; d < D; d++) {
@@ -157,8 +142,7 @@ public:
     }
     if (this->L == 0) {
       // Pure Global (In-Place)
-      std::vector<SIZE> original_shape =
-          hierarchy->level_shape(hierarchy->l_target());
+      std::vector<SIZE> original_shape = hierarchy->input_shape();
       SubArray<D, T, DeviceType> global_input_data(original_shape,
                                                    decomposed_data.data());
       for (DIM d = 0; d < D; d++) {
@@ -206,8 +190,7 @@ public:
     }
     if (this->L == 0) {
       // Pure Global (In-Place)
-      std::vector<SIZE> original_shape =
-          hierarchy->level_shape(hierarchy->l_target());
+      std::vector<SIZE> original_shape = hierarchy->input_shape();
       SubArray<D, T, DeviceType> global_input_data(original_shape,
                                                    decomposed_data.data());
       for (DIM d = 0; d < D; d++) {
@@ -253,8 +236,7 @@ public:
   }
 
   bool initialized;
-  Hierarchy<D, T, DeviceType> *hierarchy;
-  Hierarchy<D, T, DeviceType> global_hierarchy;
+  HybridHierarchy<D, T, DeviceType> *hierarchy;
   Config config;
 
   SIZE L; // Number of local levels

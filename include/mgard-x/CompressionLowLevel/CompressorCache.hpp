@@ -43,7 +43,9 @@ public:
     return ss.str();
   }
 
-  bool InHierarchyCache(std::vector<SIZE> shape, bool uniform) {
+  // `config` matters for hierarchies that depend on more than the shape (a
+  // HybridHierarchy is built for given local/global level counts).
+  bool InHierarchyCache(std::vector<SIZE> shape, bool uniform, Config config) {
     if (!initialized) {
       return false;
     } else if (!uniform) {
@@ -53,6 +55,9 @@ public:
       return false;
     } else if ((*hierarchy_cache)[GenHierarchyKey(shape)].data_structure() ==
                data_structure_type::Cartesian_Grid_Non_Uniform) {
+      return false;
+    } else if (!(*hierarchy_cache)[GenHierarchyKey(shape)].matches_config(
+                   config)) {
       return false;
     } else {
       return true;
