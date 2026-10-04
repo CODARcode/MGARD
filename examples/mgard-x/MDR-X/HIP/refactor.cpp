@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
 
   mgard_x::log::level |= mgard_x::log::INFO;
   mgard_x::Config config;
-  config.max_larget_level = target_level;
+  config.num_global_refactoring_level = target_level;
   mgard_x::Hierarchy<D, T, DeviceType> hierarchy(dims, config);
 
   test<D, T, DeviceType>(filename, num_bitplanes, hierarchy, metadata_file,

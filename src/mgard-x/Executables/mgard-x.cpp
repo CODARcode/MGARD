@@ -47,8 +47,9 @@ void print_usage_message(std::string error) {
 \t\t -l / --lossless <huffman|huffman-lz4|lz4|huffman-zstd|blockdelta[-fixed|-delta|-outlier]|zerorle-rans|symbol-rans>: lossless compression\n\
 \t\t -d / --device <auto|serial|cuda|hip>: device type\n\
 \t\t (optional) -hh / --hybrid: use hybrid (block-local + global) hierarchy\n\
-\t\t (optional) -ll / --local-levels <int>: number of local refactoring levels (default: 1)\n\
-\t\t (optional) -gl / --global-levels <int>: number of global refactoring levels (default: 0)\n\
+\t\t (optional) -ll / --local-levels <int>: number of hybrid block-local refactoring levels (default: 1)\n\
+\t\t (optional) -gl / --global-levels <int>: number of global refactoring levels,\n\
+\t\t\t multi-dim or the hybrid global stage (default: 3)\n\
 \t\t (optional) -pm / --projection-mode <auto|orthogonal|hierarchical>:\n\
 \t\t\t transform basis, plain or hybrid (default: auto -- hierarchical\n\
 \t\t\t under an L-inf bound, orthogonal otherwise; hierarchical is L-inf only)\n\
@@ -560,8 +561,10 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     enum mgard_x::error_bound_type mode, std::string lossless,
                     std::string domain_decomposition, mgard_x::SIZE block_size,
                     enum mgard_x::device_type dev_type, int verbose,
-                    mgard_x::SIZE max_memory_footprint, int num_local_levels,
-                    int num_global_levels, bool use_hybrid, bool warm_up,
+                    mgard_x::SIZE max_memory_footprint,
+                    mgard_x::SIZE num_local_levels,
+                    mgard_x::SIZE num_global_levels, bool use_hybrid,
+                    bool warm_up,
                     bool kernel_fusion,
                     mgard_x::compression_projection_mode_type projection_mode) {
   mgard_x::Config config;
@@ -590,8 +593,6 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
               << "Error tolerance (-e) is required when not using ROI mode\n";
     exit(-1);
   }
-
-  // config.max_larget_level = 1;
 
   // config.compressor = mgard_x::compressor_type::ZFP;
 
@@ -774,9 +775,9 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 // kept for debugging a file whose header disagrees with the data.
 struct DecompressOverrides {
   bool has_local_levels = false;
-  int num_local_levels = 0;
+  mgard_x::SIZE num_local_levels = 0;
   bool has_global_levels = false;
-  int num_global_levels = 0;
+  mgard_x::SIZE num_global_levels = 0;
   bool has_roi = false;
   bool enable_roi = false;
   // Also used, independently of any override, as the reference map for the
@@ -931,10 +932,11 @@ bool try_compression(int argc, char *argv[]) {
         argc, argv, "Max memory", "-m", "--max-memory");
   }
 
-  int num_local_levels = 1; // default value
+  mgard_x::SIZE num_local_levels =
+      mgard_x::Config().num_local_refactoring_level;
   if (has_arg(argc, argv, "-ll", "--local-levels")) {
-    num_local_levels =
-        get_arg<int>(argc, argv, "Local levels", "-ll", "--local-levels");
+    num_local_levels = get_arg<mgard_x::SIZE>(argc, argv, "Local levels", "-ll",
+                                              "--local-levels");
   }
 
   bool use_hybrid = has_arg(argc, argv, "-hh", "--hybrid");
@@ -961,10 +963,11 @@ bool try_compression(int argc, char *argv[]) {
   // Fusion is on by default; the flag selects the separate-pass path.
   bool kernel_fusion = !has_arg(argc, argv, "-nkf", "--no-kernel-fusion");
 
-  int num_global_levels = 0; // default value
+  mgard_x::SIZE num_global_levels =
+      mgard_x::Config().num_global_refactoring_level;
   if (has_arg(argc, argv, "-gl", "--global-levels")) {
-    num_global_levels =
-        get_arg<int>(argc, argv, "Global levels", "-gl", "--global-levels");
+    num_global_levels = get_arg<mgard_x::SIZE>(argc, argv, "Global levels",
+                                               "-gl", "--global-levels");
   }
 
   std::string domain_decomposition = "max-dim";
@@ -1030,13 +1033,13 @@ bool try_decompression(int argc, char *argv[]) {
   }
   if (has_arg(argc, argv, "-ll", "--local-levels")) {
     overrides.has_local_levels = true;
-    overrides.num_local_levels =
-        get_arg<int>(argc, argv, "Local levels", "-ll", "--local-levels");
+    overrides.num_local_levels = get_arg<mgard_x::SIZE>(
+        argc, argv, "Local levels", "-ll", "--local-levels");
   }
   if (has_arg(argc, argv, "-gl", "--global-levels")) {
     overrides.has_global_levels = true;
-    overrides.num_global_levels =
-        get_arg<int>(argc, argv, "Global levels", "-gl", "--global-levels");
+    overrides.num_global_levels = get_arg<mgard_x::SIZE>(
+        argc, argv, "Global levels", "-gl", "--global-levels");
   }
   // Optional: original data file for error verification
   std::string original_file;

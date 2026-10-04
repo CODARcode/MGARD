@@ -270,7 +270,7 @@ void Hierarchy<D, T, DeviceType>::calc_volume(SIZE dof, T *dist, T *volume,
 template <DIM D, typename T, typename DeviceType>
 void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
                                        std::vector<T *> coords,
-                                       SIZE max_larget_level) {
+                                       SIZE max_level) {
 
   this->shape = shape;
 
@@ -292,7 +292,7 @@ void Hierarchy<D, T, DeviceType>::init(std::vector<SIZE> shape,
   }
 
   _l_target = nlevel - 1;
-  _l_target = std::min(_l_target, max_larget_level);
+  _l_target = std::min(_l_target, max_level);
 
   for (int l = 0; l < _l_target + 1; l++) {
     std::vector<SIZE> curr_level_shape(D);
@@ -877,7 +877,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape, Config config) {
   dstype = data_structure_type::Cartesian_Grid_Uniform;
   std::vector<T *> coords =
       create_uniform_coords(shape, config.normalize_coordinates);
-  init(shape, coords, config.max_larget_level);
+  init(shape, coords, config.num_global_refactoring_level);
   assert(uniform_coords_created);
   assert(coords.size() == D);
   for (int d = 0; d < D; d++)
@@ -898,7 +898,7 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
   }
 
   dstype = data_structure_type::Cartesian_Grid_Non_Uniform;
-  init(shape, coords, config.max_larget_level);
+  init(shape, coords, config.num_global_refactoring_level);
 }
 
 template <DIM D, typename T, typename DeviceType>

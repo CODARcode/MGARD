@@ -150,6 +150,11 @@ message FunctionDecomposition {
   uint64 L_target = 3;
   // Required when `hierarchy == HYBRID_HIERARCHY`, absent otherwise.
   HybridHierarchy hybrid_hierarchy = 4;
+  // Cap on the number of global refactoring levels
+  // (Config::num_global_refactoring_level): of the multi-dimensional
+  // hierarchy, and of the global stage of a hybrid one. Absent from streams
+  // written before it was recorded, which were decomposed with all levels.
+  optional uint64 num_global_refactoring_levels = 5;
 }
 
 message Quantization {
