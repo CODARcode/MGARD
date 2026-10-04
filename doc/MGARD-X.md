@@ -128,8 +128,8 @@ An executable ```mgard-x``` will be built after building the MGARD-X library. To
         + ```zerorle-rans```: zero-run-length encoding followed by byte-alphabet rANS
         + ```symbol-rans```: symbol-alphabet rANS
     + ```-hh / --hybrid``` use the hybrid hierarchy (1D-3D only)
-    + ```-ll / --local-levels <int>``` number of block-local refactoring levels (default: 1)
-    + ```-gl / --global-levels <int>``` number of global refactoring levels (default: 0)
+    + ```-ll / --local-levels <int>``` number of hybrid block-local refactoring levels (default: 1)
+    + ```-gl / --global-levels <int>``` number of global refactoring levels, multi-dim or the hybrid global stage (default: 3)
     + ```-hp / --hybrid-projection <orthogonal|hierarchical>``` select the projection mode used by the hybrid hierarchy (default: orthogonal)
         + ```orthogonal```: retain the L<sup>2</sup> projection (default)
         + ```hierarchical```: remove the L<sup>2</sup> projection (L<sup>&infin;</sup> only)
@@ -177,13 +177,12 @@ An executable ```mgard-x``` will be built after building the MGARD-X library. To
         + ```mgard_x::decomposition_type::SingleDim```: 1D-at-a-time decomposition
         + ```mgard_x::decomposition_type::Hybrid```: hybrid hierarchy with block-local and global decomposition (1D-3D only; high-level APIs only)
     + ```num_local_refactoring_level```: controls the number of block-local refactoring levels in the hybrid hierarchy (***Default: 1***)
-    + ```num_global_refactoring_level```: controls the number of global refactoring levels in the hybrid hierarchy (***Default: 0***)
+    + ```num_global_refactoring_level```: controls the max number of global refactoring levels: of the multi-dimensional hierarchy, and of the global stage of the hybrid hierarchy. Recorded in the compressed header, so decompression needs no setting (***Default: 3***)
     + ```hybrid_projection_mode```: controls the projection mode used by the hybrid hierarchy:
         + ```mgard_x::hybrid_projection_mode_type::Orthogonal```: retain the L<sup>2</sup> projection (***Default***)
         + ```mgard_x::hybrid_projection_mode_type::Hierarchical```: remove the L<sup>2</sup> projection (L<sup>&infin;</sup> only)
     + ```fuse_decompose_quantize```: controls fused local decomposition and quantization for the hybrid hierarchy (***Default: true***)
     + ```fuse_dequantize_recompose```: controls fused local dequantization and recomposition for the hybrid hierarchy (***Default: true***)
-    + ```max_larget_level```: controls max level of multi-level decomposition (***Default: 0 (no limit)***)
     + ```max_memory_footprint```(for high-level APIs only): controls maximum memory footprint in bytes (***Default: inf (no limit)***)
     + ```adjust_shape```(for high-level APIs only): controls whether or not to enable shape adjustment for better decomposition performance (***Default: false***)
 ## Using high-level APIs

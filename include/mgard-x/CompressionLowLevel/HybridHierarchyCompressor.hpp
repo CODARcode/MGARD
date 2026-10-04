@@ -427,13 +427,13 @@ void HybridHierarchyCompressor<D, T, DeviceType>::Decompress(
 template <DIM D, typename T, typename DeviceType>
 SIZE HybridHierarchyCompressor<D, T, DeviceType>::calculate_padded_size(
     std::vector<SIZE> shape, Config config) {
-  int L = config.num_local_refactoring_level;
+  SIZE L = config.num_local_refactoring_level;
   SIZE total_num_elems_1D = 1;
   if (L > 0) {
     std::vector<std::vector<SIZE>> fine_shapes, coarse_shapes;
     HybridHierarchy<D, T, DeviceType>::compute_local_shapes(
         shape, L, fine_shapes, coarse_shapes);
-    for (int l = 0; l < L; l++) {
+    for (SIZE l = 0; l < L; l++) {
       SIZE last_level_size = 1, curr_level_size = 1;
       for (DIM d = 0; d < D; d++) {
         last_level_size *= fine_shapes[l][d];

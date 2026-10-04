@@ -72,7 +72,7 @@ public:
       if (M > 0) {
         // Calculate Coarest shape from local
         std::vector<SIZE> coarest_shape = shape;
-        for (int l = 0; l < config.num_local_refactoring_level; l++) {
+        for (SIZE l = 0; l < config.num_local_refactoring_level; l++) {
           for (DIM d = 0; d < D; d++) {
             coarest_shape[d] = ((coarest_shape[d] - 1) / 8 + 1) * 5;
           }

@@ -54,6 +54,11 @@ void load(Config &config, Metadata<DeviceType> &metadata) {
   config.huff_dict_size = metadata.huff_dict_size;
   config.huff_block_size = metadata.huff_block_size;
   config.total_num_bitplanes = metadata.number_bitplanes;
+  // Streams from before the level cap was recorded used all levels.
+  config.num_global_refactoring_level =
+      metadata.has_num_global_refactoring_level
+          ? (SIZE)metadata.num_global_refactoring_level
+          : std::numeric_limits<SIZE>::max();
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -144,6 +149,10 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
         domain_decomposer.domain_decomposed_size(), config.total_num_bitplanes,
         coords);
   }
+
+  // The reconstructor rebuilds the hierarchy, so it needs the level cap.
+  m.has_num_global_refactoring_level = true;
+  m.num_global_refactoring_level = config.num_global_refactoring_level;
 
   uint32_t metadata_size;
   Byte *metadata = m.Serialize(metadata_size);

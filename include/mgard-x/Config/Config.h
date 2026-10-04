@@ -24,7 +24,6 @@ struct Config {
   enum lossless_type lossless;
   int log_level;
   bool auto_pin_host_buffers;
-  SIZE max_larget_level;
   SIZE max_memory_footprint;
   SIZE total_num_bitplanes;
   SIZE block_size;
@@ -33,8 +32,12 @@ struct Config {
   bool mdr_adaptive_resolution;
   bool adjust_shape;
   bool compress_with_dryrun;
-  int num_local_refactoring_level;
-  int num_global_refactoring_level;
+  // Block-local levels of the hybrid hierarchy (L). Default 1.
+  SIZE num_local_refactoring_level;
+  // Global refactoring levels (M): caps the levels of every multilevel
+  // hierarchy -- the plain multi-dimensional one and the global stage of the
+  // hybrid one. Recorded in the file header. Default 3.
+  SIZE num_global_refactoring_level;
   bool auto_cache_release;
   cpu_parallelization_mode cpu_mode;
   bool mdr_qoi_mode;

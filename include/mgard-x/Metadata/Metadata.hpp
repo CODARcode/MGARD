@@ -36,6 +36,10 @@ struct MetadataBase {
 
   enum decomposition_type decomposition;
   uint32_t l_target = 0;
+  // Config::num_global_refactoring_level the data was decomposed with. Not
+  // present in streams written before it was recorded (see InitializeConfig).
+  bool has_num_global_refactoring_level = false;
+  uint64_t num_global_refactoring_level = 0;
 
   // Hybrid (block-local + global) hierarchy, a.k.a. BlockMGARD. Only
   // meaningful when `decomposition == decomposition_type::Hybrid`; these are

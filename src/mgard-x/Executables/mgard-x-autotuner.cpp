@@ -35,7 +35,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
   mgard_x::Config config;
   config.dev_type = dev_type;
   config.lossless = mgard_x::lossless_type::Huffman;
-  config.max_larget_level = 0;
+  config.num_global_refactoring_level = 0;
 
   enum mgard_x::error_bound_type mode = mgard_x::error_bound_type::REL;
   double tol = 0.1;

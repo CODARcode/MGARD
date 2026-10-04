@@ -6,6 +6,7 @@
 #include "catch2/catch_test_macros.hpp"
 
 #include <cmath>
+#include <limits>
 #include <vector>
 
 #include "mgard-x/Config/Config.h"
@@ -184,25 +185,52 @@ TEST_CASE("an irregular ROI map still round trips exactly",
   }
 }
 
-TEST_CASE("a non-hybrid file leaves the caller's hybrid Config alone",
+TEST_CASE("a non-hybrid file leaves the caller's local levels alone",
           "[HybridMetadata]") {
   std::vector<SIZE> shape = {64, 64, 64};
   Metadata<TestDevice> out = base_metadata(shape);
   out.decomposition = decomposition_type::MultiDim;
+  out.has_num_global_refactoring_level = true;
+  out.num_global_refactoring_level = 5;
 
   std::vector<SERIALIZED_TYPE> bytes = out.MetadataBase::Serialize();
   Metadata<TestDevice> in;
   in.MetadataBase::Deserialize(bytes);
   REQUIRE(in.decomposition == decomposition_type::MultiDim);
+  REQUIRE(in.has_num_global_refactoring_level);
+  REQUIRE(in.num_global_refactoring_level == 5);
 
   Config config;
   config.num_local_refactoring_level = 3;
   config.num_global_refactoring_level = 2;
   in.InitializeConfig(config);
-  // Untouched: overwriting these with zeros would break a later hybrid
-  // compression driven by the same Config.
+  // Untouched: the local levels only mean something to a hybrid file, and
+  // overwriting them would break a later hybrid compression driven by the
+  // same Config.
   REQUIRE(config.num_local_refactoring_level == 3);
-  REQUIRE(config.num_global_refactoring_level == 2);
+  // The global levels also cap the multi-dimensional hierarchy, so the
+  // decompressor has to rebuild it with the recorded value.
+  REQUIRE(config.num_global_refactoring_level == 5);
+}
+
+TEST_CASE("a file without recorded global levels decomposes with all levels",
+          "[HybridMetadata]") {
+  // Streams written before the cap was recorded used every level.
+  std::vector<SIZE> shape = {64, 64, 64};
+  Metadata<TestDevice> out = base_metadata(shape);
+  out.decomposition = decomposition_type::MultiDim;
+  out.has_num_global_refactoring_level = false;
+
+  std::vector<SERIALIZED_TYPE> bytes = out.MetadataBase::Serialize();
+  Metadata<TestDevice> in;
+  in.MetadataBase::Deserialize(bytes);
+  REQUIRE_FALSE(in.has_num_global_refactoring_level);
+
+  Config config;
+  config.num_global_refactoring_level = 2;
+  in.InitializeConfig(config);
+  REQUIRE(config.num_global_refactoring_level ==
+          std::numeric_limits<SIZE>::max());
 }
 
 TEST_CASE("the quantized integer width is recorded and checked",

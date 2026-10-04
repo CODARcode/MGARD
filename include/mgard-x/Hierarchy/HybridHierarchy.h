@@ -72,13 +72,13 @@ public:
   // levels.
   static Config global_config(SIZE M) {
     Config config;
-    config.max_larget_level = M;
+    config.num_global_refactoring_level = M;
     return config;
   }
 
   bool matches_config(Config config) {
-    return L == (SIZE)config.num_local_refactoring_level &&
-           M == (SIZE)config.num_global_refactoring_level;
+    return L == config.num_local_refactoring_level &&
+           M == config.num_global_refactoring_level;
   }
 
   // The hybrid components take their level counts from the config and their
@@ -144,11 +144,6 @@ public:
 private:
   void init(std::vector<SIZE> shape, Config config,
             data_structure_type dstype) {
-    if (config.num_local_refactoring_level < 0 ||
-        config.num_global_refactoring_level < 0) {
-      throw ProcessingException(
-          "HybridHierarchy: level counts cannot be negative.");
-    }
     L = config.num_local_refactoring_level;
     M = config.num_global_refactoring_level;
     if (L == 0 && M == 0) {

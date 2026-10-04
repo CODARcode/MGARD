@@ -12,6 +12,8 @@
 
 #include <google/protobuf/io/coded_stream.h>
 
+#include <limits>
+
 using mgard_x::SERIALIZED_TYPE;
 
 using SerializedIter = std::vector<SERIALIZED_TYPE>::const_iterator;
@@ -251,6 +253,12 @@ void MetadataBase::InitializeConfig(Config &config) {
   if (block_delta_block_size != 0) {
     config.block_delta_block_size = block_delta_block_size;
   }
+  // The decomposition has to be rebuilt with the levels it was made with.
+  // Streams from before the level cap was recorded used all levels.
+  config.num_global_refactoring_level =
+      has_num_global_refactoring_level
+          ? (SIZE)num_global_refactoring_level
+          : std::numeric_limits<SIZE>::max();
   // The hybrid parameters are only meaningful for a hybrid file, and
   // Deserialize refuses to produce a hybrid file without them, so a Hybrid
   // decomposition here always carries a full set. For non-hybrid files leave
@@ -258,8 +266,8 @@ void MetadataBase::InitializeConfig(Config &config) {
   // with zeros would break a subsequent hybrid compression through the same
   // Config.
   if (decomposition == decomposition_type::Hybrid) {
-    config.num_local_refactoring_level = (int)hybrid_num_local_levels;
-    config.num_global_refactoring_level = (int)hybrid_num_global_levels;
+    config.num_local_refactoring_level = (SIZE)hybrid_num_local_levels;
+    config.num_global_refactoring_level = (SIZE)hybrid_num_global_levels;
     config.projection_mode = hybrid_projection_mode;
     config.enable_roi = hybrid_enable_roi;
     if (hybrid_enable_roi) {
@@ -565,6 +573,10 @@ std::vector<SERIALIZED_TYPE> MetadataBase::Serialize() {
     // the level count) from the shape, and under domain decomposition there is
     // no single value to record. Written for format compatibility only.
     function_decomposition.set_l_target(l_target);
+    if (has_num_global_refactoring_level) {
+      function_decomposition.set_num_global_refactoring_levels(
+          num_global_refactoring_level);
+    }
   }
 
   { // Quantization
@@ -896,6 +908,12 @@ void MetadataBase::Deserialize(
           "in MGARD-X.");
     }
     l_target = function_decomposition.l_target();
+    has_num_global_refactoring_level =
+        function_decomposition.has_num_global_refactoring_levels();
+    num_global_refactoring_level =
+        has_num_global_refactoring_level
+            ? function_decomposition.num_global_refactoring_levels()
+            : 0;
   }
 
   { // Quantization

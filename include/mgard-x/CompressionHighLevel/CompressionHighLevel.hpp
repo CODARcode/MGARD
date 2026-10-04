@@ -239,12 +239,15 @@ general_compress_pipeline(std::vector<SIZE> shape, T tol, T s,
   // FillForCompression does not carry the BlockDelta block size; set it here so
   // it is persisted in (and restored from) the metadata header.
   m.block_delta_block_size = config.block_delta_block_size;
+  // The decompressor rebuilds the hierarchy, so it needs the level cap.
+  m.has_num_global_refactoring_level = true;
+  m.num_global_refactoring_level = config.num_global_refactoring_level;
   // Same for the hybrid (BlockMGARD) parameters: the decompressor cannot
   // reconstruct the buffer layout or the per-block quantization steps without
   // them.
   if (config.decomposition == decomposition_type::Hybrid) {
-    m.hybrid_num_local_levels = (uint64_t)config.num_local_refactoring_level;
-    m.hybrid_num_global_levels = (uint64_t)config.num_global_refactoring_level;
+    m.hybrid_num_local_levels = config.num_local_refactoring_level;
+    m.hybrid_num_global_levels = config.num_global_refactoring_level;
     m.hybrid_local_block_size = MGARDX_HYBRID_LOCAL_BLOCK_SIZE;
     m.hybrid_projection_mode = config.projection_mode;
     m.hybrid_enable_roi = config.enable_roi;

@@ -45,7 +45,6 @@ Config::Config() {
   normalize_coordinates = true;
   lossless = lossless_type::Huffman;
   log_level = log::ERR;
-  max_larget_level = std::numeric_limits<SIZE>::max(); // no limit
   auto_pin_host_buffers = true;
   max_memory_footprint = std::numeric_limits<SIZE>::max(); // no limit
   total_num_bitplanes = 32;
@@ -56,7 +55,7 @@ Config::Config() {
   adjust_shape = false;
   compress_with_dryrun = false;
   num_local_refactoring_level = 1;
-  num_global_refactoring_level = 0;
+  num_global_refactoring_level = 3;
   enable_roi = false;
   projection_mode = compression_projection_mode_type::Auto;
   auto_cache_release = false;
