@@ -118,7 +118,10 @@ enum class compress_status_type : uint8_t {
   OutputTooLargeFailure,
   NotSupportHigherNumberOfDimensionsFailure,
   NotSupportDataTypeFailure,
-  BackendNotAvailableFailure
+  BackendNotAvailableFailure,
+  // The data was written by MGARD 1.6.x or earlier and this build lacks
+  // MGARD_ENABLE_DATA_COMPATIBILITY.
+  DataCompatibilityNotEnabledFailure
 };
 
 enum class compressor_type : uint8_t { MGARD, ZFP };

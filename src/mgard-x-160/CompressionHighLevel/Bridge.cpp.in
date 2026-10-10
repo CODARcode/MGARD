@@ -1,0 +1,103 @@
+/*
+ * Copyright 2026, Oak Ridge National Laboratory.
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
+ * Author: Jieyang Chen (jieyang@uoregon.edu)
+ * Date: October 5, 2026
+ */
+
+// Connects the public mgard_x API to the MGARD 1.6.0-compatible decompression
+// pipeline in namespace mgard_x_160 (see mgard-x/CompressionHighLevel/
+// DataCompatibility.h). The two pipelines have identical but distinct types,
+// so the Config and the results are converted at this boundary.
+
+#include "mgard-x/CompressionHighLevel/DataCompatibility.h"
+#include "mgard-x-160/CompressionHighLevel/CompressionHighLevel.hpp"
+
+namespace mgard_x {
+namespace v160 {
+
+namespace {
+
+template <typename DeviceType> struct DeviceTypeV160;
+template <> struct DeviceTypeV160<mgard_x::@DEVICE_TYPE@> {
+  using type = mgard_x_160::@DEVICE_TYPE@;
+};
+
+template <typename To, typename From> To convert_enum(From value) {
+  return static_cast<To>(static_cast<int>(value));
+}
+
+// MGARD 1.6.0 decompression took the data layout from the header plus a few
+// settings from the caller's Config. Start from the 1.6.0 defaults (see
+// src/mgard-x-160/Config/Config.cpp) and take from the caller only the
+// settings 1.6.0 also took from it and whose meaning is unchanged. Everything
+// else keeps its 1.6.0 default rather than this version's (e.g. the level cap
+// is unlimited, not num_global_refactoring_level's default of 3).
+mgard_x_160::Config convert_config(const Config &c) {
+  mgard_x_160::Config v;
+  v.dev_type = convert_enum<mgard_x_160::device_type>(c.dev_type);
+  v.dev_id = c.dev_id;
+  v.log_level = c.log_level;
+  v.auto_pin_host_buffers = c.auto_pin_host_buffers;
+  v.auto_cache_release = c.auto_cache_release;
+  v.cpu_mode = convert_enum<mgard_x_160::cpu_parallelization_mode>(c.cpu_mode);
+  v.compressor = convert_enum<mgard_x_160::compressor_type>(c.compressor);
+  v.normalize_coordinates = c.normalize_coordinates;
+  v.adjust_shape = c.adjust_shape;
+  v.max_memory_footprint = c.max_memory_footprint;
+  v.estimate_outlier_ratio = c.estimate_outlier_ratio;
+  return v;
+}
+
+} // namespace
+
+template <typename DeviceType>
+enum compress_status_type
+decompress(const void *compressed_data, size_t compressed_size,
+           void *&decompressed_data, Config config, bool output_pre_allocated) {
+  using V160 = typename DeviceTypeV160<DeviceType>::type;
+  return convert_enum<compress_status_type>(mgard_x_160::decompress<V160>(
+      compressed_data, compressed_size, decompressed_data,
+      convert_config(config), output_pre_allocated));
+}
+
+template <typename DeviceType>
+enum compress_status_type
+decompress(const void *compressed_data, size_t compressed_size,
+           void *&decompressed_data, data_type &dtype,
+           std::vector<SIZE> &shape, Config config, bool output_pre_allocated) {
+  using V160 = typename DeviceTypeV160<DeviceType>::type;
+  mgard_x_160::data_type dtype_v160;
+  std::vector<mgard_x_160::SIZE> shape_v160;
+  enum compress_status_type status =
+      convert_enum<compress_status_type>(mgard_x_160::decompress<V160>(
+          compressed_data, compressed_size, decompressed_data, dtype_v160,
+          shape_v160, convert_config(config), output_pre_allocated));
+  dtype = convert_enum<data_type>(dtype_v160);
+  shape.assign(shape_v160.begin(), shape_v160.end());
+  return status;
+}
+
+template <typename DeviceType> enum compress_status_type release_cache() {
+  using V160 = typename DeviceTypeV160<DeviceType>::type;
+  return convert_enum<compress_status_type>(
+      mgard_x_160::release_cache<V160>());
+}
+
+// clang-format off
+template enum compress_status_type
+decompress<mgard_x::@DEVICE_TYPE@>(const void *compressed_data,
+                                   size_t compressed_size,
+                                   void *&decompressed_data, Config config,
+                                   bool output_pre_allocated);
+template enum compress_status_type
+decompress<mgard_x::@DEVICE_TYPE@>(const void *compressed_data,
+                                   size_t compressed_size,
+                                   void *&decompressed_data, data_type &dtype,
+                                   std::vector<SIZE> &shape, Config config,
+                                   bool output_pre_allocated);
+template enum compress_status_type release_cache<mgard_x::@DEVICE_TYPE@>();
+// clang-format on
+
+} // namespace v160
+} // namespace mgard_x

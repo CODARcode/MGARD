@@ -1,0 +1,73 @@
+/*
+ * Copyright 2026, Oak Ridge National Laboratory.
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
+ * Author: Jieyang Chen (jieyang@uoregon.edu)
+ * Date: September 21, 2026
+ */
+
+#include <cstdlib>
+#include <limits>
+
+#include "mgard-x-160/Config/Config.h"
+
+namespace {
+// CUDA 12 defaults to lazy module loading, which pulls each kernel's code from
+// the (large) fatbin on its first launch. For backends with many/large kernels
+// (e.g. the rANS lossless path) those scattered first-launch loads add hundreds
+// of ms per process. Eager loading front-loads the module once at context
+// creation, making launches instant (wall time unchanged or lower). The CUDA
+// runtime reads this env var while registering fatbins in static initializers,
+// so we must set it from an early-priority constructor (before those run) -- a
+// setenv in main() is too late. Only set when the user hasn't chosen, so it
+// stays overridable.
+__attribute__((constructor(101))) void mgard_x_set_cuda_module_loading() {
+  if (std::getenv("CUDA_MODULE_LOADING") == nullptr) {
+    setenv("CUDA_MODULE_LOADING", "EAGER", 0);
+  }
+}
+} // namespace
+
+namespace mgard_x_160 {
+
+Config::Config() {
+  dev_type = device_type::AUTO;
+  dev_id = 0;
+  compressor = compressor_type::MGARD;
+  domain_decomposition = domain_decomposition_type::MaxDim;
+  decomposition = decomposition_type::MultiDim;
+  estimate_outlier_ratio = 1.0;
+  huff_dict_size = 8192;
+  huff_block_size = 1024 * 20; // MGARD 1.6.0 default
+  block_delta_block_size = 256;
+  block_delta_mode = block_delta_mode_type::Delta;
+  lz4_block_size = 1 << 15;
+  zstd_compress_level = 3;
+  normalize_coordinates = true;
+  lossless = lossless_type::Huffman;
+  reorder = 0;
+  log_level = log::ERR;
+  auto_pin_host_buffers = true;
+  max_memory_footprint = std::numeric_limits<SIZE>::max(); // no limit
+  total_num_bitplanes = 32;
+  block_size = 256;
+  domain_decomposition_dim = 0;
+  domain_decomposition_sizes = std::vector<SIZE>();
+  mdr_adaptive_resolution = false;
+  adjust_shape = false;
+  compress_with_dryrun = false;
+  num_local_refactoring_level = 1;
+  // MGARD 1.6.0 default (its max_larget_level): no limit.
+  num_global_refactoring_level = std::numeric_limits<SIZE>::max();
+  enable_roi = false;
+  projection_mode = compression_projection_mode_type::Auto;
+  auto_cache_release = false;
+  cpu_mode = cpu_parallelization_mode::INTER_BLOCK;
+  mdr_qoi_mode = false;
+  mdr_qoi_num_variables = 3;
+  fuse_decompose_quantize = true;
+  fuse_dequantize_recompose = true;
+}
+
+void Config::apply() { log::level = log_level; }
+
+} // namespace mgard_x_160

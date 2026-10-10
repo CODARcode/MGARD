@@ -47,6 +47,8 @@ option(MGARD_ENABLE_UNSTRUCTURED "Enable experimental unstructured mesh support.
 
 option(MGARD_ENABLE_TIMING "Enable timing." OFF)
 
+option(MGARD_ENABLE_DATA_COMPATIBILITY "Also build the separate MGARD 1.6.0-compatible decompression pipeline (src/mgard-x-160) so data compressed by MGARD 1.6.x can be decompressed. Roughly doubles MGARD-X build time." OFF)
+
 include(CTest)
 
 # Some boilerplate to setup nice output directories
@@ -106,6 +108,9 @@ if (MGARD_ENABLE_SERIAL OR
 
   include(MgardXGenerateSource)
   add_subdirectory (src/mgard-x)
+  if (MGARD_ENABLE_DATA_COMPATIBILITY)
+    add_subdirectory (src/mgard-x-160)
+  endif()
   add_subdirectory (include/mgard-x)
   add_subdirectory (include/mgard-x/MDR)
   add_subdirectory (include/mgard-x/MDR-X)
@@ -168,6 +173,10 @@ endif()
 
 #Adding library here so we can set compile definitions for it.
 add_library(mgard-library)
+
+if(MGARD_ENABLE_DATA_COMPATIBILITY)
+  target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_DATA_COMPATIBILITY)
+endif()
 
 if(MGARD_ENABLE_SERIAL)
   target_compile_definitions(mgard-library PUBLIC MGARD_ENABLE_SERIAL)
@@ -499,6 +508,7 @@ if(MGARD_ENABLE_MDR)
   message(STATUS "pmdr-x (MPI): ${MGARD_X_BUILD_PMDR}")
   list(POP_BACK CMAKE_MESSAGE_INDENT)
 endif()
+message(STATUS "1.6.0 data:    ${MGARD_ENABLE_DATA_COMPATIBILITY}")
 message(STATUS "timing:        ${MGARD_ENABLE_TIMING}")
 message(STATUS "ASan:          ${MGARD_ENABLE_ASAN}")
 message(STATUS "UBSan:         ${MGARD_ENABLE_UBSAN}")
