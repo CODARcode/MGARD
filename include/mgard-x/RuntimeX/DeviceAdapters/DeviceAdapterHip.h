@@ -898,10 +898,10 @@ public:
   }
 
   template <typename T>
-  MGARDX_CONT static void CopyND(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
+  MGARDX_CONT static void Copy2D(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
                                  SIZE src_ld, SIZE n1, SIZE n2,
                                  int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
-    log::dbg("Calling MemoryManager<HIP>::CopyND");
+    log::dbg("Calling MemoryManager<HIP>::Copy2D");
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       DeviceRuntime<HIP>::SyncQueue(queue_idx);
     }
@@ -918,6 +918,54 @@ public:
       gpuErrchk(hipMemcpyAsync(dst_ptr, src_ptr, n1 * sizeof(converted_T),
                                hipMemcpyDefault, stream));
     }
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      DeviceRuntime<HIP>::SyncQueue(queue_idx);
+    }
+    if (DeviceRuntime<HIP>::SyncAllKernelsAndCheckErrors) {
+      DeviceRuntime<HIP>::SyncDevice();
+    }
+  }
+
+  // Copies n3 slices of n2 rows of n1 elements. Element (k, j, i) sits at
+  // ptr + k * ld2 + j * ld1 + i: ld1 is the row stride and ld2 the slice
+  // stride, both in elements.
+  template <typename T>
+  MGARDX_CONT static void Copy3D(T *dst_ptr, SIZE dst_ld1, SIZE dst_ld2,
+                                 const T *src_ptr, SIZE src_ld1, SIZE src_ld2,
+                                 SIZE n1, SIZE n2, SIZE n3,
+                                 int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<HIP>::Copy3D");
+    using converted_T =
+        typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
+    if (n1 == 0 || n2 == 0 || n3 == 0) {
+      return;
+    }
+    // A pitched 3D copy addresses a slice as whole rows, so the slice stride
+    // must be a multiple of the row stride. A single row per slice is a 2D
+    // copy in disguise. Otherwise fall back to one 2D copy per slice.
+    if (n2 == 1) {
+      Copy2D(dst_ptr, dst_ld2, src_ptr, src_ld2, n1, n3, queue_idx);
+      return;
+    }
+    if (dst_ld2 % dst_ld1 != 0 || src_ld2 % src_ld1 != 0) {
+      for (SIZE k = 0; k < n3; k++) {
+        Copy2D(dst_ptr + k * dst_ld2, dst_ld1, src_ptr + k * src_ld2, src_ld1,
+               n1, n2, queue_idx);
+      }
+      return;
+    }
+    if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
+      DeviceRuntime<HIP>::SyncQueue(queue_idx);
+    }
+    hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
+    hipMemcpy3DParms p = {};
+    p.srcPtr = make_hipPitchedPtr((void *)src_ptr, src_ld1 * sizeof(converted_T),
+                                 n1 * sizeof(converted_T), src_ld2 / src_ld1);
+    p.dstPtr = make_hipPitchedPtr((void *)dst_ptr, dst_ld1 * sizeof(converted_T),
+                                 n1 * sizeof(converted_T), dst_ld2 / dst_ld1);
+    p.extent = make_hipExtent(n1 * sizeof(converted_T), n2, n3);
+    p.kind = hipMemcpyDefault;
+    gpuErrchk(hipMemcpy3DAsync(&p, stream));
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       DeviceRuntime<HIP>::SyncQueue(queue_idx);
     }

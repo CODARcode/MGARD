@@ -46,6 +46,10 @@ void print_usage_message(std::string error) {
 \t\t -s / --smoothness <float>: smoothness parameter\n\
 \t\t -l / --lossless <huffman|huffman-lz4|lz4|huffman-zstd|blockdelta[-fixed|-delta|-outlier]|zerorle-rans|symbol-rans>: lossless compression\n\
 \t\t -d / --device <auto|serial|cuda|hip>: device type\n\
+\t\t (optional) -dd / --domain-decomposition <auto|manual>: domain decomposition\n\
+\t\t\t (default: auto -- split only when the data does not fit the memory limit)\n\
+\t\t (optional) -dd-size / --domain-decomposition-size <int> <int> ...: with -dd manual,\n\
+\t\t\t number of dimensions followed by the block size per dimension (slowest first)\n\
 \t\t (optional) -hh / --hybrid: use hybrid (block-local + global) hierarchy\n\
 \t\t (optional) -ll / --local-levels <int>: number of hybrid block-local refactoring levels (default: 1)\n\
 \t\t (optional) -gl / --global-levels <int>: number of global refactoring levels,\n\
@@ -559,7 +563,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     std::vector<mgard_x::SIZE> shape, double tol,
                     std::vector<double> tol_map, bool enable_roi, double s,
                     enum mgard_x::error_bound_type mode, std::string lossless,
-                    std::string domain_decomposition, mgard_x::SIZE block_size,
+                    mgard_x::Config dd_config,
                     enum mgard_x::device_type dev_type, int verbose,
                     mgard_x::SIZE max_memory_footprint,
                     mgard_x::SIZE num_local_levels,
@@ -596,36 +600,11 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   // config.compressor = mgard_x::compressor_type::ZFP;
 
-  if (domain_decomposition == "block") {
-    config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
-    config.block_size = block_size;
-  } else {
-    config.domain_decomposition = mgard_x::domain_decomposition_type::MaxDim;
-  }
+  config.domain_decomposition_mode = dd_config.domain_decomposition_mode;
+  config.domain_decomposition_block_size =
+      dd_config.domain_decomposition_block_size;
 
   config.cpu_mode = mgard_x::cpu_parallelization_mode::INTRA_BLOCK;
-
-  // config.domain_decomposition = mgard_x::domain_decomposition_type::Variable;
-  config.domain_decomposition_dim = 0;
-  // NYX
-  // config.domain_d  ecomposition_sizes = {512, 512};
-
-  // config.domain_decomposition_sizes = {512, 512, 512, 512};
-  // config.domain_decomposition_sizes = {2048};
-  // config.domain_decomposition_sizes = {128, 248, 315, 348, 384, 424, 201};
-  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(128, 16);
-  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(128, 16);
-
-  // XGC
-  // config.domain_decomposition_sizes = {312, 312, 312, 312};
-  // config.domain_decomposition_sizes = {1248};
-  // config.domain_decomposition_sizes = {156, 283, 514, 295};
-  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(96, 13);
-
-  // E3SM
-  // config.domain_decomposition_sizes = {720, 720, 720, 720};
-  // config.domain_decomposition_sizes = {180, 368, 463, 529, 605, 692, 43};
-  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(192, 15);
 
   config.estimate_outlier_ratio = 1.0;
 
@@ -977,28 +956,20 @@ bool try_compression(int argc, char *argv[]) {
                                                "-gl", "--global-levels");
   }
 
-  std::string domain_decomposition = "max-dim";
-  mgard_x::SIZE block_size = 0;
-  if (has_arg(argc, argv, "-dd", "--domain-decomposition")) {
-    domain_decomposition = get_arg<std::string>(
-        argc, argv, "Domain decomposition", "-dd", "--domain-decomposition");
-    if (domain_decomposition == "block") {
-      block_size = get_arg<mgard_x::SIZE>(argc, argv, "Block size", "-dd-size",
-                                          "--domain-decomposition-size");
-    }
-  }
+  mgard_x::Config dd_config;
+  get_domain_decomposition(argc, argv, dd_config);
 
   if (dtype == mgard_x::data_type::Double) {
     launch_compress<double>(
         shape.size(), dtype, input_file.c_str(), output_file.c_str(), shape,
-        tol, tol_map, enable_roi, s, mode, lossless, domain_decomposition,
-        block_size, dev_type, verbose, max_memory_footprint, num_local_levels,
+        tol, tol_map, enable_roi, s, mode, lossless, dd_config,
+        dev_type, verbose, max_memory_footprint, num_local_levels,
         num_global_levels, use_hybrid, warm_up, kernel_fusion, projection_mode);
   } else if (dtype == mgard_x::data_type::Float) {
     launch_compress<float>(
         shape.size(), dtype, input_file.c_str(), output_file.c_str(), shape,
-        tol, tol_map, enable_roi, s, mode, lossless, domain_decomposition,
-        block_size, dev_type, verbose, max_memory_footprint, num_local_levels,
+        tol, tol_map, enable_roi, s, mode, lossless, dd_config,
+        dev_type, verbose, max_memory_footprint, num_local_levels,
         num_global_levels, use_hybrid, warm_up, kernel_fusion, projection_mode);
   }
   mgard_x::release_cache(mgard_x::Config());

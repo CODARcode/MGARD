@@ -28,8 +28,7 @@ Metadata<TestDevice> base_metadata(std::vector<SIZE> shape) {
       (float)1.0, decomposition_type::Hybrid,
       lossless_type::Huffman, /*huff_dict_size=*/8192,
       /*huff_block_size=*/1024, shape, /*domain_decomposed=*/false,
-      domain_decomposition_type::MaxDim, /*domain_decomposed_dim=*/0,
-      /*domain_decomposed_size=*/0);
+      /*domain_decomposition_block_shape=*/shape);
   return m;
 }
 

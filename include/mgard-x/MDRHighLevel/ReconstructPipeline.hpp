@@ -159,7 +159,7 @@ void reconstruct_pipeline(
       reconstructed_data.shape[curr_subdomain_id] =
           device_subdomain_buffer[current_buffer].shape();
       reconstructed_data.offset[curr_subdomain_id] =
-          domain_decomposer.dim_subdomain_offset(curr_subdomain_id);
+          domain_decomposer.subdomain_start(curr_subdomain_id);
     }
     current_buffer = next_buffer;
     current_queue = next_queue;

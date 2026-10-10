@@ -115,7 +115,8 @@ An executable ```mgard-x``` will be built after building the MGARD-X library. To
     + ```-e <error>``` error bound
     + ```-s <smoothness>``` smoothness parameter
     + ```-r <0|1>``` internal data layout (0: Higher throughput | 1: Higher compression ratio)
-    + ```-b <0|1>``` domain decomposition type (0: 1D max dimension (default) | 1: N-D block)
+    + ```-dd <auto|manual>``` domain decomposition mode (auto: decompose only when the data does not fit the memory limit (default) | manual: use the block size given by ```-dd-size```)
+    + ```-dd-size <D> <b_1> ... <b_D>``` domain decomposition block size, slowest dimension first (manual mode only)
     + ```-f <bytes>``` maximum memory footprint in bytes (if not specify: no limit)
     + ```-l / --lossless <type>``` choose lossless compressor:
         + ```huffman```: Huffman coding
@@ -169,9 +170,10 @@ An executable ```mgard-x``` will be built after building the MGARD-X library. To
     + ```lz4_block_size```: LZ4 parallelized block size (***Default: 32768***)
     + ```zstd_compress_level```: Zstd compression level (***Default: 3***)
     + ```normalize_coordinates```: enable or disable coordinate normalization (***Controlled by CMake option***)
-    + ```domain_decomposition``` (for high-level APIs only): controls how data can be domain decomposed:
-        + ```mgard_x::domain_decomposition_type::MaxDim```: 1D decomposition along the largest dimension  (***Default***)
-        + ```mgard_x::domain_decomposition_type::Block```: N-D block based decomposition
+    + ```domain_decomposition_mode``` (for high-level APIs only): controls how data is split into blocks (subdomains) that are processed one at a time. Blocks may have any shape, e.g. a 400x300x200 array with 100x300x200 blocks is split along the slowest dimension only. Along each dimension a remainder narrower than 3 nodes is merged into the block before it. The block shape is recorded in the compressed header, so decompression needs no setting.
+        + ```mgard_x::domain_decomposition_mode_type::Auto```: decompose only when the data does not fit the memory limit (device memory capped by ```max_memory_footprint```); the largest block extent is then halved until the largest block fits (***Default***)
+        + ```mgard_x::domain_decomposition_mode_type::Manual```: use ```domain_decomposition_block_size```; compression fails if any block extent is smaller than 3 or a block would not fit the memory limit
+    + ```domain_decomposition_block_size```: block shape for the manual mode, one extent per dimension, slowest first; extents larger than the data are clamped to it
     + ```decomposition```: controls multi-level decomposition:
         + ```mgard_x::decomposition_type::MultiDim```: N-D decomposition (***Default***)
         + ```mgard_x::decomposition_type::SingleDim```: 1D-at-a-time decomposition

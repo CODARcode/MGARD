@@ -11,7 +11,11 @@ struct Config {
   device_type dev_type;
   int dev_id;
   enum compressor_type compressor;
-  enum domain_decomposition_type domain_decomposition;
+  enum domain_decomposition_mode_type domain_decomposition_mode;
+  // Block extent along each dimension, for Manual decomposition. A block may
+  // be non-cubic (e.g. {100, 300, 200} on 400 x 300 x 200 data splits only the
+  // first dimension). Extents larger than the data are clamped to it.
+  std::vector<SIZE> domain_decomposition_block_size;
   enum decomposition_type decomposition;
   double estimate_outlier_ratio;
   SIZE huff_dict_size;
@@ -26,9 +30,6 @@ struct Config {
   bool auto_pin_host_buffers;
   SIZE max_memory_footprint;
   SIZE total_num_bitplanes;
-  SIZE block_size;
-  SIZE domain_decomposition_dim;
-  std::vector<SIZE> domain_decomposition_sizes;
   bool mdr_adaptive_resolution;
   bool adjust_shape;
   bool compress_with_dryrun;

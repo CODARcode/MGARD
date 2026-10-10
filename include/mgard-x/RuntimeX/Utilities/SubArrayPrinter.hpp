@@ -58,7 +58,7 @@ void PrintSubarray(std::string name, SubArrayType subArray) {
   //                         ncol, nrow, D2H, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   for (SIZE i = 0; i < nrow; i++) {
-    MemoryManager<DeviceType>::CopyND(
+    MemoryManager<DeviceType>::Copy2D(
         v + ncol * nfib * i, nfib,
         subArray.data() + subArray.lddv1() * subArray.lddv2() * i,
         subArray.lddv1(), nfib, ncol, 0);
@@ -120,11 +120,11 @@ void CompareSubarray(std::string name, SubArrayType subArray1,
   T *v2 = new T[nrow * ncol * nfib];
 
   for (SIZE i = 0; i < nrow; i++) {
-    MemoryManager<DeviceType>::CopyND(
+    MemoryManager<DeviceType>::Copy2D(
         v1 + ncol * nfib * i, nfib,
         subArray1.data() + subArray1.lddv1() * subArray1.lddv2() * i,
         subArray1.lddv1(), nfib, ncol, 0);
-    MemoryManager<DeviceType>::CopyND(
+    MemoryManager<DeviceType>::Copy2D(
         v2 + ncol * nfib * i, nfib,
         subArray2.data() + subArray2.lddv1() * subArray2.lddv2() * i,
         subArray2.lddv1(), nfib, ncol, 0);
@@ -201,11 +201,11 @@ void CompareSubarray(std::string name, SubArrayType1 subArray1,
   T *v1 = new T[nrow * ncol * nfib];
   T *v2 = new T[nrow * ncol * nfib];
   for (SIZE i = 0; i < nrow; i++) {
-    MemoryManager<DeviceType>::CopyND(
+    MemoryManager<DeviceType>::Copy2D(
         v1 + ncol * nfib * i, nfib,
         subArray1.data() + subArray1.lddv1() * subArray1.lddv2() * i,
         subArray1.lddv1(), nfib, ncol, 0);
-    MemoryManager<DeviceType>::CopyND(v2 + ncol * nfib * i, nfib,
+    MemoryManager<DeviceType>::Copy2D(v2 + ncol * nfib * i, nfib,
                                       subArray2.data() +
                                           subArray2.lddv1 * subArray2.lddv2 * i,
                                       subArray2.lddv1, nfib, ncol, 0);
@@ -377,7 +377,7 @@ void verify_matrix_cuda(SIZE nrow, SIZE ncol, SIZE nfib, T *dv, SIZE lddv1,
     //                         ncol, dv, lddv1 * sizeof(T), sizex * sizeof(T),
     //                         lddv2, nfib * sizeof(T), ncol, nrow, D2H,
     //                         queue_idx);
-    // MemoryManager<DeviceType>::CopyND(v, nfib, dv, lddv1, nfib, ncol * nrow,
+    // MemoryManager<DeviceType>::Copy2D(v, nfib, dv, lddv1, nfib, ncol * nrow,
     // 0); DeviceRuntime<CUDA>::SyncQueue(0); tmp_handle->sync(queue_idx);
     verify_matrix(nrow, ncol, nfib, v, nfib, ncol, file_prefix, store, verify);
     delete[] v;
@@ -421,7 +421,7 @@ void DumpSubArray(std::string name, SubArray<D, T, DeviceType> subArray) {
 
   T *v = new T[nrow * ncol * nfib];
   DeviceRuntime<DeviceType>::SyncQueue(0);
-  MemoryManager<DeviceType>::CopyND(v, nfib, subArray.data(),
+  MemoryManager<DeviceType>::Copy2D(v, nfib, subArray.data(),
                                     subArray.ld(D - 1), nfib, ncol * nrow, 0);
   DeviceRuntime<DeviceType>::SyncQueue(0);
   std::fstream myfile;
@@ -466,7 +466,7 @@ void LoadSubArray(std::string name, SubArray<D, T, DeviceType> subArray) {
     printf("Error occurred at read time!\n");
     return;
   }
-  MemoryManager<DeviceType>::CopyND(subArray.data(), subArray.ld(D - 1), v,
+  MemoryManager<DeviceType>::Copy2D(subArray.data(), subArray.ld(D - 1), v,
                                     nfib, nfib, ncol * nrow, 0);
   delete[] v;
 }
@@ -505,7 +505,7 @@ void VerifySubArray(std::string name, SubArray<D, T, DeviceType> subArray,
       return;
     }
 
-    MemoryManager<DeviceType>::CopyND(v2, nfib, subArray.data(),
+    MemoryManager<DeviceType>::Copy2D(v2, nfib, subArray.data(),
                                       subArray.ld(D - 1), nfib, ncol * nrow, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
 

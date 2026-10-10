@@ -60,9 +60,9 @@ struct MetadataBase {
   std::vector<uint64_t> hybrid_roi_block_dimensions;
 
   bool domain_decomposed = false;
-  enum domain_decomposition_type ddtype;
-  uint8_t domain_decomposed_dim;
-  uint64_t domain_decomposed_size;
+  // Shape of the domain decomposition blocks (see DomainDecomposer); equal to
+  // the data shape when the domain is not decomposed.
+  std::vector<uint64_t> domain_decomposition_block_shape;
 
   enum operation_type otype;
 
@@ -109,9 +109,7 @@ template <typename DeviceType> struct Metadata : MetadataBase {
                           enum lossless_type ltype, uint32_t huff_dict_size,
                           uint32_t huff_block_size, std::vector<SIZE> shape,
                           bool domain_decomposed,
-                          domain_decomposition_type ddtype,
-                          uint8_t domain_decomposed_dim,
-                          uint64_t domain_decomposed_size) {
+                          std::vector<SIZE> domain_decomposition_block_shape) {
 
     otype = operation_type::Compression;
     if (std::is_same<DeviceType, SERIAL>::value) {
@@ -148,9 +146,9 @@ template <typename DeviceType> struct Metadata : MetadataBase {
       this->shape[d] = (uint64_t)shape[d];
     }
     this->domain_decomposed = domain_decomposed;
-    this->ddtype = ddtype;
-    this->domain_decomposed_dim = domain_decomposed_dim;
-    this->domain_decomposed_size = domain_decomposed_size;
+    this->domain_decomposition_block_shape.assign(
+        domain_decomposition_block_shape.begin(),
+        domain_decomposition_block_shape.end());
   }
 
   template <typename T>
@@ -159,13 +157,12 @@ template <typename DeviceType> struct Metadata : MetadataBase {
                      enum decomposition_type decomposition,
                      enum lossless_type ltype, uint32_t huff_dict_size,
                      uint32_t huff_block_size, std::vector<SIZE> shape,
-                     bool domain_decomposed, domain_decomposition_type ddtype,
-                     uint8_t domain_decomposed_dim,
-                     uint64_t domain_decomposed_size, std::vector<T *> coords) {
+                     bool domain_decomposed,
+                     std::vector<SIZE> domain_decomposition_block_shape,
+                     std::vector<T *> coords) {
     FillForCompression(ebtype, tol, s, norm, decomposition, ltype,
                        huff_dict_size, huff_block_size, shape,
-                       domain_decomposed, ddtype, domain_decomposed_dim,
-                       domain_decomposed_size);
+                       domain_decomposed, domain_decomposition_block_shape);
     for (int d = 0; d < this->total_dims; d++) {
       std::vector<double> coord(shape[d]);
       T *coord_h = new T[shape[d]];
@@ -183,9 +180,9 @@ template <typename DeviceType> struct Metadata : MetadataBase {
   void FillForMDR(T norm, enum decomposition_type decomposition,
                   enum lossless_type ltype, uint32_t huff_dict_size,
                   uint32_t huff_block_size, std::vector<SIZE> shape,
-                  bool domain_decomposed, domain_decomposition_type ddtype,
-                  uint8_t domain_decomposed_dim,
-                  uint64_t domain_decomposed_size, uint64_t number_bitplanes) {
+                  bool domain_decomposed,
+                  std::vector<SIZE> domain_decomposition_block_shape,
+                  uint64_t number_bitplanes) {
     otype = operation_type::MDR;
     if (std::is_same<DeviceType, SERIAL>::value) {
       this->ptype = processor_type::X_SERIAL;
@@ -212,9 +209,9 @@ template <typename DeviceType> struct Metadata : MetadataBase {
       this->shape[d] = (uint64_t)shape[d];
     }
     this->domain_decomposed = domain_decomposed;
-    this->ddtype = ddtype;
-    this->domain_decomposed_dim = domain_decomposed_dim;
-    this->domain_decomposed_size = domain_decomposed_size;
+    this->domain_decomposition_block_shape.assign(
+        domain_decomposition_block_shape.begin(),
+        domain_decomposition_block_shape.end());
     this->betype = bitplane_encoding_type::GroupedBitplaneEncoding;
     this->number_bitplanes = number_bitplanes;
   }
@@ -223,13 +220,13 @@ template <typename DeviceType> struct Metadata : MetadataBase {
   void FillForMDR(T norm, enum decomposition_type decomposition,
                   enum lossless_type ltype, uint32_t huff_dict_size,
                   uint32_t huff_block_size, std::vector<SIZE> shape,
-                  bool domain_decomposed, domain_decomposition_type ddtype,
-                  uint8_t domain_decomposed_dim,
-                  uint64_t domain_decomposed_size, uint64_t number_bitplanes,
+                  bool domain_decomposed,
+                  std::vector<SIZE> domain_decomposition_block_shape,
+                  uint64_t number_bitplanes,
                   std::vector<T *> coords) {
     FillForMDR(norm, decomposition, ltype, huff_dict_size, huff_block_size,
-               shape, domain_decomposed, ddtype, domain_decomposed_dim,
-               domain_decomposed_size, number_bitplanes);
+               shape, domain_decomposed, domain_decomposition_block_shape,
+               number_bitplanes);
     for (int d = 0; d < this->total_dims; d++) {
       std::vector<double> coord(shape[d]);
       T *coord_h = new T[shape[d]];

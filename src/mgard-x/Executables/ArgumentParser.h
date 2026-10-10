@@ -119,6 +119,28 @@ enum mgard_x::error_bound_type get_error_bound_mode(int argc, char *argv[]) {
   return mode;
 }
 
+// -dd / --domain-decomposition <auto|manual> (default: auto) and, for manual,
+// -dd-size / --domain-decomposition-size <D> <n_0> ... <n_D-1>: the block
+// shape, slowest dimension first.
+void get_domain_decomposition(int argc, char *argv[], mgard_x::Config &config) {
+  std::string dd = "auto";
+  if (has_arg(argc, argv, "-dd", "--domain-decomposition")) {
+    dd = get_arg<std::string>(argc, argv, "Domain decomposition", "-dd",
+                              "--domain-decomposition");
+  }
+  if (dd == "auto") {
+    config.domain_decomposition_mode = mgard_x::domain_decomposition_mode_type::Auto;
+  } else if (dd == "manual") {
+    config.domain_decomposition_mode =
+        mgard_x::domain_decomposition_mode_type::Manual;
+    config.domain_decomposition_block_size = get_args<mgard_x::SIZE>(
+        argc, argv, "Domain decomposition block size", "-dd-size",
+        "--domain-decomposition-size");
+  } else {
+    throw std::runtime_error("Wrong domain decomposition mode.");
+  }
+}
+
 enum mgard_x::device_type get_device_type(int argc, char *argv[]) {
   enum mgard_x::device_type dev_type = mgard_x::device_type::AUTO;
   std::string dev =

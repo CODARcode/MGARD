@@ -46,9 +46,15 @@ SIZE get_max_output_data_size(
   return size;
 }
 
+// Domain decomposition block shape recorded in the header.
+template <typename DeviceType>
+std::vector<SIZE> block_shape(Metadata<DeviceType> &metadata) {
+  return std::vector<SIZE>(metadata.domain_decomposition_block_shape.begin(),
+                           metadata.domain_decomposition_block_shape.end());
+}
+
 template <typename DeviceType>
 void load(Config &config, Metadata<DeviceType> &metadata) {
-  config.domain_decomposition = metadata.ddtype;
   config.decomposition = metadata.decomposition;
   config.lossless = metadata.ltype;
   config.huff_dict_size = metadata.huff_dict_size;
@@ -139,14 +145,12 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
     m.FillForMDR(
         (T)0.0, config.decomposition, config.lossless, config.huff_dict_size,
         config.huff_block_size, shape, domain_decomposer.domain_decomposed(),
-        config.domain_decomposition, domain_decomposer.domain_decomposed_dim(),
-        domain_decomposer.domain_decomposed_size(), config.total_num_bitplanes);
+        domain_decomposer.block_shape(), config.total_num_bitplanes);
   } else {
     m.FillForMDR(
         (T)0.0, config.decomposition, config.lossless, config.huff_dict_size,
         config.huff_block_size, shape, domain_decomposer.domain_decomposed(),
-        config.domain_decomposition, domain_decomposer.domain_decomposed_dim(),
-        domain_decomposer.domain_decomposed_size(), config.total_num_bitplanes,
+        domain_decomposer.block_shape(), config.total_num_bitplanes,
         coords);
   }
 
@@ -213,8 +217,7 @@ void MDRequest(std::vector<SIZE> shape, RefactoredMetadata &refactored_metadata,
       domain_decomposer;
   domain_decomposer =
       DomainDecomposer<D, T, ComposedRefactor<D, T, DeviceType>, DeviceType>(
-          shape, m.domain_decomposed, m.domain_decomposed_dim,
-          m.domain_decomposed_size, config);
+          shape, block_shape(m), config);
   generate_request(domain_decomposer, config, refactored_metadata);
   DeviceRuntime<DeviceType>::Finalize();
 }
@@ -276,15 +279,11 @@ void MDReconstruct(std::vector<SIZE> shape,
   if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
     domain_decomposer =
         DomainDecomposer<D, T, ComposedReconstructor<D, T, DeviceType>,
-                         DeviceType>(shape, m.domain_decomposed,
-                                     m.domain_decomposed_dim,
-                                     m.domain_decomposed_size, config);
+                         DeviceType>(shape, block_shape(m), config);
   } else {
     domain_decomposer =
         DomainDecomposer<D, T, ComposedReconstructor<D, T, DeviceType>,
-                         DeviceType>(shape, m.domain_decomposed,
-                                     m.domain_decomposed_dim,
-                                     m.domain_decomposed_size, config, coords);
+                         DeviceType>(shape, block_shape(m), config, coords);
   }
   if (!config.mdr_adaptive_resolution) {
     // Should not re-allocate if the data is already allocated
