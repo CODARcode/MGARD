@@ -111,7 +111,7 @@ void reconstruct_pipeline_qoi(
       Cache::cache.InsertHierarchyCache(
           domain_decomposer.subdomain_hierarchy(id));
     }
-    mdr_data[id].Resize(refactored_metadata.metadata[id], 0);
+    mdr_data[id].Resize(reconstructor, refactored_metadata.metadata[id], 0);
     device_subdomain_buffer[id].resize(domain_decomposer.subdomain_shape(id),
                                        0);
     // Reset all signs to 0 for the initial QOI reconstruction
@@ -120,8 +120,11 @@ void reconstruct_pipeline_qoi(
     }
   }
 
-  HierarchyType &hierarchy =
-      Cache::cache.GetHierarchyCache(domain_decomposer.subdomain_shape(0));
+  // Size the reused buffers for the largest subdomain: they are not grown
+  // when a later subdomain is bigger than the first.
+  std::vector<SIZE> largest_shape =
+      domain_decomposer.subdomain_shape(domain_decomposer.largest_subdomain());
+  HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(largest_shape);
   reconstructor.Adapt(hierarchy, config, 0);
 
   int current_buffer = 0;

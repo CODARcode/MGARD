@@ -114,8 +114,9 @@ public:
                                       queue_idx);
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
-    uint32_t actual_out_count = 0;
-    actual_out_count = *reinterpret_cast<const size_t *>(in_data);
+    // Written as a size_t by Compress; reading it into a narrower type would
+    // truncate streams of 4 GiB or more.
+    size_t actual_out_count = *reinterpret_cast<const size_t *>(in_data);
 
     // FIX: Only resize out_data if needed, do not touch in_data which contains
     // the compressed data we just copied. The original code called Resize()
@@ -131,8 +132,16 @@ public:
     }
     DeviceRuntime<DeviceType>::SyncQueue(queue_idx);
 
-    ZSTD_decompress(out_data, actual_out_count, in_data + sizeof(size_t),
-                    input_count - sizeof(size_t));
+    // A corrupt or truncated stream must fail here: an unchecked failure
+    // leaves out_data as garbage that the next stage misreads (MGARD 1.6.0
+    // crashed in the Huffman decoder this way).
+    size_t const decompressed_size =
+        ZSTD_decompress(out_data, actual_out_count, in_data + sizeof(size_t),
+                        input_count - sizeof(size_t));
+    CHECK_ZSTD(decompressed_size);
+    CHECK(decompressed_size == actual_out_count,
+          "Zstd decompressed %zu bytes, header says %zu", decompressed_size,
+          actual_out_count);
 
     output_data.resize({(SIZE)actual_out_count});
     MemoryManager<DeviceType>::Copy1D(output_data.data(), out_data,

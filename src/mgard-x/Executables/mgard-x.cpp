@@ -746,8 +746,11 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   void *decompressed_data = malloc(original_size * sizeof(T));
   mgard_x::pin_memory(decompressed_data, original_size * sizeof(T), config);
-  mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
-                      config, true);
+  ret = mgard_x::decompress(compressed_data, compressed_size,
+                            decompressed_data, config, true);
+  if (ret != mgard_x::compress_status_type::Success) {
+    throw std::runtime_error("Decompression failed");
+  }
 
   if (config.enable_roi) {
     print_statistics_roi<T>(s, mode, shape, original_data,
@@ -820,8 +823,12 @@ int launch_decompress(
   mgard_x::data_type dtype;
   void *decompressed_data;
 
-  mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
-                      shape, dtype, config, false);
+  mgard_x::compress_status_type ret =
+      mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
+                          shape, dtype, config, false);
+  if (ret != mgard_x::compress_status_type::Success) {
+    throw std::runtime_error("Decompression failed");
+  }
 
   int elem_size = 0;
   if (dtype == mgard_x::data_type::Double) {

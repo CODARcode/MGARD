@@ -193,6 +193,13 @@ general_compress_pipeline(std::vector<SIZE> shape, T tol, T s,
   size_t output_buffer_size;
   if (!output_pre_allocated) {
     output_buffer_size = total_num_elem * sizeof(T) + OUTPUT_SAFTY_OVERHEAD;
+    // The header stores non-uniform coordinates as doubles, which can exceed
+    // the safety margin (8 MB for a 1M-point 1D grid).
+    if (!uniform) {
+      for (DIM d = 0; d < D; d++) {
+        output_buffer_size += shape[d] * sizeof(double);
+      }
+    }
     if (MemoryManager<DeviceType>::IsDevicePointer(original_data)) {
       DeviceRuntime<DeviceType>::SelectDevice(
           MemoryManager<DeviceType>::GetPointerDevice(original_data));
@@ -303,6 +310,19 @@ general_compress_pipeline(std::vector<SIZE> shape, T tol, T s,
   uint32_t metadata_size;
   SERIALIZED_TYPE *serizalied_meta = m.Serialize(metadata_size);
   MemoryManager<DeviceType>::Free(serizalied_meta);
+
+  if (metadata_size > output_buffer_size) {
+    log::err("output buffer of " + std::to_string(output_buffer_size) +
+             " bytes cannot hold the " + std::to_string(metadata_size) +
+             "-byte header.");
+    if (!input_previously_pinned && config.auto_pin_host_buffers) {
+      MemoryManager<DeviceType>::HostUnregister((void *)original_data);
+    }
+    if (!output_previously_pinned && config.auto_pin_host_buffers) {
+      MemoryManager<DeviceType>::HostUnregister((void *)compressed_data);
+    }
+    return compress_status_type::OutputTooLargeFailure;
+  }
 
   SIZE byte_offset = metadata_size;
   Byte *compressed_subdomain_data = (Byte *)compressed_data + byte_offset;

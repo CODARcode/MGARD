@@ -43,13 +43,16 @@ void refactor_pipeline(
     }
   }
 
-  HierarchyType &hierarchy =
-      Cache::cache.GetHierarchyCache(domain_decomposer.subdomain_shape(0));
+  // Size the reused buffers for the largest subdomain: they are not grown
+  // when a later subdomain is bigger than the first.
+  std::vector<SIZE> largest_shape =
+      domain_decomposer.subdomain_shape(domain_decomposer.largest_subdomain());
+  HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(largest_shape);
 
   log::info("Adjust device buffers");
   refactor.Adapt(hierarchy, config, 0);
-  device_subdomain_buffer[0].resize(domain_decomposer.subdomain_shape(0), 0);
-  device_subdomain_buffer[1].resize(domain_decomposer.subdomain_shape(0), 0);
+  device_subdomain_buffer[0].resize(largest_shape, 0);
+  device_subdomain_buffer[1].resize(largest_shape, 0);
   mdr_data[0].Resize(refactor, hierarchy, 0);
   mdr_data[1].Resize(refactor, hierarchy, 0);
   DeviceRuntime<DeviceType>::SyncDevice();
