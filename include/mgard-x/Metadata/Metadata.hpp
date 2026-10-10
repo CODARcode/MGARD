@@ -89,6 +89,12 @@ struct MetadataBase {
 
   std::vector<SERIALIZED_TYPE> Serialize();
   void Deserialize(const std::vector<SERIALIZED_TYPE> &serialized_data);
+  // Reads only the software/file versions. Unlike Deserialize it does not
+  // validate the rest of the header, so it works on streams this version can
+  // no longer fully parse (e.g. to route them to a compatibility decoder).
+  void DeserializeVersion(const std::vector<SERIALIZED_TYPE> &serialized_data);
+  // Whether the stream was written by MGARD 1.6.x or earlier.
+  bool WrittenByV160OrEarlier() const;
 
 protected:
   static uint64_t SerializePreambleSize();
@@ -258,6 +264,18 @@ template <typename DeviceType> struct Metadata : MetadataBase {
     Mem::Copy1D(data_h.data(), serialized_data, total_size, 0);
     DeviceRuntime<DeviceType>::SyncQueue(0);
     MetadataBase::Deserialize(data_h);
+  }
+  void DeserializeVersion(const SERIALIZED_TYPE *serialized_data) {
+    std::vector<SERIALIZED_TYPE> data_h(MetadataBase::SerializePreambleSize());
+    Mem::Copy1D(data_h.data(), serialized_data, data_h.size(), 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+    auto data_h_iter = data_h.cbegin();
+    std::uint64_t total_size = MetadataBase::DeserializeSize(data_h_iter);
+
+    data_h.resize(total_size);
+    Mem::Copy1D(data_h.data(), serialized_data, total_size, 0);
+    DeviceRuntime<DeviceType>::SyncQueue(0);
+    MetadataBase::DeserializeVersion(data_h);
   }
 };
 

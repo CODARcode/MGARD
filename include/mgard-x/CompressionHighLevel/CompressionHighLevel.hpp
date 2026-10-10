@@ -28,6 +28,7 @@
 
 #include "../DomainDecomposer/DomainDecomposer.hpp"
 #include "../Metadata/Metadata.hpp"
+#include "DataCompatibility.h"
 #include "compress_x.hpp"
 
 #ifndef MGARD_X_COMPRESSION_HIGH_LEVEL_API_HPP
@@ -1051,6 +1052,13 @@ template <typename T, typename DeviceType> void release_cache() {
   release_cache<3, T, DeviceType>();
   release_cache<4, T, DeviceType>();
   release_cache<5, T, DeviceType>();
+}
+
+template <typename DeviceType>
+bool compressed_by_v160(const void *compressed_data) {
+  Metadata<DeviceType> meta;
+  meta.DeserializeVersion((SERIALIZED_TYPE *)compressed_data);
+  return meta.WrittenByV160OrEarlier();
 }
 
 template <typename DeviceType> enum compress_status_type release_cache() {

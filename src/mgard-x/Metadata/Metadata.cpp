@@ -687,6 +687,32 @@ uint64_t MetadataBase::DeserializeSize(
   return header_size;
 }
 
+void MetadataBase::DeserializeVersion(
+    const std::vector<SERIALIZED_TYPE> &serialized_data) {
+  SerializedIter iter = serialized_data.cbegin();
+  DeserializeSize(iter);
+
+  uint32_t header_crc32 = 0;
+  ::Deserialize(header_crc32, iter);
+  uint64_t offset = std::distance(serialized_data.begin(), iter);
+  if (header_crc32 != ComputeCRC32(serialized_data, offset)) {
+    throw InvalidDataException("header CRC32 mismatch.");
+  }
+
+  mgard::pb::Header header = DeserializeProtoBuf(serialized_data, offset);
+  software_version[0] = header.mgard_version().major_();
+  software_version[1] = header.mgard_version().minor_();
+  software_version[2] = header.mgard_version().patch_();
+  file_version[0] = header.file_format_version().major_();
+  file_version[1] = header.file_format_version().minor_();
+  file_version[2] = header.file_format_version().patch_();
+}
+
+bool MetadataBase::WrittenByV160OrEarlier() const {
+  return software_version[0] < 1 ||
+         (software_version[0] == 1 && software_version[1] <= 6);
+}
+
 void MetadataBase::Deserialize(
     const std::vector<SERIALIZED_TYPE> &serialized_data) {
   metadata_size = serialized_data.size();

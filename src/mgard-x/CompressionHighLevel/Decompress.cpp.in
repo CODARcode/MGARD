@@ -34,6 +34,7 @@ decompress<@DEVICE_TYPE@>(const void *compressed_data, size_t compressed_size,
 
 template enum compress_status_type
 release_cache<@DEVICE_TYPE@>();
+template bool compressed_by_v160<@DEVICE_TYPE@>(const void *compressed_data);
 
 } // namespace mgard_x
 // clang-format on
