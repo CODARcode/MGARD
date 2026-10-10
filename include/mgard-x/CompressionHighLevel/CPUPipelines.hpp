@@ -122,7 +122,7 @@ enum compress_status_type compress_pipeline_cpu(
         for (DIM d = 0; d < D - 1; d++)
           linearized_width *=
               device_subdomain_buffer[curr_subdomain_id].shape(d);
-        MemoryManager<DeviceType>::CopyND(
+        MemoryManager<DeviceType>::Copy2D(
             device_compressed_buffer[curr_subdomain_id].data(),
             device_subdomain_buffer[curr_subdomain_id].shape(D - 1) * sizeof(T),
             (Byte *)device_subdomain_buffer[curr_subdomain_id].data(),
@@ -168,7 +168,7 @@ enum compress_status_type compress_pipeline_cpu(
         for (DIM d = 0; d < D - 1; d++)
           linearized_width *=
               device_subdomain_buffer[curr_subdomain_id].shape(d);
-        MemoryManager<DeviceType>::CopyND(
+        MemoryManager<DeviceType>::Copy2D(
             device_compressed_buffer[curr_subdomain_id].data(),
             device_subdomain_buffer[curr_subdomain_id].shape(D - 1) * sizeof(T),
             (Byte *)device_subdomain_buffer[curr_subdomain_id].data(),
@@ -410,7 +410,7 @@ enum compress_status_type decompress_pipeline_cpu(
         for (DIM d = 0; d < D - 1; d++)
           linearized_width *=
               device_subdomain_buffer[curr_subdomain_id].shape(d);
-        MemoryManager<DeviceType>::CopyND(
+        MemoryManager<DeviceType>::Copy2D(
             device_subdomain_buffer[curr_subdomain_id].data(),
             device_subdomain_buffer[curr_subdomain_id].ld(D - 1),
             (T *)device_compressed_buffer[curr_subdomain_id].data(),
@@ -457,7 +457,7 @@ enum compress_status_type decompress_pipeline_cpu(
         for (DIM d = 0; d < D - 1; d++)
           linearized_width *=
               device_subdomain_buffer[curr_subdomain_id].shape(d);
-        MemoryManager<DeviceType>::CopyND(
+        MemoryManager<DeviceType>::Copy2D(
             device_subdomain_buffer[curr_subdomain_id].data(),
             device_subdomain_buffer[curr_subdomain_id].ld(D - 1),
             (T *)device_compressed_buffer[curr_subdomain_id].data(),

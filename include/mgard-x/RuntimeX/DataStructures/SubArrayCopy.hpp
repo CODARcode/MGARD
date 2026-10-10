@@ -45,7 +45,7 @@ void SubArrayCopyND(SubArrayType1 subArray1, SubArrayType2 subArray2,
   using DeviceType = typename CompatibleDeviceType<
       typename SubArrayType1::DevType,
       typename SubArrayType2::DevType>::DeviceType;
-  MemoryManager<DeviceType>::CopyND(subArray1.data(), subArray1.getLd(0),
+  MemoryManager<DeviceType>::Copy2D(subArray1.data(), subArray1.getLd(0),
                                     subArray2.data(), subArray2.getLd(0),
                                     count1, count2, queue_idx);
 }

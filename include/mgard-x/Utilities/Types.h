@@ -106,7 +106,13 @@ enum class endiness_type : uint8_t { Little_Endian, Big_Endian };
 
 enum class coordinate_location : uint8_t { Embedded, External };
 
-enum class domain_decomposition_type : uint8_t { MaxDim, Block, Variable };
+// How the input is split into blocks that are compressed one at a time (see
+// DomainDecomposer):
+// - Auto: decide whether splitting is needed to fit the memory limit and, if
+//   so, pick the block shape.
+// - Manual: use Config::domain_decomposition_block_size as given; it is
+//   checked (every extent >= 3, fits the memory limit) and rejected otherwise.
+enum class domain_decomposition_mode_type : uint8_t { Auto, Manual };
 
 enum class operation_type : uint8_t { Compression, MDR };
 

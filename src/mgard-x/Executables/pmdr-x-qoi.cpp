@@ -43,9 +43,7 @@ void print_usage_message(std::string error) {
  \t\t -d / --device <auto|serial|cuda|hip>: device type\n\
  \t\t (optional) -v / --verbose <0|1|2|3> 0: error; 1: error+info; 2: error+timing; 3: all\n\
  \t\t (optional) -m / --max-memory <max memory usage>  \n\
- \t\t (optional) -dd / --domain-decomposition <max-dim|block>\n\
- \t\t\t (optional) -dd-size / --domain-decomposition-size <integer> (for block domain decomposition only) \n\
- \n\
+  \n\
  \t -x / --reconstruct: reconstruct data\n\
  \t\t -i / --input <path to refactored data dir>\n\
  \t\t -o / --output <path to reconstructed data file>\n\
@@ -659,7 +657,6 @@ template <typename T>
 int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     std::string input_file, std::string output_file,
                     std::vector<mgard_x::SIZE> shape,
-                    std::string domain_decomposition, mgard_x::SIZE block_size,
                     enum mgard_x::device_type dev_type, int verbose,
                     mgard_x::SIZE max_memory_footprint, int rank) {
 
@@ -667,19 +664,11 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
   config.normalize_coordinates = false;
   config.log_level = verbose_to_log_level(verbose);
   config.decomposition = mgard_x::decomposition_type::MultiDim;
-  if (domain_decomposition == "max-dim") {
-    config.domain_decomposition = mgard_x::domain_decomposition_type::MaxDim;
-  } else if (domain_decomposition == "block") {
-    config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
-    config.block_size = block_size;
-  } else if (domain_decomposition == "variable") {
-    config.domain_decomposition = mgard_x::domain_decomposition_type::Variable;
-  }
-
-  config.domain_decomposition = mgard_x::domain_decomposition_type::Variable;
-  config.domain_decomposition_dim = 0;
-  config.domain_decomposition_sizes = {shape[0] / 3, shape[0] / 3,
-                                       shape[0] / 3};
+  // One subdomain per variable: the variables are stacked along dimension 0.
+  config.domain_decomposition_mode =
+      mgard_x::domain_decomposition_mode_type::Manual;
+  config.domain_decomposition_block_size = shape;
+  config.domain_decomposition_block_size[0] = shape[0] / 3;
 
   config.dev_type = dev_type;
   config.max_memory_footprint = max_memory_footprint;
@@ -794,10 +783,6 @@ int launch_reconstruct(std::string input_file, std::string output_file,
 
   config.mdr_qoi_mode = true;
   config.mdr_qoi_num_variables = shape.size();
-  config.domain_decomposition = mgard_x::domain_decomposition_type::Variable;
-  config.domain_decomposition_dim = 0;
-  config.domain_decomposition_sizes = {shape[0] / 3, shape[0] / 3,
-                                       shape[0] / 3};
 
   mgard_x::Byte *original_data;
   size_t in_size = 0;
@@ -1127,25 +1112,13 @@ bool try_refactoring(int argc, char *argv[]) {
     max_memory_footprint = (mgard_x::SIZE)get_arg<double>(
         argc, argv, "Max memory", "-m", "--max-memory");
   }
-  std::string domain_decomposition = "max-dim";
-  mgard_x::SIZE block_size = 0;
-  if (has_arg(argc, argv, "-dd", "--domain-decomposition")) {
-    domain_decomposition = get_arg<std::string>(
-        argc, argv, "Domain decomposition", "-dd", "--domain-decomposition");
-    if (domain_decomposition == "block") {
-      block_size = get_arg<mgard_x::SIZE>(argc, argv, "Block size", "-dd-size",
-                                          "--domain-decomposition-size");
-    }
-  }
   if (dtype == mgard_x::data_type::Double) {
     launch_refactor<double>(shape.size(), dtype, input_file.c_str(),
-                            output_file.c_str(), shape, domain_decomposition,
-                            block_size, dev_type, verbose, max_memory_footprint,
+                            output_file.c_str(), shape, dev_type, verbose, max_memory_footprint,
                             rank);
   } else if (dtype == mgard_x::data_type::Float) {
     launch_refactor<float>(shape.size(), dtype, input_file.c_str(),
-                           output_file.c_str(), shape, domain_decomposition,
-                           block_size, dev_type, verbose, max_memory_footprint,
+                           output_file.c_str(), shape, dev_type, verbose, max_memory_footprint,
                            rank);
   }
   return true;

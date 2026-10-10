@@ -145,7 +145,7 @@ enum compress_status_type compress_pipeline_gpu(
       SIZE linearized_width = 1;
       for (DIM d = 0; d < D - 1; d++)
         linearized_width *= device_subdomain_buffer[current_buffer].shape(d);
-      MemoryManager<DeviceType>::CopyND(
+      MemoryManager<DeviceType>::Copy2D(
           device_compressed_buffer[current_buffer].data(),
           device_subdomain_buffer[current_buffer].shape(D - 1) * sizeof(T),
           (Byte *)device_subdomain_buffer[current_buffer].data(),
@@ -476,7 +476,7 @@ enum compress_status_type decompress_pipeline_gpu(
       SIZE linearized_width = 1;
       for (DIM d = 0; d < D - 1; d++)
         linearized_width *= device_subdomain_buffer[current_buffer].shape(d);
-      MemoryManager<DeviceType>::CopyND(
+      MemoryManager<DeviceType>::Copy2D(
           device_subdomain_buffer[current_buffer].data(),
           device_subdomain_buffer[current_buffer].ld(D - 1),
           (T *)device_compressed_buffer[current_buffer].data(),

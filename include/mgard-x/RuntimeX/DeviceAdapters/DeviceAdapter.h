@@ -286,8 +286,14 @@ public:
                                  int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
 
   template <typename T>
-  MGARDX_CONT static void CopyND(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
+  MGARDX_CONT static void Copy2D(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
                                  SIZE src_ld, SIZE n1, SIZE n2,
+                                 int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
+
+  template <typename T>
+  MGARDX_CONT static void Copy3D(T *dst_ptr, SIZE dst_ld1, SIZE dst_ld2,
+                                 const T *src_ptr, SIZE src_ld1, SIZE src_ld2,
+                                 SIZE n1, SIZE n2, SIZE n3,
                                  int queue_idx = MGARDX_SYNCHRONIZED_QUEUE);
 
   template <typename T>

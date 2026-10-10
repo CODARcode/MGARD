@@ -627,23 +627,47 @@ public:
   }
 
   template <typename T>
-  MGARDX_CONT static void CopyND(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
+  MGARDX_CONT static void Copy2D(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
                                  SIZE src_ld, SIZE n1, SIZE n2,
                                  int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
-    log::dbg("Calling MemoryManager<SYCL>::CopyND");
+    log::dbg("Calling MemoryManager<SYCL>::Copy2D");
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       DeviceRuntime<SYCL>::SyncQueue(queue_idx);
     }
     sycl::queue q = DeviceRuntime<SYCL>::GetQueue(queue_idx);
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
-    q.memcpy((converted_T *)dst_ptr, (converted_T *)src_ptr,
-             n1 * n2 * sizeof(converted_T));
+    if (dst_ld == n1 && src_ld == n1) {
+      q.memcpy((converted_T *)dst_ptr, (converted_T *)src_ptr,
+               n1 * n2 * sizeof(converted_T));
+    } else {
+      // Rows are strided: copy them one by one.
+      for (SIZE row = 0; row < n2; row++) {
+        q.memcpy((converted_T *)dst_ptr + row * dst_ld,
+                 (converted_T *)src_ptr + row * src_ld,
+                 n1 * sizeof(converted_T));
+      }
+    }
     if (queue_idx == MGARDX_SYNCHRONIZED_QUEUE) {
       DeviceRuntime<SYCL>::SyncQueue(queue_idx);
     }
     if (DeviceRuntime<SYCL>::SyncAllKernelsAndCheckErrors) {
       DeviceRuntime<SYCL>::SyncDevice();
+    }
+  }
+
+  // Copies n3 slices of n2 rows of n1 elements. Element (k, j, i) sits at
+  // ptr + k * ld2 + j * ld1 + i: ld1 is the row stride and ld2 the slice
+  // stride, both in elements.
+  template <typename T>
+  MGARDX_CONT static void Copy3D(T *dst_ptr, SIZE dst_ld1, SIZE dst_ld2,
+                                 const T *src_ptr, SIZE src_ld1, SIZE src_ld2,
+                                 SIZE n1, SIZE n2, SIZE n3,
+                                 int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<SYCL>::Copy3D");
+    for (SIZE k = 0; k < n3; k++) {
+      Copy2D(dst_ptr + k * dst_ld2, dst_ld1, src_ptr + k * src_ld2, src_ld1,
+             n1, n2, queue_idx);
     }
   }
 

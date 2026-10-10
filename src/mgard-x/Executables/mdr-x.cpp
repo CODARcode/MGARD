@@ -41,8 +41,10 @@ void print_usage_message(std::string error) {
 \t\t -d / --device <auto|serial|cuda|hip>: device type\n\
 \t\t (optional) -v / --verbose <0|1|2|3> 0: error; 1: error+info; 2: error+timing; 3: all\n\
 \t\t (optional) -m / --max-memory <max memory usage>  \n\
-\t\t (optional) -dd / --domain-decomposition <max-dim|block>\n\
-\t\t\t (optional) -dd-size / --domain-decomposition-size <integer> (for block domain decomposition only) \n\
+\t\t (optional) -dd / --domain-decomposition <auto|manual>: domain decomposition\n\
+\t\t\t (default: auto -- split only when the data does not fit the memory limit)\n\
+\t\t (optional) -dd-size / --domain-decomposition-size <int> <int> ...: with -dd manual,\n\
+\t\t\t number of dimensions followed by the block size per dimension (slowest first)\n\
 \t\t (optional) -l / --lossless <huffman|huffman-zstd>: bitplane lossless stage (default: huffman)\n\
 \n\
 \t -x / --reconstruct: reconstruct data\n\
@@ -305,7 +307,7 @@ template <typename T>
 int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     std::string input_file, std::string output_file,
                     std::vector<mgard_x::SIZE> shape,
-                    std::string domain_decomposition, mgard_x::SIZE block_size,
+                    mgard_x::Config dd_config,
                     enum mgard_x::device_type dev_type, int verbose,
                     mgard_x::SIZE max_memory_footprint,
                     enum mgard_x::lossless_type lossless) {
@@ -315,21 +317,9 @@ int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
   config.lossless = lossless;
   config.log_level = verbose_to_log_level(verbose);
   config.decomposition = mgard_x::decomposition_type::MultiDim;
-  if (domain_decomposition == "max-dim") {
-    config.domain_decomposition = mgard_x::domain_decomposition_type::MaxDim;
-  } else if (domain_decomposition == "block") {
-    config.domain_decomposition = mgard_x::domain_decomposition_type::Block;
-    config.block_size = block_size;
-  } else if (domain_decomposition == "variable") {
-    config.domain_decomposition = mgard_x::domain_decomposition_type::Variable;
-  }
-
-  // config.domain_decomposition = mgard_x::domain_decomposition_type::Variable;
-  // config.domain_decomposition_dim = 0;
-  // config.domain_decomposition_sizes = {512, 512, 512, 512, 512, 512, 512,
-  // 512}; config.domain_decomposition_sizes = {98, 98, 98, 98, 98, 98, 98, 98};
-  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(8, 256);
-  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(8, 100);
+  config.domain_decomposition_mode = dd_config.domain_decomposition_mode;
+  config.domain_decomposition_block_size =
+      dd_config.domain_decomposition_block_size;
 
   config.dev_type = dev_type;
   config.max_memory_footprint = max_memory_footprint;
@@ -403,13 +393,6 @@ int launch_reconstruct(std::string input_file, std::string output_file,
   config.log_level = verbose_to_log_level(verbose);
   config.dev_type = dev_type;
   config.mdr_adaptive_resolution = adaptive_resolution;
-
-  // config.domain_decomposition = mgard_x::domain_decomposition_type::Variable;
-  // config.domain_decomposition_dim = 0;
-  // config.domain_decomposition_sizes = {512, 512, 512, 512, 512, 512, 512,
-  // 512}; config.domain_decomposition_sizes = {98, 98, 98, 98, 98, 98, 98, 98};
-  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(8, 256);
-  // config.domain_decomposition_sizes = std::vector<mgard_x::SIZE>(8, 100);
 
   size_t original_size = 1;
   T *original_data = nullptr;
@@ -518,25 +501,17 @@ bool try_refactoring(int argc, char *argv[]) {
     max_memory_footprint = (mgard_x::SIZE)get_arg<double>(
         argc, argv, "Max memory", "-m", "--max-memory");
   }
-  std::string domain_decomposition = "max-dim";
-  mgard_x::SIZE block_size = 0;
-  if (has_arg(argc, argv, "-dd", "--domain-decomposition")) {
-    domain_decomposition = get_arg<std::string>(
-        argc, argv, "Domain decomposition", "-dd", "--domain-decomposition");
-    if (domain_decomposition == "block") {
-      block_size = get_arg<mgard_x::SIZE>(argc, argv, "Block size", "-dd-size",
-                                          "--domain-decomposition-size");
-    }
-  }
+  mgard_x::Config dd_config;
+  get_domain_decomposition(argc, argv, dd_config);
   if (dtype == mgard_x::data_type::Double) {
     launch_refactor<double>(shape.size(), dtype, input_file.c_str(),
-                            output_file.c_str(), shape, domain_decomposition,
-                            block_size, dev_type, verbose, max_memory_footprint,
+                            output_file.c_str(), shape, dd_config,
+                            dev_type, verbose, max_memory_footprint,
                             lossless);
   } else if (dtype == mgard_x::data_type::Float) {
     launch_refactor<float>(shape.size(), dtype, input_file.c_str(),
-                           output_file.c_str(), shape, domain_decomposition,
-                           block_size, dev_type, verbose, max_memory_footprint,
+                           output_file.c_str(), shape, dd_config,
+                           dev_type, verbose, max_memory_footprint,
                            lossless);
   }
   return true;

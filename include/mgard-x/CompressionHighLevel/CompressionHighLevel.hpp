@@ -296,16 +296,14 @@ general_compress_pipeline(std::vector<SIZE> shape, T tol, T s,
     m.FillForCompression(
         ebtype, tol, s, norm, config.decomposition, config.lossless,
         config.huff_dict_size, config.huff_block_size, shape,
-        domain_decomposer.domain_decomposed(), config.domain_decomposition,
-        domain_decomposer.domain_decomposed_dim(),
-        domain_decomposer.domain_decomposed_size());
+        domain_decomposer.domain_decomposed(),
+        domain_decomposer.block_shape());
   } else {
     m.FillForCompression(
         ebtype, tol, s, norm, config.decomposition, config.lossless,
         config.huff_dict_size, config.huff_block_size, shape,
-        domain_decomposer.domain_decomposed(), config.domain_decomposition,
-        domain_decomposer.domain_decomposed_dim(),
-        domain_decomposer.domain_decomposed_size(), coords);
+        domain_decomposer.domain_decomposed(),
+        domain_decomposer.block_shape(), coords);
   }
 
   uint32_t metadata_size;
@@ -356,16 +354,14 @@ general_compress_pipeline(std::vector<SIZE> shape, T tol, T s,
     m.FillForCompression(
         ebtype, tol, s, norm, config.decomposition, config.lossless,
         config.huff_dict_size, config.huff_block_size, shape,
-        domain_decomposer.domain_decomposed(), config.domain_decomposition,
-        domain_decomposer.domain_decomposed_dim(),
-        domain_decomposer.domain_decomposed_size());
+        domain_decomposer.domain_decomposed(),
+        domain_decomposer.block_shape());
   } else {
     m.FillForCompression(
         ebtype, tol, s, norm, config.decomposition, config.lossless,
         config.huff_dict_size, config.huff_block_size, shape,
-        domain_decomposer.domain_decomposed(), config.domain_decomposition,
-        domain_decomposer.domain_decomposed_dim(),
-        domain_decomposer.domain_decomposed_size(), coords);
+        domain_decomposer.domain_decomposed(),
+        domain_decomposer.block_shape(), coords);
   }
 
   serizalied_meta = m.Serialize(metadata_size);
@@ -588,14 +584,14 @@ general_decompress_pipeline(std::vector<SIZE> shape,
   // Initialize DomainDecomposer
   DomainDecomposer<D, T, CompressorType, DeviceType> domain_decomposer;
 
+  std::vector<SIZE> block_shape(m.domain_decomposition_block_shape.begin(),
+                                m.domain_decomposition_block_shape.end());
   if (m.dstype == data_structure_type::Cartesian_Grid_Uniform) {
     domain_decomposer = DomainDecomposer<D, T, CompressorType, DeviceType>(
-        shape, m.domain_decomposed, m.domain_decomposed_dim,
-        m.domain_decomposed_size, config);
+        shape, block_shape, config);
   } else {
     domain_decomposer = DomainDecomposer<D, T, CompressorType, DeviceType>(
-        shape, m.domain_decomposed, m.domain_decomposed_dim,
-        m.domain_decomposed_size, config, coords);
+        shape, block_shape, config, coords);
   }
   domain_decomposer.set_original_data((T *)decompressed_data);
 

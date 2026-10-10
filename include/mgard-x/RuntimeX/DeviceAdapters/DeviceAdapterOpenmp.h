@@ -401,10 +401,10 @@ public:
   }
 
   template <typename T>
-  MGARDX_CONT static void CopyND(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
+  MGARDX_CONT static void Copy2D(T *dst_ptr, SIZE dst_ld, const T *src_ptr,
                                  SIZE src_ld, SIZE n1, SIZE n2,
                                  int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
-    log::dbg("Calling MemoryManager<OPENMP>::CopyND");
+    log::dbg("Calling MemoryManager<OPENMP>::Copy2D");
     using converted_T =
         typename std::conditional<std::is_same<T, void>::value, Byte, T>::type;
     if ((dst_ld == n1) && (src_ld == n1)) {
@@ -417,6 +417,21 @@ public:
                     (converted_T *)src_ptr + row * src_ld,
                     sizeof(converted_T) * n1);
       }
+    }
+  }
+
+  // Copies n3 slices of n2 rows of n1 elements. Element (k, j, i) sits at
+  // ptr + k * ld2 + j * ld1 + i: ld1 is the row stride and ld2 the slice
+  // stride, both in elements.
+  template <typename T>
+  MGARDX_CONT static void Copy3D(T *dst_ptr, SIZE dst_ld1, SIZE dst_ld2,
+                                 const T *src_ptr, SIZE src_ld1, SIZE src_ld2,
+                                 SIZE n1, SIZE n2, SIZE n3,
+                                 int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
+    log::dbg("Calling MemoryManager<OPENMP>::Copy3D");
+    for (SIZE k = 0; k < n3; k++) {
+      Copy2D(dst_ptr + k * dst_ld2, dst_ld1, src_ptr + k * src_ld2, src_ld1,
+             n1, n2, queue_idx);
     }
   }
 

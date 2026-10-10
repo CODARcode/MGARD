@@ -33,7 +33,7 @@ T norm_calculator(Array<D, T, DeviceType> &original_array,
     SIZE linearized_width = 1;
     for (DIM d = 0; d < D - 1; d++)
       linearized_width *= original_array.shape(d);
-    MemoryManager<DeviceType>::CopyND(
+    MemoryManager<DeviceType>::Copy2D(
         temp_subarray.data(), original_array.shape(D - 1),
         original_array.data(), original_array.ld(D - 1),
         original_array.shape(D - 1), linearized_width, 0);

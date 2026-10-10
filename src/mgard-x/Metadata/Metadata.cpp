@@ -234,8 +234,6 @@ DeserializeROITolerances(const mgard::pb::RegionOfInterest &roi) {
 namespace mgard_x {
 
 void MetadataBase::InitializeConfig(Config &config) {
-  config.domain_decomposition = ddtype;
-  config.domain_decomposition_dim = domain_decomposed_dim;
   config.decomposition = decomposition;
   config.lossless = ltype;
   // Only overwrite a backend's parameters when the metadata actually carries
@@ -345,15 +343,11 @@ void MetadataBase::PrintSummary() {
   }
   std::cout << "Domain Decomposition: ";
   if (domain_decomposed) {
-    if (ddtype == domain_decomposition_type::MaxDim) {
-      std::cout << "MaxDim\n";
-    } else if (ddtype == domain_decomposition_type::Variable) {
-      std::cout << "Variable\n";
-    } else {
-      std::cout << "Block\n";
+    std::cout << "blocks of ";
+    for (size_t d = 0; d < domain_decomposition_block_shape.size(); d++) {
+      std::cout << (d ? "x" : "") << domain_decomposition_block_shape[d];
     }
-    std::cout << "Decomposed Dim: " << domain_decomposed_dim << "\n";
-    std::cout << "Decomposed Size: " << domain_decomposed_size << "\n";
+    std::cout << "\n";
   } else {
     std::cout << "No\n";
   }
@@ -507,21 +501,14 @@ std::vector<SERIALIZED_TYPE> MetadataBase::Serialize() {
     mgard::pb::DomainDecomposition &domainDecomposition =
         *header.mutable_domain_decomposition();
     if (domain_decomposed) {
-      if (ddtype == domain_decomposition_type::MaxDim) {
-        domainDecomposition.set_method(
-            mgard::pb::DomainDecomposition::MAX_DIMENSION);
-      } else if (ddtype == domain_decomposition_type::Block) {
-        domainDecomposition.set_method(mgard::pb::DomainDecomposition::BLOCK);
-      } else if (ddtype == domain_decomposition_type::Variable) {
-        domainDecomposition.set_method(
-            mgard::pb::DomainDecomposition::VARIABLE);
+      domainDecomposition.set_method(mgard::pb::DomainDecomposition::BLOCK);
+      for (uint64_t extent : domain_decomposition_block_shape) {
+        domainDecomposition.add_block_shape(extent);
       }
     } else {
       domainDecomposition.set_method(
           mgard::pb::DomainDecomposition::NOOP_METHOD);
     }
-    domainDecomposition.set_decomposition_dimension(domain_decomposed_dim);
-    domainDecomposition.set_decomposition_size(domain_decomposed_size);
   }
 
   { // Function Decomposition
@@ -826,24 +813,43 @@ void MetadataBase::Deserialize(
   { // Domain Decomposition
     const mgard::pb::DomainDecomposition domainDecomposition =
         header.domain_decomposition();
-    if (domainDecomposition.method() !=
-        mgard::pb::DomainDecomposition::NOOP_METHOD) {
-      domain_decomposed = true;
-      if (domainDecomposition.method() ==
-          mgard::pb::DomainDecomposition::MAX_DIMENSION) {
-        ddtype = domain_decomposition_type::MaxDim;
-      } else if (domainDecomposition.method() ==
-                 mgard::pb::DomainDecomposition::BLOCK) {
-        ddtype = domain_decomposition_type::Block;
-      } else if (domainDecomposition.method() ==
-                 mgard::pb::DomainDecomposition::VARIABLE) {
-        ddtype = domain_decomposition_type::Variable;
+    // Every decomposition is read back as a block shape; the two layouts of
+    // MGARD-X 1.6 and earlier are blocks of a particular shape.
+    domain_decomposition_block_shape = shape;
+    domain_decomposed = domainDecomposition.method() !=
+                        mgard::pb::DomainDecomposition::NOOP_METHOD;
+    if (domainDecomposition.method() ==
+        mgard::pb::DomainDecomposition::BLOCK) {
+      if (domainDecomposition.block_shape_size() > 0) {
+        if ((size_t)domainDecomposition.block_shape_size() != shape.size()) {
+          throw InvalidDataException(
+              "domain decomposition block shape does not match the data "
+              "dimensions.");
+        }
+        for (size_t d = 0; d < shape.size(); d++) {
+          domain_decomposition_block_shape[d] =
+              domainDecomposition.block_shape(d);
+        }
+      } else {
+        for (size_t d = 0; d < shape.size(); d++) {
+          domain_decomposition_block_shape[d] =
+              domainDecomposition.decomposition_size();
+        }
       }
-
-      domain_decomposed_dim = domainDecomposition.decomposition_dimension();
-      domain_decomposed_size = domainDecomposition.decomposition_size();
-    } else {
-      domain_decomposed = false;
+    } else if (domainDecomposition.method() ==
+               mgard::pb::DomainDecomposition::MAX_DIMENSION) {
+      uint64_t dim = domainDecomposition.decomposition_dimension();
+      if (dim >= shape.size()) {
+        throw InvalidDataException(
+            "domain decomposition dimension out of range.");
+      }
+      domain_decomposition_block_shape[dim] =
+          domainDecomposition.decomposition_size();
+    } else if (domainDecomposition.method() !=
+               mgard::pb::DomainDecomposition::NOOP_METHOD) {
+      throw InvalidDataException(
+          "unsupported domain decomposition method (variable-size "
+          "decomposition is no longer supported).");
     }
   }
 

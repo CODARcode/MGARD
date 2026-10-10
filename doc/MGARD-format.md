@@ -75,11 +75,20 @@ message DomainDecomposition {
     NOOP_METHOD = 0;
     MAX_DIMENSION = 1;
     BLOCK = 2;
+    VARIABLE = 3;
   }
 
   Method method = 1;
+  // MAX_DIMENSION (MGARD-X 1.6 and earlier): slabs of decomposition_size
+  // nodes along dimension decomposition_dimension.
   uint64 decomposition_dimension = 2;
+  // BLOCK without block_shape (MGARD-X 1.6 and earlier): cubic blocks of
+  // decomposition_size nodes per dimension.
   uint64 decomposition_size = 3;
+  // BLOCK: the shape of every block, one extent per dimension. Along each
+  // dimension block i starts at i * block_shape[d]; a remainder of fewer than
+  // 3 nodes is merged into the block before it.
+  repeated uint64 block_shape = 4;
 }
 
 message FunctionDecomposition {

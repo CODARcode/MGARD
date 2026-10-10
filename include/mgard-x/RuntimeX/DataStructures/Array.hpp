@@ -96,7 +96,7 @@ void Array<D, T, DeviceType, Pitched, Managed>::copy(
   initialize(array.__shape);
   if (array.device_allocated) {
     allocate(queue_idx);
-    MemoryManager<DeviceType>::CopyND(dv, __ldvs[D - 1], array.dv,
+    MemoryManager<DeviceType>::Copy2D(dv, __ldvs[D - 1], array.dv,
                                       array.__ldvs[D - 1], array.__shape[D - 1],
                                       array.linearized_width, queue_idx);
   }
@@ -196,7 +196,7 @@ void Array<D, T, DeviceType, Pitched, Managed>::load(const T *data, SIZE ld,
   if (ld == 0) {
     ld = __shape[D - 1];
   }
-  MemoryManager<DeviceType>::CopyND(dv, __ldvs[D - 1], data, ld, __shape[D - 1],
+  MemoryManager<DeviceType>::Copy2D(dv, __ldvs[D - 1], data, ld, __shape[D - 1],
                                     linearized_width, queue_idx);
 }
 template <DIM D, typename T, typename DeviceType, bool Pitched, bool Managed>
@@ -226,7 +226,7 @@ T *Array<D, T, DeviceType, Pitched, Managed>::hostCopy(bool keep,
                                           queue_idx);
     host_allocated = true;
   }
-  MemoryManager<DeviceType>::CopyND(hv, __shape[D - 1], dv, __ldvs[D - 1],
+  MemoryManager<DeviceType>::Copy2D(hv, __shape[D - 1], dv, __ldvs[D - 1],
                                     __shape[D - 1], linearized_width,
                                     queue_idx);
   keepHostCopy = keep;

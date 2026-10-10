@@ -33,7 +33,8 @@ Config::Config() {
   dev_type = device_type::AUTO;
   dev_id = 0;
   compressor = compressor_type::MGARD;
-  domain_decomposition = domain_decomposition_type::MaxDim;
+  domain_decomposition_mode = domain_decomposition_mode_type::Auto;
+  domain_decomposition_block_size = std::vector<SIZE>();
   decomposition = decomposition_type::MultiDim;
   estimate_outlier_ratio = 1.0;
   huff_dict_size = 8192;
@@ -48,9 +49,6 @@ Config::Config() {
   auto_pin_host_buffers = true;
   max_memory_footprint = std::numeric_limits<SIZE>::max(); // no limit
   total_num_bitplanes = 32;
-  block_size = 256;
-  domain_decomposition_dim = 0;
-  domain_decomposition_sizes = std::vector<SIZE>();
   mdr_adaptive_resolution = false;
   adjust_shape = false;
   compress_with_dryrun = false;
