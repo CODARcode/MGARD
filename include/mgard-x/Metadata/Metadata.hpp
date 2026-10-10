@@ -168,7 +168,7 @@ template <typename DeviceType> struct Metadata : MetadataBase {
         coord[i] = (double)coord_h[i];
       }
       this->coords.push_back(coord);
-      delete coord_h;
+      delete[] coord_h;
     }
     this->dstype = data_structure_type::Cartesian_Grid_Non_Uniform;
   }
@@ -232,7 +232,7 @@ template <typename DeviceType> struct Metadata : MetadataBase {
         coord[i] = (double)coord_h[i];
       }
       this->coords.push_back(coord);
-      delete coord_h;
+      delete[] coord_h;
     }
     this->dstype = data_structure_type::Cartesian_Grid_Non_Uniform;
   }

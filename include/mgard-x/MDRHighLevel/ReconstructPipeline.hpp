@@ -38,16 +38,19 @@ void reconstruct_pipeline(
     }
   }
 
-  HierarchyType &hierarchy =
-      Cache::cache.GetHierarchyCache(domain_decomposer.subdomain_shape(0));
+  // Size the reused buffers for the largest subdomain: they are not grown
+  // when a later subdomain is bigger than the first.
+  std::vector<SIZE> largest_shape =
+      domain_decomposer.subdomain_shape(domain_decomposer.largest_subdomain());
+  HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(largest_shape);
 
   log::info("Adjust device buffers");
   mdr_data[0].Resize(reconstructor, hierarchy, 0);
   mdr_data[1].Resize(reconstructor, hierarchy, 0);
   mdr_data[2].Resize(reconstructor, hierarchy, 0);
-  device_subdomain_buffer[0].resize(domain_decomposer.subdomain_shape(0), 0);
-  device_subdomain_buffer[1].resize(domain_decomposer.subdomain_shape(0), 0);
-  device_subdomain_buffer[2].resize(domain_decomposer.subdomain_shape(0), 0);
+  device_subdomain_buffer[0].resize(largest_shape, 0);
+  device_subdomain_buffer[1].resize(largest_shape, 0);
+  device_subdomain_buffer[2].resize(largest_shape, 0);
 
   Timer timer_series;
   if (timing_pipeline)
@@ -55,8 +58,8 @@ void reconstruct_pipeline(
   // Prefetch the first subdomain
   int current_buffer = 0;
   int current_queue = 0;
-  mdr_data[current_buffer].Resize(refactored_metadata.metadata[0],
-                                  current_queue);
+  mdr_data[current_buffer].Resize(
+      reconstructor, refactored_metadata.metadata[0], current_queue);
   device_subdomain_buffer[current_buffer].resize(
       domain_decomposer.subdomain_shape(0), current_queue);
   mdr_data[current_buffer].CopyFromRefactoredData(
@@ -86,7 +89,8 @@ void reconstruct_pipeline(
       // Prefetch the next subdomain
       next_subdomain_id = curr_subdomain_id + 1;
       mdr_data[next_buffer].Resize(
-          refactored_metadata.metadata[next_subdomain_id], next_queue);
+          reconstructor, refactored_metadata.metadata[next_subdomain_id],
+          next_queue);
       device_subdomain_buffer[next_buffer].resize(
           domain_decomposer.subdomain_shape(next_subdomain_id), next_queue);
 
@@ -162,8 +166,9 @@ void reconstruct_pipeline(
   }
 
   // Copy the last subdomain
-  int previous_buffer = std::abs((current_buffer - 1) % 3);
-  int previous_queue = std::abs((current_queue - 1) % 3);
+  // (+ 3: in C++ (0 - 1) % 3 is -1, and abs(-1) is not the previous index.)
+  int previous_buffer = (current_buffer + 3 - 1) % 3;
+  int previous_queue = (current_queue + 3 - 1) % 3;
   SIZE prev_subdomain_id = domain_decomposer.num_subdomains() - 1;
   // Update level signs for future progressive reconstruction
   mdr_data[previous_buffer].CopyToRefactoredSigns(

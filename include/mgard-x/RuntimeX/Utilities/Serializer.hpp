@@ -61,7 +61,10 @@ template <typename T, typename DeviceType>
 void Deserialize(Byte *serialize_ptr, T *&data_ptr, SIZE count,
                  SIZE &byte_offset, bool zero_copy, int queue_idx) {
   using Mem = MemoryManager<DeviceType>;
-  // align_byte_offset<T>(byte_offset);
+  // Serialize aligns each value to sizeof(T); skip the same padding here, or
+  // a record whose byte count is not a multiple of 8 (e.g. a subdomain stored
+  // uncompressed) shifts every size field after it.
+  align_byte_offset<T>(byte_offset);
   if (zero_copy) {
     data_ptr = (T *)(serialize_ptr + byte_offset);
   } else {
