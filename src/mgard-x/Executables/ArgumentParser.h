@@ -156,7 +156,7 @@ enum mgard_x::device_type get_device_type(int argc, char *argv[]) {
   } else if (dev.compare("hip") == 0) {
     dev_type = mgard_x::device_type::HIP;
   } else if (dev.compare("sycl") == 0) {
-    dev_type = mgard_x::device_type::HIP;
+    dev_type = mgard_x::device_type::SYCL;
   } else {
     throw std::runtime_error("wrong device type.");
   }
