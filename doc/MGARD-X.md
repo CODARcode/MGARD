@@ -84,7 +84,16 @@ MGARD-X is a portable implementation of the MGARD lossy compressor supporting va
 |MGARD\_ENABLE\_HIP|ON/OFF|OFF|Enable portable GPU compression/decompression with HIP on AMD GPUs|
 |MGARD\_ENABLE\_SYCL|ON/OFF|OFF|Enable portable GPU compression/decompression with SYCL on Intel GPUs|
 |MGARD\_ENABLE\_AUTO\_TUNING|ON/OFF|OFF|Enable auto tuning feature|
-|MGARD\_ENABLE\_MDR|ON/OFF|OFF|Enable building MDR and MDR-X|
+|MGARD\_ENABLE\_MDR|ON/OFF|OFF|Enable building MDR and MDR-X. MPI is optional: the parallel ```pmdr-x-qoi``` and ```pmdr-x-qoi-io``` executables are built only when MPI is found|
+|MGARD\_ENABLE\_DATA\_COMPATIBILITY|ON/OFF|OFF|Also build the MGARD 1.6.0-compatible decompression pipeline so that data compressed by MGARD 1.6.x and earlier can be decompressed (see [Decompressing data from earlier versions](#decompressing-data-from-earlier-versions)). Roughly doubles the MGARD-X build time|
+
+## Decompressing data from earlier versions
+Data compressed by MGARD 1.7.0 uses a different format from MGARD 1.6.x (hierarchy geometry, Huffman layout, default number of levels, and domain decomposition header). Decompression reads the software version recorded in the header of the compressed data and handles each version as follows:
+
+* **Compressed by 1.7.0:** decompressed by the 1.7.0 pipeline.
+* **Compressed by 1.6.x or earlier:** decompressed by a separate pipeline that reproduces the MGARD 1.6.0 decompressor, if MGARD-X is built with ```-DMGARD_ENABLE_DATA_COMPATIBILITY=ON```. The result is the same as decompressing with MGARD 1.6.0 (bit-identical on CPUs). Without this option, decompression returns ```mgard_x::compress_status_type::DataCompatibilityNotEnabledFailure```.
+
+This is transparent to users: the same CLI and high-level APIs decompress both formats, and decompression needs no extra configuration. Compression always produces the 1.7.0 format. Data compressed by MGARD 1.6.x with the variable-size domain decomposition (```domain_decomposition_type::Variable```) is not supported, because its block sizes are not recorded in the header.
 
 ## Control Errors
 MGARD can bound errors in various types of norm:
@@ -101,23 +110,19 @@ MGARD can bound error `tol` in two ways (using L<sup>&infin;</sup> norm as an ex
 ## Using command line interface (CLI)
 An executable ```mgard-x``` will be built after building the MGARD-X library. To use the ```mgard-x``` CLI, here are the options:
 
-+ ```-z```: enable compression mode
-    + ```-i <path>``` path to data file to be compressed
-    + ```-c <path>``` path to compressed file
-    + ```-t <s|d>``` data type (s: single | d:double)
-    + ```-n <D>``` total number of dimensions
-        + ```<n_1>``` slowest dimention
-        + ```<n_2>``` 2nd slowest dimention
-        + ...
-        + ```<n_D>``` fastest dimention
-    + ```-u <path>``` path to coordinate file (non-uniform only)
-    + ```-m <abs|rel>``` error bound mode (abs: abolute | rel: relative)
-    + ```-e <error>``` error bound
-    + ```-s <smoothness>``` smoothness parameter
-    + ```-r <0|1>``` internal data layout (0: Higher throughput | 1: Higher compression ratio)
-    + ```-dd <auto|manual>``` domain decomposition mode (auto: decompose only when the data does not fit the memory limit (default) | manual: use the block size given by ```-dd-size```)
-    + ```-dd-size <D> <b_1> ... <b_D>``` domain decomposition block size, slowest dimension first (manual mode only)
-    + ```-f <bytes>``` maximum memory footprint in bytes (if not specify: no limit)
++ ```-z / --compress```: enable compression mode
+    + ```-i / --input <path>``` path to data file to be compressed
+    + ```-o / --output <path>``` path to compressed file
+    + ```-dt / --data-type <s|d>``` data type (s: single | d: double)
+    + ```-dim / --dimension <D> <n_1> ... <n_D>``` total number of dimensions followed by the size of each dimension, from slowest (```n_1```) to fastest (```n_D```)
+    + ```-em / --error-bound-mode <abs|rel>``` error bound mode (abs: absolute | rel: relative)
+    + ```-e / --error-bound <error>``` error bound
+    + ```-s / --smoothness <smoothness>``` smoothness parameter
+    + ```-m / --max-memory <bytes>``` maximum memory footprint in bytes (default: no limit)
+    + ```-dd / --domain-decomposition <auto|manual>``` domain decomposition mode (see ```domain_decomposition_mode``` below):
+        + ```auto```: decompose only when the data does not fit the memory limit (default)
+        + ```manual```: decompose into blocks of the size given by ```-dd-size```
+    + ```-dd-size / --domain-decomposition-size <D> <b_1> ... <b_D>``` block size for ```-dd manual```: number of dimensions followed by the block size of each dimension, from slowest to fastest. For example, ```-dim 3 400 300 200 -dd manual -dd-size 3 100 300 200``` splits the data into four 100x300x200 blocks along the slowest dimension.
     + ```-l / --lossless <type>``` choose lossless compressor:
         + ```huffman```: Huffman coding
         + ```huffman-lz4```: Huffman coding followed by LZ4
@@ -130,18 +135,22 @@ An executable ```mgard-x``` will be built after building the MGARD-X library. To
         + ```symbol-rans```: symbol-alphabet rANS
     + ```-hh / --hybrid``` use the hybrid hierarchy (1D-3D only)
     + ```-ll / --local-levels <int>``` number of hybrid block-local refactoring levels (default: 1)
-    + ```-gl / --global-levels <int>``` number of global refactoring levels, multi-dim or the hybrid global stage (default: 3)
-    + ```-hp / --hybrid-projection <orthogonal|hierarchical>``` select the projection mode used by the hybrid hierarchy (default: orthogonal)
-        + ```orthogonal```: retain the L<sup>2</sup> projection (default)
+    + ```-gl / --global-levels <int>``` maximum number of global refactoring levels, of the multi-dimensional hierarchy or of the hybrid global stage (default: 3)
+    + ```-pm / --projection-mode <auto|orthogonal|hierarchical>``` select the projection mode (default: auto)
+        + ```auto```: hierarchical under an L<sup>&infin;</sup> error bound, orthogonal otherwise
+        + ```orthogonal```: retain the L<sup>2</sup> projection
         + ```hierarchical```: remove the L<sup>2</sup> projection (L<sup>&infin;</sup> only)
+    + ```-r / --roi-tolerance-map <path>``` and ```-roi / --enable-roi``` region-of-interest mode with per-block tolerances (see [MGARD-RoI](MGARD-RoI.md))
     + ```-nkf / --no-kernel-fusion``` disable fused local decomposition and quantization kernels for the hybrid hierarchy
-+ ```-x```: enable decompression mode
-    + ```-c <path>``` path to compressed file
-    + ```-o <path>``` path to decompressed file
-+ ```-d <auto|serial|openmp|cuda|hip|sycl>``` choose processor (auto: Auto select | serial: CPU | openmp: multi-threaded CPU | cuda: NVIDIA GPU | hip: AMD GPU | sycl: Intel GPU )
-+ ```-v``` enable verbose (0: error only (default) | 1: error + infomation | 2: error + timing | 3: all)
-+ ```-g <G>``` number of devices (GPUs) to use (default: 1)
-+ ```-h <0|1>``` enable/disable prefecth pipeline optimization (0: disable | 1: enable (default))
+    + ```-w / --warm-up``` run a small throwaway compression first to exclude one-time GPU kernel loading from the timing
++ ```-x / --decompress```: enable decompression mode
+    + ```-i / --input <path>``` path to compressed file
+    + ```-o / --output <path>``` path to decompressed file
+    + ```-orig / --original-data <path>``` (optional) original data, for reporting the decompression error
+    + ```-em / --error-bound-mode <abs|rel>``` (optional) error mode used for that report (default: rel)
+    + ```-nkf / --no-kernel-fusion``` disable fused dequantization and recomposition kernels for the hybrid hierarchy
++ ```-d / --device <auto|serial|openmp|cuda|hip|sycl>``` choose processor (auto: Auto select | serial: CPU | openmp: multi-threaded CPU | cuda: NVIDIA GPU | hip: AMD GPU | sycl: Intel GPU )
++ ```-v / --verbose <0|1|2|3>``` verbosity (0: error only (default) | 1: error + information | 2: error + timing | 3: all)
 
 	
 ## For using both the high-level APIs and low-level API
@@ -159,34 +168,34 @@ An executable ```mgard-x``` will be built after building the MGARD-X library. To
         + ```mgard_x::device_type::SYCL ```: Use Intel GPUs
         
     + ```dev_id```: sepcifying a specific GPU to use in multi-GPU systems (***Default: 0***)
-    + ```num_dev```: sepcifying the number of GPU to use in multi-GPU systems (***Default: 1***)
     + ```lossless```: control the lossless compression used: 
         + ```mgard_x::lossless_type::Huffman```: Huffman compression (***Default***)
         + ```mgard_x::lossless_type::Huffman_LZ4```: Huffman and LZ4 compression 
         + ```mgard_x::lossless_type::Huffman_Zstd```: Huffman and ZSTD compression
         + *Note:* there will be no effect configuring the lossless comrpessor for decompression as MGARD has to use the same lossless compressor that was used for compression.
     + ```huff_dict_size```: Huffman dictionary size (***Default: 8192***)
-    + ```huff_block_size```: Huffman parallelized block size (***Default: 20480***)
+    + ```huff_block_size```: Huffman parallelized block size (***Default: 1024***)
     + ```lz4_block_size```: LZ4 parallelized block size (***Default: 32768***)
     + ```zstd_compress_level```: Zstd compression level (***Default: 3***)
     + ```normalize_coordinates```: enable or disable coordinate normalization (***Controlled by CMake option***)
-    + ```domain_decomposition_mode``` (for high-level APIs only): controls how data is split into blocks (subdomains) that are processed one at a time. Blocks may have any shape, e.g. a 400x300x200 array with 100x300x200 blocks is split along the slowest dimension only. Along each dimension a remainder narrower than 3 nodes is merged into the block before it. The block shape is recorded in the compressed header, so decompression needs no setting.
-        + ```mgard_x::domain_decomposition_mode_type::Auto```: decompose only when the data does not fit the memory limit (device memory capped by ```max_memory_footprint```); the largest block extent is then halved until the largest block fits (***Default***)
-        + ```mgard_x::domain_decomposition_mode_type::Manual```: use ```domain_decomposition_block_size```; compression fails if any block extent is smaller than 3 or a block would not fit the memory limit
-    + ```domain_decomposition_block_size```: block shape for the manual mode, one extent per dimension, slowest first; extents larger than the data are clamped to it
+    + ```domain_decomposition_mode``` (for high-level APIs and MDR-X): controls how the data is split into blocks (subdomains) that are compressed one at a time, which lets MGARD-X compress data larger than the device memory and overlap data transfer with computation. All blocks share one shape, which may differ per dimension: for a 400x300x200 array, 100x300x200 blocks split it along the slowest dimension only, and 128x128x128 blocks split every dimension. Along each dimension, a leftover piece narrower than 3 nodes is merged into the last block. The block shape is recorded in the compressed header, so decompression needs no setting.
+        + ```mgard_x::domain_decomposition_mode_type::Auto```: decompose only when the data does not fit the memory limit (the free device memory, capped by ```max_memory_footprint```). The block size is then chosen automatically: the largest block dimension is halved until the largest block fits. Compression fails if even the smallest blocks (3 nodes per dimension) do not fit (***Default***)
+        + ```mgard_x::domain_decomposition_mode_type::Manual```: use the block shape in ```domain_decomposition_block_size```. Compression fails with an error if the number of block sizes does not match the number of dimensions, any block size is smaller than 3, or the largest block does not fit the memory limit
+    + ```domain_decomposition_block_size```: block shape for the manual mode, one size per dimension, from slowest to fastest; sizes larger than the data are clamped to the data size
     + ```decomposition```: controls multi-level decomposition:
         + ```mgard_x::decomposition_type::MultiDim```: N-D decomposition (***Default***)
         + ```mgard_x::decomposition_type::SingleDim```: 1D-at-a-time decomposition
         + ```mgard_x::decomposition_type::Hybrid```: hybrid hierarchy with block-local and global decomposition (1D-3D only; high-level APIs only)
     + ```num_local_refactoring_level```: controls the number of block-local refactoring levels in the hybrid hierarchy (***Default: 1***)
     + ```num_global_refactoring_level```: controls the max number of global refactoring levels: of the multi-dimensional hierarchy, and of the global stage of the hybrid hierarchy. Recorded in the compressed header, so decompression needs no setting (***Default: 3***)
-    + ```hybrid_projection_mode```: controls the projection mode used by the hybrid hierarchy:
-        + ```mgard_x::hybrid_projection_mode_type::Orthogonal```: retain the L<sup>2</sup> projection (***Default***)
-        + ```mgard_x::hybrid_projection_mode_type::Hierarchical```: remove the L<sup>2</sup> projection (L<sup>&infin;</sup> only)
+    + ```projection_mode```: controls the projection mode:
+        + ```mgard_x::compression_projection_mode_type::Auto```: hierarchical under an L<sup>&infin;</sup> error bound, orthogonal otherwise (***Default***)
+        + ```mgard_x::compression_projection_mode_type::Orthogonal```: retain the L<sup>2</sup> projection
+        + ```mgard_x::compression_projection_mode_type::Hierarchical```: remove the L<sup>2</sup> projection (L<sup>&infin;</sup> only)
     + ```fuse_decompose_quantize```: controls fused local decomposition and quantization for the hybrid hierarchy (***Default: true***)
     + ```fuse_dequantize_recompose```: controls fused local dequantization and recomposition for the hybrid hierarchy (***Default: true***)
     + ```max_memory_footprint```(for high-level APIs only): controls maximum memory footprint in bytes (***Default: inf (no limit)***)
-    + ```adjust_shape```(for high-level APIs only): controls whether or not to enable shape adjustment for better decomposition performance (***Default: false***)
+    + ```adjust_shape```(for high-level APIs only): controls whether or not to enable shape adjustment for better decomposition performance; cannot be combined with ```domain_decomposition_mode_type::Manual``` (***Default: false***)
 ## Using high-level APIs
 * **For compression:** ```enum mgard_x::compress_status_type mgard_x::compress(mgard_x::DIM D, mgard_x::data_type dtype, std::vector<mgard_x::SIZE> shape, double tol, double s, enum error_bound_type mode, const void *original_data, void *&compressed_data, size_t &compressed_size, mgard_x::Config config)```
     + ```[In] shape:``` Shape of the Dataset to be compressed (from slowest to fastest).
@@ -221,6 +230,7 @@ An executable ```mgard-x``` will be built after building the MGARD-X library. To
         + mgard_x::compress_status_type::NotSupportHigherNumberOfDimensionsFailure
         + mgard_x::compress_status_type::NotSupportDataTypeFailure
         + mgard_x::compress_status_type::BackendNotAvailableFailure
+        + mgard_x::compress_status_type::DataCompatibilityNotEnabledFailure: the data was compressed by MGARD 1.6.x or earlier and MGARD-X was built without ```MGARD_ENABLE_DATA_COMPATIBILITY``` (see [Decompressing data from earlier versions](#decompressing-data-from-earlier-versions))
 
 ## Using low-level APIs
 * **Step 1: Build Hierarchy**
@@ -293,7 +303,7 @@ For achieving the best performance:
     + **Tune for a specific backend:** run ```mgard-x-autotuner -d <serial|openmp|cuda|hip|sycl>```
     + **Tune for a specific shape of data on a specific backend :** run ```mgard-x-autotuner -d <auto|serial|openmp|cuda|hip|sycl> -n <ndim> [dim1] [dim2] ... [dimN]```.
     + ***Note:*** MGARD-X needs to be recompiled after auto tuning to make it effective.
-* **Use large data**: Using larger input data will help MGARD-X achieve more efficient compression and decompression pipeline. The high-level API allows users to provide data larger than the available memory size on the GPU. In this case, MGARD-X can achieve much better performance with pipeline optimization (always enabled).
+* **Use large data**: Using larger input data will help MGARD-X achieve more efficient compression and decompression pipeline. The high-level API allows users to provide data larger than the available memory size on the GPU: the data is then split into blocks (see ```domain_decomposition_mode```) whose transfers overlap with computation (always enabled). With the manual mode, blocks that keep the fastest dimensions whole (e.g. 100x300x200 for 400x300x200 data) are copied to and from the device in fewer, larger transfers.
 * **Use decompsition operation**: MGARD-X can be configured to reornagize the input data to imporve the performance of its multilevel decompsition process. To enable such optimization, set ```Config.adjust_shape = true```.
 
 ## Performance
