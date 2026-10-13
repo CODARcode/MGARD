@@ -1030,10 +1030,12 @@ public:
     }
     cudaStream_t stream = DeviceRuntime<CUDA>::GetQueue(queue_idx);
     cudaMemcpy3DParms p = {};
-    p.srcPtr = make_cudaPitchedPtr((void *)src_ptr, src_ld1 * sizeof(converted_T),
-                                 n1 * sizeof(converted_T), src_ld2 / src_ld1);
-    p.dstPtr = make_cudaPitchedPtr((void *)dst_ptr, dst_ld1 * sizeof(converted_T),
-                                 n1 * sizeof(converted_T), dst_ld2 / dst_ld1);
+    p.srcPtr =
+        make_cudaPitchedPtr((void *)src_ptr, src_ld1 * sizeof(converted_T),
+                            n1 * sizeof(converted_T), src_ld2 / src_ld1);
+    p.dstPtr =
+        make_cudaPitchedPtr((void *)dst_ptr, dst_ld1 * sizeof(converted_T),
+                            n1 * sizeof(converted_T), dst_ld2 / dst_ld1);
     p.extent = make_cudaExtent(n1 * sizeof(converted_T), n2, n3);
     p.kind = cudaMemcpyDefault;
     gpuErrchk(cudaMemcpy3DAsync(&p, stream));

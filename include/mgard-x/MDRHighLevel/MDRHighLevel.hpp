@@ -142,16 +142,15 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
     timer_each.start();
   Metadata<DeviceType> m;
   if (uniform) {
-    m.FillForMDR(
-        (T)0.0, config.decomposition, config.lossless, config.huff_dict_size,
-        config.huff_block_size, shape, domain_decomposer.domain_decomposed(),
-        domain_decomposer.block_shape(), config.total_num_bitplanes);
+    m.FillForMDR((T)0.0, config.decomposition, config.lossless,
+                 config.huff_dict_size, config.huff_block_size, shape,
+                 domain_decomposer.domain_decomposed(),
+                 domain_decomposer.block_shape(), config.total_num_bitplanes);
   } else {
     m.FillForMDR(
         (T)0.0, config.decomposition, config.lossless, config.huff_dict_size,
         config.huff_block_size, shape, domain_decomposer.domain_decomposed(),
-        domain_decomposer.block_shape(), config.total_num_bitplanes,
-        coords);
+        domain_decomposer.block_shape(), config.total_num_bitplanes, coords);
   }
 
   // The reconstructor rebuilds the hierarchy, so it needs the level cap.

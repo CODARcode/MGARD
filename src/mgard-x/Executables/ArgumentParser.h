@@ -129,13 +129,14 @@ void get_domain_decomposition(int argc, char *argv[], mgard_x::Config &config) {
                               "--domain-decomposition");
   }
   if (dd == "auto") {
-    config.domain_decomposition_mode = mgard_x::domain_decomposition_mode_type::Auto;
+    config.domain_decomposition_mode =
+        mgard_x::domain_decomposition_mode_type::Auto;
   } else if (dd == "manual") {
     config.domain_decomposition_mode =
         mgard_x::domain_decomposition_mode_type::Manual;
-    config.domain_decomposition_block_size = get_args<mgard_x::SIZE>(
-        argc, argv, "Domain decomposition block size", "-dd-size",
-        "--domain-decomposition-size");
+    config.domain_decomposition_block_size =
+        get_args<mgard_x::SIZE>(argc, argv, "Domain decomposition block size",
+                                "-dd-size", "--domain-decomposition-size");
   } else {
     throw std::runtime_error("Wrong domain decomposition mode.");
   }

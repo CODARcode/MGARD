@@ -77,14 +77,15 @@ MGARDX_EXEC int write_len(Byte *out, int op, int length) {
 
 // ---------------------------------------------------------------------------
 // ONE cooperative LZ4 codec, written against the portable SubGroup abstraction
-// (mgard_x_160::SubGroup<DeviceType> / SubGroupScalar, defined in the DeviceAdapter
-// headers). A "sub-group" is a set of lanes running in lockstep that can shfl /
-// ballot / ffs / sync. At size 1 (CPU) every collective is an identity and this
-// exact code degenerates into the greedy serial encoder/decoder. Warp-size is
-// handled via SG::size()/full_mask()/the mask typedef, so it is correct for any
-// width -- the match scan examines size() positions per step (a wider sub-group
-// gives slightly different, still-valid matches => CR can vary marginally with
-// width; decode output is width-independent).
+// (mgard_x_160::SubGroup<DeviceType> / SubGroupScalar, defined in the
+// DeviceAdapter headers). A "sub-group" is a set of lanes running in lockstep
+// that can shfl / ballot / ffs / sync. At size 1 (CPU) every collective is an
+// identity and this exact code degenerates into the greedy serial
+// encoder/decoder. Warp-size is handled via SG::size()/full_mask()/the mask
+// typedef, so it is correct for any width -- the match scan examines size()
+// positions per step (a wider sub-group gives slightly different, still-valid
+// matches => CR can vary marginally with width; decode output is
+// width-independent).
 // ---------------------------------------------------------------------------
 namespace lz4_coop {
 

@@ -766,8 +766,8 @@ void Hierarchy<D, T, DeviceType>::init_shape_only(std::vector<SIZE> shape,
                                                   data_structure_type dstype) {
   int ret = check_shape<D>(shape);
   if (ret == -1) {
-    throw std::runtime_error(
-        "Number of dimensions mismatch. mgard_x_160::Hierarchy not initialized!");
+    throw std::runtime_error("Number of dimensions mismatch. "
+                             "mgard_x_160::Hierarchy not initialized!");
   }
   if (ret == -2) {
     throw std::runtime_error("Size of any dimension cannot be smaller than 3. "
@@ -793,8 +793,8 @@ template <DIM D, typename T, typename DeviceType>
 Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape, Config config) {
   int ret = check_shape<D>(shape);
   if (ret == -1) {
-    throw std::runtime_error(
-        "Number of dimensions mismatch. mgard_x_160::Hierarchy not initialized!");
+    throw std::runtime_error("Number of dimensions mismatch. "
+                             "mgard_x_160::Hierarchy not initialized!");
   }
   if (ret == -2) {
     throw std::runtime_error("Size of any dimension cannot be smaller than 3. "
@@ -819,8 +819,8 @@ Hierarchy<D, T, DeviceType>::Hierarchy(std::vector<SIZE> shape,
                                        std::vector<T *> coords, Config config) {
   int ret = check_shape<D>(shape);
   if (ret == -1) {
-    throw std::runtime_error(
-        "Number of dimensions mismatch. mgard_x_160::Hierarchy not initialized!");
+    throw std::runtime_error("Number of dimensions mismatch. "
+                             "mgard_x_160::Hierarchy not initialized!");
   }
   if (ret == -2) {
     throw std::runtime_error("Size of any dimension cannot be smaller than 3. "

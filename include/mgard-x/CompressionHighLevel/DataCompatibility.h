@@ -35,8 +35,8 @@ decompress(const void *compressed_data, size_t compressed_size,
 template <typename DeviceType>
 enum compress_status_type
 decompress(const void *compressed_data, size_t compressed_size,
-           void *&decompressed_data, data_type &dtype,
-           std::vector<SIZE> &shape, Config config, bool output_pre_allocated);
+           void *&decompressed_data, data_type &dtype, std::vector<SIZE> &shape,
+           Config config, bool output_pre_allocated);
 
 template <typename DeviceType> enum compress_status_type release_cache();
 

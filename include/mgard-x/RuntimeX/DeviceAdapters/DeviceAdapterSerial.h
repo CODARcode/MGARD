@@ -918,8 +918,8 @@ public:
                                  int queue_idx = MGARDX_SYNCHRONIZED_QUEUE) {
     log::dbg("Calling MemoryManager<SERIAL>::Copy3D");
     for (SIZE k = 0; k < n3; k++) {
-      Copy2D(dst_ptr + k * dst_ld2, dst_ld1, src_ptr + k * src_ld2, src_ld1,
-             n1, n2, queue_idx);
+      Copy2D(dst_ptr + k * dst_ld2, dst_ld1, src_ptr + k * src_ld2, src_ld1, n1,
+             n2, queue_idx);
     }
   }
 
