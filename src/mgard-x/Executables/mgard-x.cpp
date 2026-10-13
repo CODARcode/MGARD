@@ -568,8 +568,7 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     mgard_x::SIZE max_memory_footprint,
                     mgard_x::SIZE num_local_levels,
                     mgard_x::SIZE num_global_levels, bool use_hybrid,
-                    bool warm_up,
-                    bool kernel_fusion,
+                    bool warm_up, bool kernel_fusion,
                     mgard_x::compression_projection_mode_type projection_mode) {
   mgard_x::Config config;
   config.log_level = verbose_to_log_level(verbose);
@@ -725,8 +724,8 @@ int launch_compress(mgard_x::DIM D, enum mgard_x::data_type dtype,
 
   void *decompressed_data = malloc(original_size * sizeof(T));
   mgard_x::pin_memory(decompressed_data, original_size * sizeof(T), config);
-  ret = mgard_x::decompress(compressed_data, compressed_size,
-                            decompressed_data, config, true);
+  ret = mgard_x::decompress(compressed_data, compressed_size, decompressed_data,
+                            config, true);
   if (ret != mgard_x::compress_status_type::Success) {
     throw std::runtime_error("Decompression failed");
   }
@@ -962,15 +961,15 @@ bool try_compression(int argc, char *argv[]) {
   if (dtype == mgard_x::data_type::Double) {
     launch_compress<double>(
         shape.size(), dtype, input_file.c_str(), output_file.c_str(), shape,
-        tol, tol_map, enable_roi, s, mode, lossless, dd_config,
-        dev_type, verbose, max_memory_footprint, num_local_levels,
-        num_global_levels, use_hybrid, warm_up, kernel_fusion, projection_mode);
+        tol, tol_map, enable_roi, s, mode, lossless, dd_config, dev_type,
+        verbose, max_memory_footprint, num_local_levels, num_global_levels,
+        use_hybrid, warm_up, kernel_fusion, projection_mode);
   } else if (dtype == mgard_x::data_type::Float) {
     launch_compress<float>(
         shape.size(), dtype, input_file.c_str(), output_file.c_str(), shape,
-        tol, tol_map, enable_roi, s, mode, lossless, dd_config,
-        dev_type, verbose, max_memory_footprint, num_local_levels,
-        num_global_levels, use_hybrid, warm_up, kernel_fusion, projection_mode);
+        tol, tol_map, enable_roi, s, mode, lossless, dd_config, dev_type,
+        verbose, max_memory_footprint, num_local_levels, num_global_levels,
+        use_hybrid, warm_up, kernel_fusion, projection_mode);
   }
   mgard_x::release_cache(mgard_x::Config());
   return true;

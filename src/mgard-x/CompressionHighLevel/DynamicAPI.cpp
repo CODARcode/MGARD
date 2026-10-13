@@ -57,8 +57,9 @@ enum device_type auto_detect_device() {
 namespace {
 
 void report_v160_disabled() {
-  log::err("this data was compressed by MGARD 1.6.x or earlier; decompressing "
-           "it requires MGARD built with -DMGARD_ENABLE_DATA_COMPATIBILITY=ON.");
+  log::err(
+      "this data was compressed by MGARD 1.6.x or earlier; decompressing "
+      "it requires MGARD built with -DMGARD_ENABLE_DATA_COMPATIBILITY=ON.");
 }
 
 template <typename DeviceType>
@@ -99,8 +100,8 @@ decompress_routed(const void *compressed_data, size_t compressed_size,
   if (compressed_by_v160<DeviceType>(compressed_data)) {
 #if MGARD_ENABLE_DATA_COMPATIBILITY
     return v160::decompress<DeviceType>(compressed_data, compressed_size,
-                                        decompressed_data, dtype, shape,
-                                        config, output_pre_allocated);
+                                        decompressed_data, dtype, shape, config,
+                                        output_pre_allocated);
 #else
     report_v160_disabled();
     return compress_status_type::DataCompatibilityNotEnabledFailure;
@@ -363,35 +364,40 @@ enum compress_status_type decompress(const void *compressed_data,
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
     return decompress_routed<SERIAL>(compressed_data, compressed_size,
-                              decompressed_data, config, output_pre_allocated);
+                                     decompressed_data, config,
+                                     output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
     return decompress_routed<OPENMP>(compressed_data, compressed_size,
-                              decompressed_data, config, output_pre_allocated);
+                                     decompressed_data, config,
+                                     output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    return decompress_routed<CUDA>(compressed_data, compressed_size, decompressed_data,
-                            config, output_pre_allocated);
+    return decompress_routed<CUDA>(compressed_data, compressed_size,
+                                   decompressed_data, config,
+                                   output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    return decompress_routed<HIP>(compressed_data, compressed_size, decompressed_data,
-                           config, output_pre_allocated);
+    return decompress_routed<HIP>(compressed_data, compressed_size,
+                                  decompressed_data, config,
+                                  output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    return decompress_routed<SYCL>(compressed_data, compressed_size, decompressed_data,
-                            config, output_pre_allocated);
+    return decompress_routed<SYCL>(compressed_data, compressed_size,
+                                   decompressed_data, config,
+                                   output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
@@ -410,35 +416,35 @@ enum compress_status_type decompress(const void *compressed_data,
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
     return decompress_routed<SERIAL>(compressed_data, compressed_size,
-                              decompressed_data, output_pre_allocated);
+                                     decompressed_data, output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
     return decompress_routed<OPENMP>(compressed_data, compressed_size,
-                              decompressed_data, output_pre_allocated);
+                                     decompressed_data, output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    return decompress_routed<CUDA>(compressed_data, compressed_size, decompressed_data,
-                            output_pre_allocated);
+    return decompress_routed<CUDA>(compressed_data, compressed_size,
+                                   decompressed_data, output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    return decompress_routed<HIP>(compressed_data, compressed_size, decompressed_data,
-                           output_pre_allocated);
+    return decompress_routed<HIP>(compressed_data, compressed_size,
+                                  decompressed_data, output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    return decompress_routed<SYCL>(compressed_data, compressed_size, decompressed_data,
-                            output_pre_allocated);
+    return decompress_routed<SYCL>(compressed_data, compressed_size,
+                                   decompressed_data, output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
@@ -460,37 +466,40 @@ decompress(const void *compressed_data, size_t compressed_size,
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
     return decompress_routed<SERIAL>(compressed_data, compressed_size,
-                              decompressed_data, dtype, shape, config,
-                              output_pre_allocated);
+                                     decompressed_data, dtype, shape, config,
+                                     output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
     return decompress_routed<OPENMP>(compressed_data, compressed_size,
-                              decompressed_data, dtype, shape, config,
-                              output_pre_allocated);
+                                     decompressed_data, dtype, shape, config,
+                                     output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    return decompress_routed<CUDA>(compressed_data, compressed_size, decompressed_data,
-                            dtype, shape, config, output_pre_allocated);
+    return decompress_routed<CUDA>(compressed_data, compressed_size,
+                                   decompressed_data, dtype, shape, config,
+                                   output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    return decompress_routed<HIP>(compressed_data, compressed_size, decompressed_data,
-                           dtype, shape, config, output_pre_allocated);
+    return decompress_routed<HIP>(compressed_data, compressed_size,
+                                  decompressed_data, dtype, shape, config,
+                                  output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    return decompress_routed<SYCL>(compressed_data, compressed_size, decompressed_data,
-                            dtype, shape, config, output_pre_allocated);
+    return decompress_routed<SYCL>(compressed_data, compressed_size,
+                                   decompressed_data, dtype, shape, config,
+                                   output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
@@ -509,8 +518,8 @@ decompress(const void *compressed_data, size_t compressed_size,
   if (dev_type == device_type::SERIAL) {
 #if MGARD_ENABLE_SERIAL
     return decompress_routed<SERIAL>(compressed_data, compressed_size,
-                              decompressed_data, dtype, shape,
-                              output_pre_allocated);
+                                     decompressed_data, dtype, shape,
+                                     output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
@@ -518,29 +527,32 @@ decompress(const void *compressed_data, size_t compressed_size,
   if (dev_type == device_type::OPENMP) {
 #if MGARD_ENABLE_OPENMP
     return decompress_routed<OPENMP>(compressed_data, compressed_size,
-                              decompressed_data, dtype, shape,
-                              output_pre_allocated);
+                                     decompressed_data, dtype, shape,
+                                     output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::CUDA) {
 #if MGARD_ENABLE_CUDA
-    return decompress_routed<CUDA>(compressed_data, compressed_size, decompressed_data,
-                            dtype, shape, output_pre_allocated);
+    return decompress_routed<CUDA>(compressed_data, compressed_size,
+                                   decompressed_data, dtype, shape,
+                                   output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::HIP) {
 #if MGARD_ENABLE_HIP
-    return decompress_routed<HIP>(compressed_data, compressed_size, decompressed_data,
-                           dtype, shape, output_pre_allocated);
+    return decompress_routed<HIP>(compressed_data, compressed_size,
+                                  decompressed_data, dtype, shape,
+                                  output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif
   } else if (dev_type == device_type::SYCL) {
 #if MGARD_ENABLE_SYCL
-    return decompress_routed<SYCL>(compressed_data, compressed_size, decompressed_data,
-                            dtype, shape, output_pre_allocated);
+    return decompress_routed<SYCL>(compressed_data, compressed_size,
+                                   decompressed_data, dtype, shape,
+                                   output_pre_allocated);
 #else
     return compress_status_type::BackendNotAvailableFailure;
 #endif

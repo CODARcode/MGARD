@@ -357,12 +357,11 @@ public:
   template <typename T>
   MGARDX_CONT static void Copy3D(T *dst_ptr, SIZE dst_ld1, SIZE dst_ld2,
                                  const T *src_ptr, SIZE src_ld1, SIZE src_ld2,
-                                 SIZE n1, SIZE n2, SIZE n3,
-                                 int queue_idx) {
+                                 SIZE n1, SIZE n2, SIZE n3, int queue_idx) {
     log::dbg("Calling MemoryManager<KOKKOS>::Copy3D");
     for (SIZE k = 0; k < n3; k++) {
-      Copy2D(dst_ptr + k * dst_ld2, dst_ld1, src_ptr + k * src_ld2, src_ld1,
-             n1, n2, queue_idx);
+      Copy2D(dst_ptr + k * dst_ld2, dst_ld1, src_ptr + k * src_ld2, src_ld1, n1,
+             n2, queue_idx);
     }
   }
 

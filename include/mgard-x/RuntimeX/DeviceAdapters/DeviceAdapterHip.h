@@ -959,10 +959,12 @@ public:
     }
     hipStream_t stream = DeviceRuntime<HIP>::GetQueue(queue_idx);
     hipMemcpy3DParms p = {};
-    p.srcPtr = make_hipPitchedPtr((void *)src_ptr, src_ld1 * sizeof(converted_T),
-                                 n1 * sizeof(converted_T), src_ld2 / src_ld1);
-    p.dstPtr = make_hipPitchedPtr((void *)dst_ptr, dst_ld1 * sizeof(converted_T),
-                                 n1 * sizeof(converted_T), dst_ld2 / dst_ld1);
+    p.srcPtr =
+        make_hipPitchedPtr((void *)src_ptr, src_ld1 * sizeof(converted_T),
+                           n1 * sizeof(converted_T), src_ld2 / src_ld1);
+    p.dstPtr =
+        make_hipPitchedPtr((void *)dst_ptr, dst_ld1 * sizeof(converted_T),
+                           n1 * sizeof(converted_T), dst_ld2 / dst_ld1);
     p.extent = make_hipExtent(n1 * sizeof(converted_T), n2, n3);
     p.kind = hipMemcpyDefault;
     gpuErrchk(hipMemcpy3DAsync(&p, stream));

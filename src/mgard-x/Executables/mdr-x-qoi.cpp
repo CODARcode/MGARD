@@ -732,7 +732,8 @@ bool try_refactoring(int argc, char *argv[]) {
                             max_memory_footprint);
   } else if (dtype == mgard_x::data_type::Float) {
     launch_refactor<float>(shape.size(), dtype, input_file.c_str(),
-                           output_file.c_str(), shape, dev_type, verbose, max_memory_footprint);
+                           output_file.c_str(), shape, dev_type, verbose,
+                           max_memory_footprint);
   }
   return true;
 }

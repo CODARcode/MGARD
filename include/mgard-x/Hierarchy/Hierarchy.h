@@ -55,8 +55,7 @@ template <DIM D, typename T, typename DeviceType> struct Hierarchy {
   // counts.
   bool matches_config(Config config) { return true; }
   size_t EstimateMemoryFootprint(std::vector<SIZE> shape);
-  static size_t EstimateMemoryFootprint(std::vector<SIZE> shape,
-                                        Config config);
+  static size_t EstimateMemoryFootprint(std::vector<SIZE> shape, Config config);
 
   ~Hierarchy();
 

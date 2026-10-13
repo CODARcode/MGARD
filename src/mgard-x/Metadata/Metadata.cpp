@@ -253,10 +253,9 @@ void MetadataBase::InitializeConfig(Config &config) {
   }
   // The decomposition has to be rebuilt with the levels it was made with.
   // Streams from before the level cap was recorded used all levels.
-  config.num_global_refactoring_level =
-      has_num_global_refactoring_level
-          ? (SIZE)num_global_refactoring_level
-          : std::numeric_limits<SIZE>::max();
+  config.num_global_refactoring_level = has_num_global_refactoring_level
+                                            ? (SIZE)num_global_refactoring_level
+                                            : std::numeric_limits<SIZE>::max();
   // The hybrid parameters are only meaningful for a hybrid file, and
   // Deserialize refuses to produce a hybrid file without them, so a Hybrid
   // decomposition here always carries a full set. For non-hybrid files leave
@@ -818,8 +817,7 @@ void MetadataBase::Deserialize(
     domain_decomposition_block_shape = shape;
     domain_decomposed = domainDecomposition.method() !=
                         mgard::pb::DomainDecomposition::NOOP_METHOD;
-    if (domainDecomposition.method() ==
-        mgard::pb::DomainDecomposition::BLOCK) {
+    if (domainDecomposition.method() == mgard::pb::DomainDecomposition::BLOCK) {
       if (domainDecomposition.block_shape_size() > 0) {
         if ((size_t)domainDecomposition.block_shape_size() != shape.size()) {
           throw InvalidDataException(

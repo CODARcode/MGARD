@@ -402,8 +402,8 @@ private:
   std::vector<SIZE> largest_block_shape(std::vector<SIZE> block) {
     std::vector<SIZE> largest(D);
     for (DIM d = 0; d < D; d++) {
-      largest[d] = block_extent(shape[d], block[d],
-                                num_blocks(shape[d], block[d]) - 1);
+      largest[d] =
+          block_extent(shape[d], block[d], num_blocks(shape[d], block[d]) - 1);
     }
     return largest;
   }
@@ -457,13 +457,13 @@ private:
     }
     if (!fits_memory(block)) {
       std::vector<SIZE> largest = largest_block_shape(block);
-      throw Exception(
-          "Manual domain decomposition: blocks of " + shape_string(block) +
-          " need about " +
-          std::to_string(
-              EstimateMemoryFootprint(largest, count_blocks(block) > 1)) +
-          " bytes (largest block " + shape_string(largest) + "), more than " +
-          "the " + std::to_string(available_memory()) + " bytes available.");
+      throw Exception("Manual domain decomposition: blocks of " +
+                      shape_string(block) + " need about " +
+                      std::to_string(EstimateMemoryFootprint(
+                          largest, count_blocks(block) > 1)) +
+                      " bytes (largest block " + shape_string(largest) +
+                      "), more than " + "the " +
+                      std::to_string(available_memory()) + " bytes available.");
     }
     return block;
   }
@@ -476,11 +476,11 @@ private:
       _block_shape[d] = std::min(block[d], shape[d]);
       // A dimension narrower than MIN_BLOCK_EXTENT can only be kept whole.
       if (_block_shape[d] < std::min(MIN_BLOCK_EXTENT, shape[d])) {
-        throw InvalidDataException(
-            "domain decomposition block extent " +
-            std::to_string(_block_shape[d]) + " along dimension " +
-            std::to_string(d) + " is smaller than " +
-            std::to_string(MIN_BLOCK_EXTENT) + ".");
+        throw InvalidDataException("domain decomposition block extent " +
+                                   std::to_string(_block_shape[d]) +
+                                   " along dimension " + std::to_string(d) +
+                                   " is smaller than " +
+                                   std::to_string(MIN_BLOCK_EXTENT) + ".");
       }
       _blocks_per_dim[d] = num_blocks(shape[d], _block_shape[d]);
       _num_subdomains *= _blocks_per_dim[d];

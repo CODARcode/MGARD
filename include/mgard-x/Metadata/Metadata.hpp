@@ -152,14 +152,13 @@ template <typename DeviceType> struct Metadata : MetadataBase {
   }
 
   template <typename T>
-  void
-  FillForCompression(enum error_bound_type ebtype, T tol, T s, T norm,
-                     enum decomposition_type decomposition,
-                     enum lossless_type ltype, uint32_t huff_dict_size,
-                     uint32_t huff_block_size, std::vector<SIZE> shape,
-                     bool domain_decomposed,
-                     std::vector<SIZE> domain_decomposition_block_shape,
-                     std::vector<T *> coords) {
+  void FillForCompression(enum error_bound_type ebtype, T tol, T s, T norm,
+                          enum decomposition_type decomposition,
+                          enum lossless_type ltype, uint32_t huff_dict_size,
+                          uint32_t huff_block_size, std::vector<SIZE> shape,
+                          bool domain_decomposed,
+                          std::vector<SIZE> domain_decomposition_block_shape,
+                          std::vector<T *> coords) {
     FillForCompression(ebtype, tol, s, norm, decomposition, ltype,
                        huff_dict_size, huff_block_size, shape,
                        domain_decomposed, domain_decomposition_block_shape);
@@ -222,8 +221,7 @@ template <typename DeviceType> struct Metadata : MetadataBase {
                   uint32_t huff_block_size, std::vector<SIZE> shape,
                   bool domain_decomposed,
                   std::vector<SIZE> domain_decomposition_block_shape,
-                  uint64_t number_bitplanes,
-                  std::vector<T *> coords) {
+                  uint64_t number_bitplanes, std::vector<T *> coords) {
     FillForMDR(norm, decomposition, ltype, huff_dict_size, huff_block_size,
                shape, domain_decomposed, domain_decomposition_block_shape,
                number_bitplanes);

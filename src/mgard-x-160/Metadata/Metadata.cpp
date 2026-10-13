@@ -43,7 +43,8 @@ mgard::pb::Quantization::Type QuantizationTypeForWidth(std::size_t width) {
   case 8:
     return mgard::pb::Quantization::INT64_T;
   default:
-    throw mgard_x_160::InvalidDataException("unsupported quantized integer width.");
+    throw mgard_x_160::InvalidDataException(
+        "unsupported quantized integer width.");
   }
 }
 
@@ -256,10 +257,9 @@ void MetadataBase::InitializeConfig(Config &config) {
   }
   // The decomposition has to be rebuilt with the levels it was made with.
   // Streams from before the level cap was recorded used all levels.
-  config.num_global_refactoring_level =
-      has_num_global_refactoring_level
-          ? (SIZE)num_global_refactoring_level
-          : std::numeric_limits<SIZE>::max();
+  config.num_global_refactoring_level = has_num_global_refactoring_level
+                                            ? (SIZE)num_global_refactoring_level
+                                            : std::numeric_limits<SIZE>::max();
   // The hybrid parameters are only meaningful for a hybrid file, and
   // Deserialize refuses to produce a hybrid file without them, so a Hybrid
   // decomposition here always carries a full set. For non-hybrid files leave
@@ -934,7 +934,8 @@ void MetadataBase::Deserialize(
             "-bit integers, but this build of MGARD-X uses " +
             std::to_string(sizeof(mgard_x_160::QUANTIZED_INT) * 8) + "-bit.");
       }
-      if (quantization.big_endian() != big_endian<mgard_x_160::QUANTIZED_INT>()) {
+      if (quantization.big_endian() !=
+          big_endian<mgard_x_160::QUANTIZED_INT>()) {
         throw InvalidDataException(
             "this file was written with the opposite endianness.");
       }
@@ -983,8 +984,7 @@ void MetadataBase::Deserialize(
 
   { // Encoding
     const mgard::pb::Encoding encoding = header.encoding();
-    reorder =
-        encoding.preprocessor() == mgard::pb::Encoding::SHUFFLE ? 1 : 0;
+    reorder = encoding.preprocessor() == mgard::pb::Encoding::SHUFFLE ? 1 : 0;
     if (encoding.compressor() == mgard::pb::Encoding::X_HUFFMAN) {
       ltype = mgard_x_160::lossless_type::Huffman;
       huff_dict_size = encoding.huffman_dictionary_size();

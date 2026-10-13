@@ -306,8 +306,7 @@ int verbose_to_log_level(int verbose) {
 template <typename T>
 int launch_refactor(mgard_x::DIM D, enum mgard_x::data_type dtype,
                     std::string input_file, std::string output_file,
-                    std::vector<mgard_x::SIZE> shape,
-                    mgard_x::Config dd_config,
+                    std::vector<mgard_x::SIZE> shape, mgard_x::Config dd_config,
                     enum mgard_x::device_type dev_type, int verbose,
                     mgard_x::SIZE max_memory_footprint,
                     enum mgard_x::lossless_type lossless) {
@@ -505,14 +504,12 @@ bool try_refactoring(int argc, char *argv[]) {
   get_domain_decomposition(argc, argv, dd_config);
   if (dtype == mgard_x::data_type::Double) {
     launch_refactor<double>(shape.size(), dtype, input_file.c_str(),
-                            output_file.c_str(), shape, dd_config,
-                            dev_type, verbose, max_memory_footprint,
-                            lossless);
+                            output_file.c_str(), shape, dd_config, dev_type,
+                            verbose, max_memory_footprint, lossless);
   } else if (dtype == mgard_x::data_type::Float) {
     launch_refactor<float>(shape.size(), dtype, input_file.c_str(),
-                           output_file.c_str(), shape, dd_config,
-                           dev_type, verbose, max_memory_footprint,
-                           lossless);
+                           output_file.c_str(), shape, dd_config, dev_type,
+                           verbose, max_memory_footprint, lossless);
   }
   return true;
 }

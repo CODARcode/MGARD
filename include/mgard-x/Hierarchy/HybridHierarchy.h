@@ -86,8 +86,8 @@ public:
   void check_config(Config config) {
     if (!matches_config(config)) {
       throw ProcessingException(
-          "HybridHierarchy was built for " + std::to_string(L) +
-          " local / " + std::to_string(M) + " global levels, but config has " +
+          "HybridHierarchy was built for " + std::to_string(L) + " local / " +
+          std::to_string(M) + " global levels, but config has " +
           std::to_string(config.num_local_refactoring_level) + " / " +
           std::to_string(config.num_global_refactoring_level) + ".");
     }

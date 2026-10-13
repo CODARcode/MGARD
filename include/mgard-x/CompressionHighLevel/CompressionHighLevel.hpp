@@ -296,14 +296,13 @@ general_compress_pipeline(std::vector<SIZE> shape, T tol, T s,
     m.FillForCompression(
         ebtype, tol, s, norm, config.decomposition, config.lossless,
         config.huff_dict_size, config.huff_block_size, shape,
-        domain_decomposer.domain_decomposed(),
-        domain_decomposer.block_shape());
+        domain_decomposer.domain_decomposed(), domain_decomposer.block_shape());
   } else {
-    m.FillForCompression(
-        ebtype, tol, s, norm, config.decomposition, config.lossless,
-        config.huff_dict_size, config.huff_block_size, shape,
-        domain_decomposer.domain_decomposed(),
-        domain_decomposer.block_shape(), coords);
+    m.FillForCompression(ebtype, tol, s, norm, config.decomposition,
+                         config.lossless, config.huff_dict_size,
+                         config.huff_block_size, shape,
+                         domain_decomposer.domain_decomposed(),
+                         domain_decomposer.block_shape(), coords);
   }
 
   uint32_t metadata_size;
@@ -354,14 +353,13 @@ general_compress_pipeline(std::vector<SIZE> shape, T tol, T s,
     m.FillForCompression(
         ebtype, tol, s, norm, config.decomposition, config.lossless,
         config.huff_dict_size, config.huff_block_size, shape,
-        domain_decomposer.domain_decomposed(),
-        domain_decomposer.block_shape());
+        domain_decomposer.domain_decomposed(), domain_decomposer.block_shape());
   } else {
-    m.FillForCompression(
-        ebtype, tol, s, norm, config.decomposition, config.lossless,
-        config.huff_dict_size, config.huff_block_size, shape,
-        domain_decomposer.domain_decomposed(),
-        domain_decomposer.block_shape(), coords);
+    m.FillForCompression(ebtype, tol, s, norm, config.decomposition,
+                         config.lossless, config.huff_dict_size,
+                         config.huff_block_size, shape,
+                         domain_decomposer.domain_decomposed(),
+                         domain_decomposer.block_shape(), coords);
   }
 
   serizalied_meta = m.Serialize(metadata_size);

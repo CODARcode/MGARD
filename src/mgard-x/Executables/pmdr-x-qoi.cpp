@@ -1114,12 +1114,12 @@ bool try_refactoring(int argc, char *argv[]) {
   }
   if (dtype == mgard_x::data_type::Double) {
     launch_refactor<double>(shape.size(), dtype, input_file.c_str(),
-                            output_file.c_str(), shape, dev_type, verbose, max_memory_footprint,
-                            rank);
+                            output_file.c_str(), shape, dev_type, verbose,
+                            max_memory_footprint, rank);
   } else if (dtype == mgard_x::data_type::Float) {
     launch_refactor<float>(shape.size(), dtype, input_file.c_str(),
-                           output_file.c_str(), shape, dev_type, verbose, max_memory_footprint,
-                           rank);
+                           output_file.c_str(), shape, dev_type, verbose,
+                           max_memory_footprint, rank);
   }
   return true;
 }
