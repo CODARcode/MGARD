@@ -183,7 +183,7 @@ An executable ```mgard-x``` will be built after building the MGARD-X library. To
         + ```mgard_x::hybrid_projection_mode_type::Hierarchical```: remove the L<sup>2</sup> projection (L<sup>&infin;</sup> only)
     + ```fuse_decompose_quantize```: controls fused local decomposition and quantization for the hybrid hierarchy (***Default: true***)
     + ```fuse_dequantize_recompose```: controls fused local dequantization and recomposition for the hybrid hierarchy (***Default: true***)
-    + ```max_larget_level```: controls max level of multi-level decomposition (***Default: 0 (no limit)***)
+    + ```max_larget_level```: caps the multi-level decomposition at levels 0 to ```max_larget_level```; the cap is recorded in the compressed stream and restored on decompression (***Default: no limit***)
     + ```max_memory_footprint```(for high-level APIs only): controls maximum memory footprint in bytes (***Default: inf (no limit)***)
     + ```adjust_shape```(for high-level APIs only): controls whether or not to enable shape adjustment for better decomposition performance (***Default: false***)
 ## Using high-level APIs

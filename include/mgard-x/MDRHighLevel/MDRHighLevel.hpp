@@ -54,6 +54,11 @@ void load(Config &config, Metadata<DeviceType> &metadata) {
   config.huff_dict_size = metadata.huff_dict_size;
   config.huff_block_size = metadata.huff_block_size;
   config.total_num_bitplanes = metadata.number_bitplanes;
+  // As in MetadataBase::InitializeConfig: a recorded depth cap always wins;
+  // an unrecorded one (older stream) leaves the caller's value alone.
+  if (metadata.max_larget_level_recorded) {
+    config.max_larget_level = (SIZE)metadata.max_larget_level;
+  }
 }
 
 template <DIM D, typename T, typename DeviceType>
@@ -130,6 +135,10 @@ void MDRefactor(std::vector<SIZE> shape, const void *original_data,
   if (log::level & log::TIME)
     timer_each.start();
   Metadata<DeviceType> m;
+  // The reconstructor rebuilds the hierarchy from the header; see the matching
+  // lines in CompressionHighLevel.hpp.
+  m.max_larget_level = config.max_larget_level;
+  m.max_larget_level_recorded = true;
   if (uniform) {
     m.FillForMDR(
         (T)0.0, config.decomposition, config.lossless, config.huff_dict_size,

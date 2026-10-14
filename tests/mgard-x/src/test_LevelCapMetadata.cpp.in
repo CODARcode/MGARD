@@ -1,0 +1,137 @@
+/*
+ * Copyright 2026, Oak Ridge National Laboratory.
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
+ */
+
+#include "catch2/catch_test_macros.hpp"
+
+#include <limits>
+#include <vector>
+
+#include "mgard-x/Config/Config.h"
+#include "mgard-x/Metadata/Metadata.hpp"
+#include "mgard-x/RuntimeX/RuntimeX.h"
+
+namespace mgard_x {
+
+using TestDevice = @DEVICE_TYPE@;
+
+namespace {
+
+constexpr uint64_t kUnlimited = std::numeric_limits<uint64_t>::max();
+
+// A well-formed plain (non-hybrid) compression header to hang the cap on.
+Metadata<TestDevice> base_metadata() {
+  Metadata<TestDevice> m;
+  m.FillForCompression<float>(
+      error_bound_type::ABS, (float)1e-3,
+      std::numeric_limits<float>::infinity(), (float)1.0,
+      decomposition_type::MultiDim, lossless_type::Huffman,
+      /*huff_dict_size=*/8192, /*huff_block_size=*/1024,
+      std::vector<SIZE>{64, 64, 64}, /*domain_decomposed=*/false,
+      domain_decomposition_type::MaxDim, /*domain_decomposed_dim=*/0,
+      /*domain_decomposed_size=*/0);
+  return m;
+}
+
+Metadata<TestDevice> round_trip(Metadata<TestDevice> &out) {
+  std::vector<SERIALIZED_TYPE> bytes = out.MetadataBase::Serialize();
+  Metadata<TestDevice> in;
+  in.MetadataBase::Deserialize(bytes);
+  return in;
+}
+
+} // namespace
+
+TEST_CASE("a cap on the decomposition depth survives a metadata round trip",
+          "[LevelCapMetadata]") {
+  Metadata<TestDevice> out = base_metadata();
+  out.max_larget_level = 2;
+  out.max_larget_level_recorded = true;
+
+  Metadata<TestDevice> in = round_trip(out);
+  REQUIRE(in.max_larget_level_recorded);
+  REQUIRE(in.max_larget_level == 2);
+
+  // The point of recording it: a Config that never saw the compression
+  // parameters comes back with the writer's cap.
+  Config config;
+  in.InitializeConfig(config);
+  REQUIRE(config.max_larget_level == 2);
+}
+
+TEST_CASE("a cap of zero is a single level, not an absent cap",
+          "[LevelCapMetadata]") {
+  Metadata<TestDevice> out = base_metadata();
+  out.max_larget_level = 0;
+  out.max_larget_level_recorded = true;
+
+  Metadata<TestDevice> in = round_trip(out);
+  REQUIRE(in.max_larget_level_recorded);
+  REQUIRE(in.max_larget_level == 0);
+
+  Config config;
+  in.InitializeConfig(config);
+  REQUIRE(config.max_larget_level == 0);
+}
+
+TEST_CASE("an unlimited depth is recorded and overrides a stale cap",
+          "[LevelCapMetadata]") {
+  Metadata<TestDevice> out = base_metadata();
+  out.max_larget_level = kUnlimited;
+  out.max_larget_level_recorded = true;
+
+  Metadata<TestDevice> in = round_trip(out);
+  REQUIRE(in.max_larget_level_recorded);
+  REQUIRE(in.max_larget_level == kUnlimited);
+
+  // E.g. a Config reused from compressing a different, capped, array.
+  Config config;
+  config.max_larget_level = 1;
+  in.InitializeConfig(config);
+  REQUIRE(config.max_larget_level == std::numeric_limits<SIZE>::max());
+}
+
+TEST_CASE("a stream without a recorded cap leaves the caller's Config alone",
+          "[LevelCapMetadata]") {
+  // Streams written before the cap was recorded carry no level_cap field;
+  // not recording it reproduces exactly that header.
+  Metadata<TestDevice> out = base_metadata();
+  out.max_larget_level_recorded = false;
+
+  Metadata<TestDevice> in = round_trip(out);
+  REQUIRE_FALSE(in.max_larget_level_recorded);
+  REQUIRE(in.max_larget_level == kUnlimited);
+
+  // A default Config decompresses at full depth, which is how such streams
+  // were written unless the writer capped the depth out of band ...
+  Config fresh;
+  in.InitializeConfig(fresh);
+  REQUIRE(fresh.max_larget_level == std::numeric_limits<SIZE>::max());
+
+  // ... in which case the caller keeps supplying that cap, as before.
+  Config capped;
+  capped.max_larget_level = 3;
+  in.InitializeConfig(capped);
+  REQUIRE(capped.max_larget_level == 3);
+}
+
+TEST_CASE("deserializing a stream without the cap resets a previously read one",
+          "[LevelCapMetadata]") {
+  Metadata<TestDevice> capped = base_metadata();
+  capped.max_larget_level = 1;
+  capped.max_larget_level_recorded = true;
+  std::vector<SERIALIZED_TYPE> capped_bytes = capped.MetadataBase::Serialize();
+
+  Metadata<TestDevice> legacy = base_metadata();
+  std::vector<SERIALIZED_TYPE> legacy_bytes = legacy.MetadataBase::Serialize();
+
+  Metadata<TestDevice> in;
+  in.MetadataBase::Deserialize(capped_bytes);
+  REQUIRE(in.max_larget_level_recorded);
+  in.MetadataBase::Deserialize(legacy_bytes);
+  REQUIRE_FALSE(in.max_larget_level_recorded);
+  REQUIRE(in.max_larget_level == kUnlimited);
+}
+
+} // namespace mgard_x

@@ -239,6 +239,12 @@ general_compress_pipeline(std::vector<SIZE> shape, T tol, T s,
   // FillForCompression does not carry the BlockDelta block size; set it here so
   // it is persisted in (and restored from) the metadata header.
   m.block_delta_block_size = config.block_delta_block_size;
+  // Nor the cap on the decomposition depth. The shape alone does not determine
+  // the number of levels once a cap is set, and the decompressor has to rebuild
+  // the exact hierarchy, so record it -- "unlimited" included, so a stale cap
+  // in the decompressor's Config cannot leak in either.
+  m.max_larget_level = config.max_larget_level;
+  m.max_larget_level_recorded = true;
   // Same for the hybrid (BlockMGARD) parameters: the decompressor cannot
   // reconstruct the buffer layout or the per-block quantization steps without
   // them.

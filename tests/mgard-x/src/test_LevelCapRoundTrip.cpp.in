@@ -1,0 +1,122 @@
+/*
+ * Copyright 2026, Oak Ridge National Laboratory.
+ * MGARD-X: MultiGrid Adaptive Reduction of Data Portable across GPUs and CPUs
+ */
+
+// End to end: the cap on the decomposition depth a stream was compressed with
+// reaches the decompressor through the header, so a reader that knows nothing
+// but the stream reconstructs within the error bound.
+
+#include "catch2/catch_test_macros.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <vector>
+
+#include "compress_x.hpp"
+
+namespace mgard_x {
+
+namespace {
+
+Config device_config() {
+  Config config;
+  config.dev_type = device_type::@DEVICE_TYPE@;
+  config.log_level = log::ERR;
+  return config;
+}
+
+// 33 -> 17 -> 9 -> 5 -> 3 -> 2: six levels when the depth is not capped.
+const std::vector<SIZE> kShape = {33, 33, 33};
+const double kTol = 1e-3;
+
+// Smooth, range about [-1.5, 1.5], so a wrong hierarchy is off by O(1).
+std::vector<float> smooth_field() {
+  std::vector<float> data(kShape[0] * kShape[1] * kShape[2]);
+  for (SIZE k = 0; k < kShape[0]; k++) {
+    for (SIZE j = 0; j < kShape[1]; j++) {
+      for (SIZE i = 0; i < kShape[2]; i++) {
+        double z = (double)k / (kShape[0] - 1);
+        double y = (double)j / (kShape[1] - 1);
+        double x = (double)i / (kShape[2] - 1);
+        data[(k * kShape[1] + j) * kShape[2] + i] =
+            (float)(std::sin(2 * M_PI * x) * std::cos(2 * M_PI * y) *
+                        std::sin(M_PI * z) +
+                    0.5 * x * y);
+      }
+    }
+  }
+  return data;
+}
+
+std::vector<unsigned char> compress_with(const std::vector<float> &data,
+                                         Config config) {
+  std::vector<unsigned char> compressed(2 * data.size() * sizeof(float));
+  void *compressed_ptr = compressed.data();
+  size_t compressed_size = compressed.size();
+  REQUIRE(compress(kShape.size(), data_type::Float, kShape, kTol,
+                   std::numeric_limits<double>::infinity(),
+                   error_bound_type::ABS, data.data(), compressed_ptr,
+                   compressed_size, config,
+                   true) == compress_status_type::Success);
+  compressed.resize(compressed_size);
+  return compressed;
+}
+
+double decompress_error(const std::vector<unsigned char> &compressed,
+                        const std::vector<float> &data, Config config) {
+  std::vector<float> decompressed(data.size());
+  void *decompressed_ptr = decompressed.data();
+  REQUIRE(decompress(compressed.data(), compressed.size(), decompressed_ptr,
+                     config, true) == compress_status_type::Success);
+  double error = 0;
+  for (size_t i = 0; i < data.size(); i++) {
+    error = std::max(error, (double)std::fabs(data[i] - decompressed[i]));
+  }
+  return error;
+}
+
+// Compress with `writer`, decompress with `reader`, return the max abs error.
+double round_trip_error(const std::vector<float> &data, Config writer,
+                        Config reader) {
+  return decompress_error(compress_with(data, writer), data, reader);
+}
+
+// The bound holds up to float rounding of the reconstruction; a hierarchy
+// rebuilt with the wrong depth misses it by three orders of magnitude.
+const double kSlack = 1.001;
+
+} // namespace
+
+TEST_CASE("a capped decomposition depth is restored from the header",
+          "[mgard-x][@DEVICE_TYPE@][LevelCapRoundTrip]") {
+  std::vector<float> data = smooth_field();
+  Config writer = device_config();
+  writer.max_larget_level = 1;
+  // The reader knows nothing but the stream.
+  Config reader = device_config();
+  REQUIRE(round_trip_error(data, writer, reader) <= kTol * kSlack);
+}
+
+TEST_CASE("a single-level decomposition is restored from the header",
+          "[mgard-x][@DEVICE_TYPE@][LevelCapRoundTrip]") {
+  std::vector<float> data = smooth_field();
+  Config writer = device_config();
+  writer.max_larget_level = 0;
+  Config reader = device_config();
+  REQUIRE(round_trip_error(data, writer, reader) <= kTol * kSlack);
+}
+
+TEST_CASE(
+    "an unlimited depth in the header overrides a stale cap in the reader",
+    "[mgard-x][@DEVICE_TYPE@][LevelCapRoundTrip]") {
+  std::vector<float> data = smooth_field();
+  Config writer = device_config();
+  // E.g. a Config reused from decompressing a capped stream.
+  Config reader = device_config();
+  reader.max_larget_level = 1;
+  REQUIRE(round_trip_error(data, writer, reader) <= kTol * kSlack);
+}
+
+} // namespace mgard_x

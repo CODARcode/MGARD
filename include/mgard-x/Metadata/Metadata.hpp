@@ -10,6 +10,7 @@
 #include "../Utilities/Types.h"
 #include "MGARDConfig.hpp"
 #include <cstring>
+#include <limits>
 #include <zlib.h>
 
 #ifndef MGARD_X_METADATA
@@ -36,6 +37,15 @@ struct MetadataBase {
 
   enum decomposition_type decomposition;
   uint32_t l_target = 0;
+  // Cap on the decomposition depth (Config::max_larget_level) the stream was
+  // written with. Every stream written since this was added records it, "no
+  // cap" included, so a reader never depends on the caller's Config for it.
+  // Streams from before leave `max_larget_level_recorded` false, and
+  // InitializeConfig then keeps whatever the caller configured (unlimited by
+  // default) -- the depth those streams were written with unless the writer
+  // capped it out of band.
+  bool max_larget_level_recorded = false;
+  uint64_t max_larget_level = std::numeric_limits<uint64_t>::max(); // no cap
 
   // Hybrid (block-local + global) hierarchy, a.k.a. BlockMGARD. Only
   // meaningful when `decomposition == decomposition_type::Hybrid`; these are

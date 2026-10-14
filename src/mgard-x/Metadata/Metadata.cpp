@@ -266,6 +266,15 @@ void MetadataBase::InitializeConfig(Config &config) {
       config.roi_tolerance_map = hybrid_roi_tolerance_map;
     }
   }
+  // The decomposition depth has to match the writer's exactly (the per-level
+  // quantization step and the number of recomposition passes depend on it), so
+  // a recorded cap always wins over the caller's. Streams written before the
+  // cap was recorded leave the caller's value alone: unlimited by default,
+  // which is how those streams were written unless the writer capped the depth
+  // out of band -- then the caller has to keep supplying the same cap.
+  if (max_larget_level_recorded) {
+    config.max_larget_level = (SIZE)max_larget_level;
+  }
 }
 
 void MetadataBase::PrintSummary() {
@@ -334,6 +343,14 @@ void MetadataBase::PrintSummary() {
     } else {
       std::cout << "disabled\n";
     }
+  }
+  std::cout << "Max level: ";
+  if (!max_larget_level_recorded) {
+    std::cout << "not recorded (full depth unless the writer capped it)\n";
+  } else if (max_larget_level == std::numeric_limits<uint64_t>::max()) {
+    std::cout << "unlimited\n";
+  } else {
+    std::cout << max_larget_level << "\n";
   }
   std::cout << "Domain Decomposition: ";
   if (domain_decomposed) {
@@ -561,10 +578,20 @@ std::vector<SERIALIZED_TYPE> MetadataBase::Serialize() {
         SerializeROITolerances(hybrid_roi_tolerance_map, roi);
       }
     }
-    // Not populated by MGARD-X: the reader rebuilds the hierarchy (and hence
-    // the level count) from the shape, and under domain decomposition there is
-    // no single value to record. Written for format compatibility only.
+    // Not populated by MGARD-X: under domain decomposition every subdomain has
+    // its own level count, so there is no single value to record. Written for
+    // format compatibility only; the depth travels as `level_cap` below.
     function_decomposition.set_l_target(l_target);
+    if (max_larget_level_recorded) {
+      mgard::pb::LevelCap &level_cap =
+          *function_decomposition.mutable_level_cap();
+      if (max_larget_level == std::numeric_limits<uint64_t>::max()) {
+        level_cap.set_unlimited(true);
+      } else {
+        level_cap.set_unlimited(false);
+        level_cap.set_max_level(max_larget_level);
+      }
+    }
   }
 
   { // Quantization
@@ -896,6 +923,17 @@ void MetadataBase::Deserialize(
           "in MGARD-X.");
     }
     l_target = function_decomposition.l_target();
+    if (function_decomposition.has_level_cap()) {
+      const mgard::pb::LevelCap &level_cap = function_decomposition.level_cap();
+      max_larget_level_recorded = true;
+      max_larget_level = level_cap.unlimited()
+                             ? std::numeric_limits<uint64_t>::max()
+                             : level_cap.max_level();
+    } else {
+      // Written before the cap was recorded; see InitializeConfig.
+      max_larget_level_recorded = false;
+      max_larget_level = std::numeric_limits<uint64_t>::max();
+    }
   }
 
   { // Quantization

@@ -135,6 +135,15 @@ message HybridHierarchy {
   Projection projection = 5;
 }
 
+// MGARD-X cap on the number of decomposition levels. Levels are numbered from
+// 0 (coarsest) to `max_level`, so the hierarchy has at most `max_level + 1`
+// levels; a shape that does not support that many stops earlier.
+message LevelCap {
+  // Set when the writer did not cap the depth; `max_level` is then unused.
+  bool unlimited = 1;
+  uint64 max_level = 2;
+}
+
 message FunctionDecomposition {
   enum Transform { MULTILEVEL_COEFFICIENTS = 0; }
   enum Hierarchy {
@@ -150,6 +159,13 @@ message FunctionDecomposition {
   uint64 L_target = 3;
   // Required when `hierarchy == HYBRID_HIERARCHY`, absent otherwise.
   HybridHierarchy hybrid_hierarchy = 4;
+  // Cap on the decomposition depth the stream was written with (MGARD-X
+  // `Config::max_larget_level`). The reader has to rebuild the hierarchy with
+  // the same depth: the per-level quantization step and the number of
+  // recomposition passes both depend on it. Absent from streams written before
+  // it was recorded; those were decomposed to the full depth their shape allows
+  // unless the writer capped it out of band, which a reader cannot detect.
+  LevelCap level_cap = 5;
 }
 
 message Quantization {
