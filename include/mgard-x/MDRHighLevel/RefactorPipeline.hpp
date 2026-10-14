@@ -29,7 +29,8 @@ void refactor_pipeline(
   MDRData<DeviceType> *mdr_data = Cache::cache.mdr_data;
 
   if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(0),
-                                     domain_decomposer.uniform)) {
+                                     domain_decomposer.uniform,
+                                     config.max_larget_level)) {
     Cache::cache.ClearHierarchyCache();
   }
 
@@ -37,14 +38,15 @@ void refactor_pipeline(
 
   for (SIZE id = 0; id < domain_decomposer.num_subdomains(); id++) {
     if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(id),
-                                       domain_decomposer.uniform)) {
+                                       domain_decomposer.uniform,
+                                       config.max_larget_level)) {
       Cache::cache.InsertHierarchyCache(
-          domain_decomposer.subdomain_hierarchy(id));
+          domain_decomposer.subdomain_hierarchy(id), config.max_larget_level);
     }
   }
 
-  HierarchyType &hierarchy =
-      Cache::cache.GetHierarchyCache(domain_decomposer.subdomain_shape(0));
+  HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(
+      domain_decomposer.subdomain_shape(0), config.max_larget_level);
 
   log::info("Adjust device buffers");
   refactor.Adapt(hierarchy, config, 0);
@@ -71,7 +73,8 @@ void refactor_pipeline(
     int next_buffer = (current_buffer + 1) % 2;
     int next_queue = (current_queue + 1) % 3;
     HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(
-        domain_decomposer.subdomain_shape(curr_subdomain_id));
+        domain_decomposer.subdomain_shape(curr_subdomain_id),
+        config.max_larget_level);
     log::info("Adapt Refactor to hierarchy");
     refactor.Adapt(hierarchy, config, current_queue);
     total_size += hierarchy.total_num_elems() * sizeof(T);

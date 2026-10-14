@@ -28,23 +28,31 @@ public:
 
   bool initialized = false;
 
-  std::string GenHierarchyKey(std::vector<SIZE> shape) {
+  // A hierarchy is determined by its shape together with the cap on its depth
+  // (Config::max_larget_level): the same shape under a different cap has a
+  // different number of levels. Both are part of the key; keying on the shape
+  // alone let a decompress (or a later compress) silently reuse a hierarchy
+  // that was built for another cap.
+  std::string GenHierarchyKey(std::vector<SIZE> shape, SIZE max_larget_level) {
     std::stringstream ss;
     for (int i = 0; i < shape.size(); i++) {
       ss << std::setfill('0') << std::setw(20) << shape[i] << std::fixed;
     }
+    ss << "|" << max_larget_level;
     return ss.str();
   }
 
-  bool InHierarchyCache(std::vector<SIZE> shape, bool uniform) {
+  bool InHierarchyCache(std::vector<SIZE> shape, bool uniform,
+                        SIZE max_larget_level) {
     if (!initialized) {
       return false;
     } else if (!uniform) {
       return false;
-    } else if (hierarchy_cache->find(GenHierarchyKey(shape)) ==
-               hierarchy_cache->end()) {
+    } else if (hierarchy_cache->find(GenHierarchyKey(
+                   shape, max_larget_level)) == hierarchy_cache->end()) {
       return false;
-    } else if ((*hierarchy_cache)[GenHierarchyKey(shape)].data_structure() ==
+    } else if ((*hierarchy_cache)[GenHierarchyKey(shape, max_larget_level)]
+                   .data_structure() ==
                data_structure_type::Cartesian_Grid_Non_Uniform) {
       return false;
     } else {
@@ -52,23 +60,26 @@ public:
     }
   }
 
-  void InsertHierarchyCache(HierarchyType hierarchy) {
+  void InsertHierarchyCache(HierarchyType hierarchy, SIZE max_larget_level) {
     std::vector<SIZE> shape = hierarchy.level_shape(hierarchy.l_target());
-    (*hierarchy_cache)[GenHierarchyKey(shape)] = hierarchy;
+    (*hierarchy_cache)[GenHierarchyKey(shape, max_larget_level)] = hierarchy;
     std::stringstream ss;
     for (int i = 0; i < shape.size(); i++) {
       ss << shape[i] << " ";
     }
-    log::info("Add hierarchy with shape ( " + ss.str() + ") into cache");
+    log::info("Add hierarchy with shape ( " + ss.str() + ") and max level " +
+              std::to_string(max_larget_level) + " into cache");
   }
 
-  HierarchyType &GetHierarchyCache(std::vector<SIZE> shape) {
+  HierarchyType &GetHierarchyCache(std::vector<SIZE> shape,
+                                   SIZE max_larget_level) {
     std::stringstream ss;
     for (int i = 0; i < shape.size(); i++) {
       ss << shape[i] << " ";
     }
-    log::info("Get hierarchy with shape ( " + ss.str() + ") from cache");
-    return (*hierarchy_cache)[GenHierarchyKey(shape)];
+    log::info("Get hierarchy with shape ( " + ss.str() + ") and max level " +
+              std::to_string(max_larget_level) + " from cache");
+    return (*hierarchy_cache)[GenHierarchyKey(shape, max_larget_level)];
   }
 
   void Release() {

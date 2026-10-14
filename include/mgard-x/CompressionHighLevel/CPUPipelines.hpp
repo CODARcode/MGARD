@@ -18,15 +18,17 @@ enum compress_status_type compress_pipeline_cpu(
       Cache::cache.device_compressed_buffer;
 
   if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(0),
-                                     domain_decomposer.uniform)) {
+                                     domain_decomposer.uniform,
+                                     config.max_larget_level)) {
     Cache::cache.ClearHierarchyCache();
   }
 
   for (SIZE id = 0; id < domain_decomposer.num_subdomains(); id++) {
     if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(id),
-                                       domain_decomposer.uniform)) {
+                                       domain_decomposer.uniform,
+                                       config.max_larget_level)) {
       Cache::cache.InsertHierarchyCache(
-          domain_decomposer.subdomain_hierarchy(id));
+          domain_decomposer.subdomain_hierarchy(id), config.max_larget_level);
     }
   }
   log::info("Adjust device buffers and hierarchy");
@@ -37,8 +39,8 @@ enum compress_status_type compress_pipeline_cpu(
         {domain_decomposer.subdomain_compressed_buffer_size(
             domain_decomposer.largest_subdomain())});
 
-    HierarchyType &hierarchy =
-        Cache::cache.GetHierarchyCache(domain_decomposer.subdomain_shape(i));
+    HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(
+        domain_decomposer.subdomain_shape(i), config.max_larget_level);
     compressor[i].Adapt(hierarchy, config, 0);
   }
 
@@ -290,15 +292,17 @@ enum compress_status_type decompress_pipeline_cpu(
       Cache::cache.device_compressed_buffer;
 
   if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(0),
-                                     domain_decomposer.uniform)) {
+                                     domain_decomposer.uniform,
+                                     config.max_larget_level)) {
     Cache::cache.ClearHierarchyCache();
   }
 
   for (SIZE id = 0; id < domain_decomposer.num_subdomains(); id++) {
     if (!Cache::cache.InHierarchyCache(domain_decomposer.subdomain_shape(id),
-                                       domain_decomposer.uniform)) {
+                                       domain_decomposer.uniform,
+                                       config.max_larget_level)) {
       Cache::cache.InsertHierarchyCache(
-          domain_decomposer.subdomain_hierarchy(id));
+          domain_decomposer.subdomain_hierarchy(id), config.max_larget_level);
     }
   }
 
@@ -310,8 +314,8 @@ enum compress_status_type decompress_pipeline_cpu(
         {domain_decomposer.subdomain_compressed_buffer_size(
             domain_decomposer.largest_subdomain())});
 
-    HierarchyType &hierarchy =
-        Cache::cache.GetHierarchyCache(domain_decomposer.subdomain_shape(i));
+    HierarchyType &hierarchy = Cache::cache.GetHierarchyCache(
+        domain_decomposer.subdomain_shape(i), config.max_larget_level);
     compressor[i].Adapt(hierarchy, config, 0);
   }
   std::vector<SIZE> compressed_size(domain_decomposer.num_subdomains(), 0);

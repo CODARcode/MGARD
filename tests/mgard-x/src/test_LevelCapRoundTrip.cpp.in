@@ -119,4 +119,35 @@ TEST_CASE(
   REQUIRE(round_trip_error(data, writer, reader) <= kTol * kSlack);
 }
 
+TEST_CASE("the hierarchy cache tells depth caps apart",
+          "[mgard-x][@DEVICE_TYPE@][LevelCapRoundTrip]") {
+  // Keyed on the shape alone, the cache handed a compress (or decompress)
+  // the hierarchy left behind by the previous call for the same shape, cap
+  // or no cap. Within one process that is self-consistent, so it only shows
+  // in the output size: the same input and Config must compress to the same
+  // number of bytes whether or not the other cap's hierarchy is cached.
+  std::vector<float> data = smooth_field();
+  Config uncapped = device_config();
+  Config capped = device_config();
+  capped.max_larget_level = 1;
+
+  // Reference sizes, each from a cache that holds nothing for this shape.
+  release_cache(uncapped);
+  size_t uncapped_size = compress_with(data, uncapped).size();
+  release_cache(uncapped);
+  size_t capped_size = compress_with(data, capped).size();
+  REQUIRE(capped_size != uncapped_size);
+
+  // Alternate without releasing: each call must get its own cap's hierarchy.
+  REQUIRE(compress_with(data, uncapped).size() == uncapped_size);
+  REQUIRE(compress_with(data, capped).size() == capped_size);
+  REQUIRE(compress_with(data, uncapped).size() == uncapped_size);
+
+  // And a decompress right after a compress with the other cap.
+  std::vector<unsigned char> capped_stream = compress_with(data, capped);
+  compress_with(data, uncapped);
+  REQUIRE(decompress_error(capped_stream, data, device_config()) <=
+          kTol * kSlack);
+}
+
 } // namespace mgard_x
