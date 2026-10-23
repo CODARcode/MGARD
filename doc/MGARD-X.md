@@ -85,13 +85,13 @@ MGARD-X is a portable implementation of the MGARD lossy compressor supporting va
 |MGARD\_ENABLE\_SYCL|ON/OFF|OFF|Enable portable GPU compression/decompression with SYCL on Intel GPUs|
 |MGARD\_ENABLE\_AUTO\_TUNING|ON/OFF|OFF|Enable auto tuning feature|
 |MGARD\_ENABLE\_MDR|ON/OFF|OFF|Enable building MDR and MDR-X. MPI is optional: the parallel ```pmdr-x-qoi``` and ```pmdr-x-qoi-io``` executables are built only when MPI is found|
-|MGARD\_ENABLE\_DATA\_COMPATIBILITY|ON/OFF|OFF|Also build the MGARD 1.6.0-compatible decompression pipeline so that data compressed by MGARD 1.6.x and earlier can be decompressed (see [Decompressing data from earlier versions](#decompressing-data-from-earlier-versions)). Roughly doubles the MGARD-X build time|
+|MGARD\_ENABLE\_DATA\_COMPATIBILITY|ON/OFF|ON|Also build the MGARD 1.6.0-compatible decompression pipeline so that data compressed by MGARD 1.6.x and earlier can be decompressed (see [Decompressing data from earlier versions](#decompressing-data-from-earlier-versions)). Adds build time and library size; turn OFF if no 1.6.x data needs to be read|
 
 ## Decompressing data from earlier versions
 Data compressed by MGARD 1.7.0 uses a different format from MGARD 1.6.x (hierarchy geometry, Huffman layout, default number of levels, and domain decomposition header). Decompression reads the software version recorded in the header of the compressed data and handles each version as follows:
 
 * **Compressed by 1.7.0:** decompressed by the 1.7.0 pipeline.
-* **Compressed by 1.6.x or earlier:** decompressed by a separate pipeline that reproduces the MGARD 1.6.0 decompressor, if MGARD-X is built with ```-DMGARD_ENABLE_DATA_COMPATIBILITY=ON```. The result is the same as decompressing with MGARD 1.6.0 (bit-identical on CPUs). Without this option, decompression returns ```mgard_x::compress_status_type::DataCompatibilityNotEnabledFailure```.
+* **Compressed by 1.6.x or earlier:** decompressed by a separate pipeline that reproduces the MGARD 1.6.0 decompressor, which is built by default (```MGARD_ENABLE_DATA_COMPATIBILITY=ON```). The result is the same as decompressing with MGARD 1.6.0 (bit-identical on CPUs). If MGARD-X is built with ```-DMGARD_ENABLE_DATA_COMPATIBILITY=OFF```, decompression returns ```mgard_x::compress_status_type::DataCompatibilityNotEnabledFailure```.
 
 This is transparent to users: the same CLI and high-level APIs decompress both formats, and decompression needs no extra configuration. Compression always produces the 1.7.0 format. Data compressed by MGARD 1.6.x with the variable-size domain decomposition (```domain_decomposition_type::Variable```) is not supported, because its block sizes are not recorded in the header.
 
@@ -230,7 +230,7 @@ An executable ```mgard-x``` will be built after building the MGARD-X library. To
         + mgard_x::compress_status_type::NotSupportHigherNumberOfDimensionsFailure
         + mgard_x::compress_status_type::NotSupportDataTypeFailure
         + mgard_x::compress_status_type::BackendNotAvailableFailure
-        + mgard_x::compress_status_type::DataCompatibilityNotEnabledFailure: the data was compressed by MGARD 1.6.x or earlier and MGARD-X was built without ```MGARD_ENABLE_DATA_COMPATIBILITY``` (see [Decompressing data from earlier versions](#decompressing-data-from-earlier-versions))
+        + mgard_x::compress_status_type::DataCompatibilityNotEnabledFailure: the data was compressed by MGARD 1.6.x or earlier and MGARD-X was built with ```MGARD_ENABLE_DATA_COMPATIBILITY=OFF``` (see [Decompressing data from earlier versions](#decompressing-data-from-earlier-versions))
 
 ## Using low-level APIs
 * **Step 1: Build Hierarchy**
