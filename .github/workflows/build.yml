@@ -17,7 +17,7 @@ jobs:
         build-MOAB:
                 runs-on: ubuntu-24.04
                 steps:
-                        - run: sudo apt-get install mpich libmpich-dev liblapack-dev
+                        - run: sudo apt-get update && sudo apt-get install mpich libmpich-dev liblapack-dev
                         - name: cache-MOAB
                           id: cache-MOAB
                           uses: actions/cache@v4
@@ -97,7 +97,7 @@ jobs:
                 needs: [build-MOAB, build-Catch2, build-TCLAP, build-ZSTD]
                 runs-on: ubuntu-24.04
                 steps:
-                        - run: sudo apt-get install mpich doxygen libmpich-dev liblapack-dev libzstd1 libzstd-dev libtclap-dev protobuf-compiler libprotobuf-dev
+                        - run: sudo apt-get update && sudo apt-get install mpich doxygen libmpich-dev liblapack-dev libzstd1 libzstd-dev libtclap-dev protobuf-compiler libprotobuf-dev
                         - name: checkout
                           uses: actions/checkout@v4
                         - name: fetch-MOAB

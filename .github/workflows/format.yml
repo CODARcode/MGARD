@@ -7,7 +7,7 @@ jobs:
         clang-format:
                 runs-on: ubuntu-22.04
                 steps:
-                        - run: sudo apt-get install clang-format
+                        - run: sudo apt-get update && sudo apt-get install clang-format
                         - uses: actions/checkout@v2.3.4
                           with:
                                   repository: Sarcasm/run-clang-format
