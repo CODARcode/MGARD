@@ -47,7 +47,7 @@ option(MGARD_ENABLE_UNSTRUCTURED "Enable experimental unstructured mesh support.
 
 option(MGARD_ENABLE_TIMING "Enable timing." OFF)
 
-option(MGARD_ENABLE_DATA_COMPATIBILITY "Also build the separate MGARD 1.6.0-compatible decompression pipeline (src/mgard-x-160) so data compressed by MGARD 1.6.x can be decompressed. Roughly doubles MGARD-X build time." OFF)
+option(MGARD_ENABLE_DATA_COMPATIBILITY "Also build the separate MGARD 1.6.0-compatible decompression pipeline (src/mgard-x-160) so data compressed by MGARD 1.6.x can be decompressed. Adds build time and library size; turn OFF if no 1.6.x data needs to be read." ON)
 
 include(CTest)
 
