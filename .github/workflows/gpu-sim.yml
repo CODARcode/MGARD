@@ -1,0 +1,104 @@
+name: gpu-sim
+
+# Builds the MGARD-X runtime with the HIP backend for gfx942 and runs its
+# lossless codec Catch2 tests on a simulated AMD Instinct MI300X
+# (https://github.com/pantheongpu/pantheonsim), since hosted runners have no
+# GPU. A simulator cannot reproduce hardware-specific behavior or timing, so
+# this complements real-GPU testing and does not replace it.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "include/mgard-x/**"
+      - "src/mgard-x/**"
+      - "tests/mgard-x/**"
+      - "cmake/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/gpu-sim.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  hip-sim:
+    name: mgard-x tests (ROCm 7.1 and simulated MI300X)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      ROCM_PATH: /opt/rocm
+      # Run kernel launches synchronously.
+      VGPU_ASYNC_LAUNCH: "0"
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up the simulated GPU and ROCm
+        uses: pantheongpu/setup-pantheonsim@a1b9d4237411f9b2b0e0bb895b4d83377f336a7b # v0.1.9
+        with:
+          gpu: amd/mi300x
+          cuda-toolkit: none
+          rocm: "7.1"
+
+      # The action installs only the compiler side of ROCm. find_package(HIP)
+      # also needs comgr and the HSA runtime, and MGARD-X needs rocPRIM,
+      # hipCUB and rocThrust.
+      - name: Install the ROCm and build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y comgr hsa-rocr rocprim-dev hipcub-dev rocthrust-dev \
+            catch2 libprotobuf-dev protobuf-compiler libzstd-dev zlib1g-dev \
+            pkg-config python3
+
+      # The full library instantiates the compressor for every dimension and
+      # data type, and was still building on a hosted runner after 1.5 hours.
+      # The lossless
+      # tests below need only the runtime part of it, so the checkout is edited
+      # (not committed) to build the Catch2 targets for Huffman, BlockDelta,
+      # RLE, ZeroRLE, rANS, LZ4 and Zstd, and to leave the Hierarchy,
+      # DataRefactoring and Compressor sources out of the library.
+      - name: Select the tests to build
+        run: |
+          sed -i -E '/^  mgard_x_add_/{/test_(Huffman|BlockDelta|RLE|ZeroRLE|Rans|LZ4|Zstd) /!d}' tests/mgard-x/CMakeLists.txt
+          sed -i -E '/add_subdirectory \((Hierarchy|DataRefactoring|CompressionLowLevel|CompressionHighLevel)\)/d' src/mgard-x/CMakeLists.txt
+          git diff --stat
+          grep -n "^  mgard_x_add_" tests/mgard-x/CMakeLists.txt
+
+      # -include cstdint: include/mgard-x/Metadata/Metadata.hpp uses
+      # std::uint64_t without including <cstdint>, which GCC 13 needs.
+      # Release, not the empty build type: unoptimized HIP code is very slow
+      # on the simulator. MDR and the 1.6.0 compatibility decoder are off to
+      # keep the build short.
+      - name: Configure
+        run: |
+          export PATH="$PATH:${ROCM_PATH}/llvm/bin"
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="${ROCM_PATH}" \
+            -DCMAKE_CXX_FLAGS="-I${ROCM_PATH}/include -include cstdint" \
+            -DCMAKE_HIP_ARCHITECTURES=gfx942 \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DMGARD_ENABLE_HIP=ON \
+            -DMGARD_ENABLE_MDR=OFF \
+            -DMGARD_ENABLE_DATA_COMPATIBILITY=OFF
+
+      - name: Build
+        run: |
+          export PATH="$PATH:${ROCM_PATH}/llvm/bin"
+          cmake --build build -j3 --target mgard-x-tests-HIP
+
+      # Catch2 exits non-zero when an assertion fails. Check the summary too,
+      # so that a run that executed nothing does not count as a pass.
+      - name: Run the tests
+        run: |
+          set -o pipefail
+          vgpu run ./build/bin/mgard-x-tests-HIP 2>&1 | tee tests.log
+          grep -E "All tests passed \([1-9][0-9]* assertions? in [1-9][0-9]* test cases?\)" tests.log
+          if grep -qiE "VirtualGPU error|no device|no ROCm-capable" tests.log; then
+            echo "::error::the simulator reported an error"; exit 1
+          fi
